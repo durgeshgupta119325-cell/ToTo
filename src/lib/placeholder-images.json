@@ -1,3 +1,10 @@
 {
-  "placeholderImages": []
+  "placeholderImages": [
+    {
+      "id": "landing-hero",
+      "description": "A vibrant city street with e-rickshaws and cabs",
+      "imageUrl": "https://picsum.photos/seed/toto-hero/600/600",
+      "imageHint": "city street"
+    }
+  ]
 }
