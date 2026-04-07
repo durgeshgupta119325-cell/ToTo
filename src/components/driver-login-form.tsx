@@ -4,6 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Eye, EyeOff } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -37,6 +38,7 @@ const formSchema = z.object({
 export function DriverLoginForm() {
   const [showPassword, setShowPassword] = useState(false);
   const { toast } = useToast();
+  const router = useRouter();
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -53,7 +55,7 @@ export function DriverLoginForm() {
       title: "Login Successful",
       description: "Welcome back! Redirecting to your dashboard...",
     });
-    // On success, you might redirect: router.push('/driver/dashboard');
+    router.push('/driver/dashboard');
   }
 
   return (
