@@ -19,6 +19,7 @@ import {
   IndianRupee,
   MoreHorizontal,
   Trash2,
+  Percent,
 } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
@@ -66,6 +67,7 @@ const drivers = [
     email: 'ramesh@example.com',
     vehicleNumber: 'MH12AB1234',
     accountNumber: '...1234',
+    grossEarnings: 12500,
   },
   {
     id: 'DRV002',
@@ -73,6 +75,7 @@ const drivers = [
     email: 'suresh@example.com',
     vehicleNumber: 'DL01CD5678',
     accountNumber: '...5678',
+    grossEarnings: 9800,
   },
   {
     id: 'DRV003',
@@ -80,6 +83,7 @@ const drivers = [
     email: 'deepak@example.com',
     vehicleNumber: 'KA05EF9012',
     accountNumber: '...9012',
+    grossEarnings: 15200,
   },
 ];
 
@@ -148,7 +152,8 @@ export default function AdminDashboardPage() {
   // Dummy data for dashboard stats
   const dashboardStats = {
     totalRides: 1250,
-    totalEarnings: 85230,
+    grossVolume: 85230,
+    platformCommission: 85230 * 0.02,
   };
 
   return (
@@ -186,7 +191,7 @@ export default function AdminDashboardPage() {
 
             {/* Overview Tab */}
             <TabsContent value="overview">
-              <div className="mt-6 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+              <div className="mt-6 grid gap-6 md:grid-cols-2 lg:grid-cols-4">
                 <Card>
                   <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                     <CardTitle className="text-sm font-medium">
@@ -222,16 +227,32 @@ export default function AdminDashboardPage() {
                 <Card>
                   <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                     <CardTitle className="text-sm font-medium">
-                      Total Earnings
+                      Gross Volume
                     </CardTitle>
                     <IndianRupee className="h-4 w-4 text-muted-foreground" />
                   </CardHeader>
                   <CardContent>
                     <div className="text-2xl font-bold">
-                      ₹{dashboardStats.totalEarnings.toLocaleString()}
+                      ₹{dashboardStats.grossVolume.toLocaleString()}
                     </div>
                     <p className="text-xs text-muted-foreground">
-                      Gross transaction volume
+                      Total value of all rides
+                    </p>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">
+                      Platform Commission
+                    </CardTitle>
+                    <Percent className="h-4 w-4 text-muted-foreground" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">
+                      ₹{dashboardStats.platformCommission.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      2% of Gross Volume
                     </p>
                   </CardContent>
                 </Card>
@@ -256,6 +277,8 @@ export default function AdminDashboardPage() {
                         <TableHead>Email</TableHead>
                         <TableHead>Vehicle No.</TableHead>
                         <TableHead>Account No.</TableHead>
+                        <TableHead className="text-right">Gross Earnings</TableHead>
+                        <TableHead className="text-right">Net Payout</TableHead>
                         <TableHead>
                           <span className="sr-only">Actions</span>
                         </TableHead>
@@ -271,6 +294,12 @@ export default function AdminDashboardPage() {
                           <TableCell>{driver.email}</TableCell>
                           <TableCell>{driver.vehicleNumber}</TableCell>
                           <TableCell>{driver.accountNumber}</TableCell>
+                          <TableCell className="text-right">
+                            ₹{driver.grossEarnings.toLocaleString()}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            ₹{(driver.grossEarnings * 0.98).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          </TableCell>
                           <TableCell>
                             <AlertDialog>
                               <DropdownMenu>
