@@ -1,63 +1,21 @@
 "use client";
 
-import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import {
-  generateDriverCommunicationMessages,
-  type DriverCommunicationAssistantInput,
-} from '@/ai/flows/driver-communication-assistant';
 import { Button } from '@/components/ui/button';
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { Icons } from '@/components/icons';
-import { LogOut, MessageSquare, Copy } from 'lucide-react';
-import { Skeleton } from '@/components/ui/skeleton';
-
-type TripStatus = DriverCommunicationAssistantInput['tripStatus'];
+import { LogOut, Car, IndianRupee, Star } from 'lucide-react';
 
 export default function DriverDashboardPage() {
   const router = useRouter();
   const { toast } = useToast();
-  const [tripStatus, setTripStatus] = useState<TripStatus>('en_route');
-  const [suggestedMessages, setSuggestedMessages] = useState<string[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-
-  const handleGenerateMessages = async () => {
-    setIsLoading(true);
-    setSuggestedMessages([]);
-    try {
-      const { suggestedMessages: messages } =
-        await generateDriverCommunicationMessages({
-          tripStatus,
-          riderName: 'Jane', // Example rider name
-        });
-      setSuggestedMessages(messages);
-    } catch (error) {
-      console.error(error);
-      toast({
-        variant: 'destructive',
-        title: 'Error Generating Messages',
-        description:
-          'There was a problem generating messages. Please try again.',
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   const handleLogout = () => {
     toast({
@@ -65,6 +23,13 @@ export default function DriverDashboardPage() {
       description: 'You have been successfully logged out.',
     });
     router.push('/driver/login');
+  };
+
+  // Dummy data for dashboard stats
+  const dashboardStats = {
+    rides: 12,
+    earnings: 1540,
+    rating: 4.8,
   };
 
   return (
@@ -83,96 +48,59 @@ export default function DriverDashboardPage() {
       </header>
 
       <main className="flex-1 p-4 md:p-8">
-        <div className="mx-auto max-w-2xl">
-          <Card>
-            <CardHeader>
-              <div className="flex items-center gap-3">
-                <MessageSquare className="h-8 w-8 text-primary" />
-                <div>
-                  <CardTitle>AI Communication Assistant</CardTitle>
-                  <CardDescription>
-                    Generate quick messages to send to your rider.
-                  </CardDescription>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="space-y-2">
-                <label
-                  htmlFor="trip-status"
-                  className="text-sm font-medium"
-                >
-                  Current Trip Status
-                </label>
-                <Select
-                  value={tripStatus}
-                  onValueChange={(value) => setTripStatus(value as TripStatus)}
-                >
-                  <SelectTrigger id="trip-status">
-                    <SelectValue placeholder="Select trip status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="en_route">En Route to Pickup</SelectItem>
-                    <SelectItem value="arrived_at_pickup">
-                      Arrived at Pickup
-                    </SelectItem>
-                    <SelectItem value="waiting_for_rider">
-                      Waiting for Rider
-                    </SelectItem>
-                    <SelectItem value="ride_started">Ride Started</SelectItem>
-                    <SelectItem value="approaching_destination">
-                      Approaching Destination
-                    </SelectItem>
-                    <SelectItem value="other">Other</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <Button
-                onClick={handleGenerateMessages}
-                disabled={isLoading}
-                className="w-full"
-              >
-                {isLoading ? 'Generating...' : 'Generate Messages'}
-              </Button>
-
-              <div className="space-y-4">
-                <h3 className="font-semibold">Suggested Messages:</h3>
-                <div className="space-y-3">
-                  {isLoading && (
-                    <>
-                      <Skeleton className="h-10 w-full" />
-                      <Skeleton className="h-10 w-full" />
-                      <Skeleton className="h-10 w-full" />
-                    </>
-                  )}
-                  {suggestedMessages.map((message, index) => (
-                    <div
-                      key={index}
-                      className="flex items-center justify-between gap-2 rounded-lg border bg-background p-3"
-                    >
-                      <p className="text-sm">{message}</p>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => {
-                          navigator.clipboard.writeText(message);
-                          toast({ title: 'Copied to clipboard!' });
-                        }}
-                      >
-                        <Copy className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  ))}
-                  {!isLoading && suggestedMessages.length === 0 && (
-                    <div className="text-center text-sm text-muted-foreground">
-                      <p>Click "Generate Messages" to see suggestions.</p>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+        <div className="mx-auto max-w-4xl space-y-8">
+           <div>
+                <h1 className="text-3xl font-bold tracking-tight">Today's Summary</h1>
+                <p className="text-muted-foreground">A quick overview of your performance today.</p>
+            </div>
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">
+                  Today's Rides
+                </CardTitle>
+                <Car className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{dashboardStats.rides}</div>
+                <p className="text-xs text-muted-foreground">
+                  +2 from yesterday
+                </p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">
+                  Today's Earnings
+                </CardTitle>
+                <IndianRupee className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">₹{dashboardStats.earnings.toLocaleString()}</div>
+                <p className="text-xs text-muted-foreground">
+                  +5.2% from last week
+                </p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Your Rating</CardTitle>
+                 <Star className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold mb-1">{dashboardStats.rating}</div>
+                 <div className="flex items-center">
+                    {[...Array(5)].map((_, i) => {
+                        const ratingValue = i + 1;
+                        return (
+                             <Star key={i} className={`h-5 w-5 ${ratingValue <= dashboardStats.rating ? 'text-primary fill-primary' : 'text-muted-foreground/30'}`} />
+                        )
+                    })}
+                 </div>
+                 <p className="text-xs text-muted-foreground mt-2">Based on your last 50 rides</p>
+              </CardContent>
+            </Card>
+          </div>
         </div>
       </main>
     </div>
