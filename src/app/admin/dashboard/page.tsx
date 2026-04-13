@@ -404,8 +404,8 @@ export default function AdminDashboardPage() {
                     <TableHeader>
                       <TableRow>
                         <TableHead>Ride ID</TableHead>
-                        <TableHead>From</TableHead>
-                        <TableHead>To</TableHead>
+                        <TableHead>Pickup Location</TableHead>
+                        <TableHead>Drop-off Location</TableHead>
                         <TableHead>Time</TableHead>
                         <TableHead>Transaction ID</TableHead>
                       </TableRow>
