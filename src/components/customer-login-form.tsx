@@ -1,0 +1,191 @@
+"use client";
+
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
+import * as z from "zod";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+
+import { Button } from "@/components/ui/button";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { useToast } from "@/hooks/use-toast";
+import { ArrowLeft } from "lucide-react";
+
+const detailsSchema = z.object({
+  name: z.string().min(2, { message: "Name must be at least 2 characters." }),
+  email: z.string().email({ message: "Please enter a valid email address." }),
+  mobile: z.string().regex(/^\d{10}$/, { message: "Please enter a valid 10-digit mobile number." }),
+});
+
+const otpSchema = z.object({
+  otp: z.string().length(4, { message: "OTP must be 4 digits." }),
+});
+
+
+export function CustomerLoginForm() {
+  const [step, setStep] = useState<'details' | 'otp'>('details');
+  const { toast } = useToast();
+  const router = useRouter();
+
+  const detailsForm = useForm<z.infer<typeof detailsSchema>>({
+    resolver: zodResolver(detailsSchema),
+    defaultValues: {
+      name: "",
+      email: "",
+      mobile: "",
+    },
+  });
+
+  const otpForm = useForm<z.infer<typeof otpSchema>>({
+    resolver: zodResolver(otpSchema),
+    defaultValues: {
+      otp: "",
+    },
+  });
+
+  function onDetailsSubmit(values: z.infer<typeof detailsSchema>) {
+    // Mock sending OTP
+    toast({
+      title: "OTP Sent",
+      description: `An OTP has been sent to ${values.mobile}.`,
+    });
+    setStep('otp');
+  }
+
+  function onOtpSubmit(values: z.infer<typeof otpSchema>) {
+    // Mock OTP verification. Any 4 digit number will do for this demo.
+    if (values.otp.match(/^\d{4}$/)) {
+        toast({
+          title: "Login Successful",
+          description: "Welcome! Redirecting to your dashboard...",
+        });
+        router.push('/customer/dashboard');
+    } else {
+        toast({
+            variant: "destructive",
+            title: "Login Failed",
+            description: "Invalid OTP. Please try again.",
+        });
+        otpForm.reset();
+    }
+  }
+  
+  const handleGoBack = () => {
+    setStep('details');
+    otpForm.reset();
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-2xl">Customer Login / Sign Up</CardTitle>
+        <CardDescription>
+          {step === 'details' ? "Enter your details to login or create an account." : "Enter the 4-digit OTP sent to your mobile."}
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        {step === 'details' && (
+            <Form {...detailsForm}>
+            <form onSubmit={detailsForm.handleSubmit(onDetailsSubmit)} className="space-y-6">
+                <FormField
+                control={detailsForm.control}
+                name="name"
+                render={({ field }) => (
+                    <FormItem>
+                    <FormLabel>Full Name</FormLabel>
+                    <FormControl>
+                        <Input placeholder="Anjali Sharma" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                    </FormItem>
+                )}
+                />
+                <FormField
+                control={detailsForm.control}
+                name="email"
+                render={({ field }) => (
+                    <FormItem>
+                    <FormLabel>Email</FormLabel>
+                    <FormControl>
+                        <Input placeholder="anjali@example.com" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                    </FormItem>
+                )}
+                />
+                <FormField
+                control={detailsForm.control}
+                name="mobile"
+                render={({ field }) => (
+                    <FormItem>
+                    <FormLabel>Mobile Number</FormLabel>
+                    <FormControl>
+                        <Input placeholder="9876543210" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                    </FormItem>
+                )}
+                />
+                <Button
+                type="submit"
+                className="w-full"
+                disabled={detailsForm.formState.isSubmitting}
+                >
+                {detailsForm.formState.isSubmitting ? "Sending OTP..." : "Send OTP"}
+                </Button>
+            </form>
+            </Form>
+        )}
+
+        {step === 'otp' && (
+            <Form {...otpForm}>
+            <form onSubmit={otpForm.handleSubmit(onOtpSubmit)} className="space-y-6">
+                 <FormField
+                    control={otpForm.control}
+                    name="otp"
+                    render={({ field }) => (
+                        <FormItem>
+                        <FormLabel>One-Time Password</FormLabel>
+                        <FormControl>
+                            <Input placeholder="1234" {...field} maxLength={4} />
+                        </FormControl>
+                        <FormMessage />
+                        </FormItem>
+                    )}
+                />
+
+                <div className="flex flex-col gap-2">
+                    <Button
+                    type="submit"
+                    className="w-full"
+                    disabled={otpForm.formState.isSubmitting}
+                    >
+                    {otpForm.formState.isSubmitting ? "Verifying..." : "Verify OTP & Login"}
+                    </Button>
+                    <Button variant="outline" type="button" onClick={handleGoBack}>
+                        <ArrowLeft className="mr-2 h-4 w-4" /> Go Back
+                    </Button>
+                </div>
+            </form>
+            </Form>
+        )}
+
+      </CardContent>
+    </Card>
+  );
+}

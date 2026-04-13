@@ -22,6 +22,9 @@ export default function Home() {
             <Button variant="ghost" asChild>
               <Link href="/admin/login">Admin</Link>
             </Button>
+            <Button asChild>
+              <Link href="/customer/login">Login / Sign Up</Link>
+            </Button>
           </nav>
         </div>
       </header>
