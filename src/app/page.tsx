@@ -15,9 +15,12 @@ export default function Home() {
           <Link href="/" className="flex items-center space-x-2">
             <Icons.TotoLogo className="h-6 w-auto text-primary" />
           </Link>
-          <nav>
+          <nav className="flex items-center gap-2">
             <Button variant="ghost" asChild>
               <Link href="/support">Support</Link>
+            </Button>
+            <Button variant="ghost" asChild>
+              <Link href="/admin/login">Admin</Link>
             </Button>
           </nav>
         </div>
