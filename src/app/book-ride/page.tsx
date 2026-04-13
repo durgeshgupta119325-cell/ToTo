@@ -72,7 +72,7 @@ export default function BookRidePage() {
             <Card className="w-full max-w-md">
               <CardHeader>
                 <CardTitle>Book Your Ride</CardTitle>
-                <CardDescription>Enter your pickup and drop-off locations.</CardDescription>
+                <CardDescription>Enter your pickup and drop-off locations. Please note, service is limited to a 10km range.</CardDescription>
               </CardHeader>
               <CardContent>
                 <form onSubmit={handleSearch} className="space-y-4">
