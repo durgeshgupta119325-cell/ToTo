@@ -404,8 +404,7 @@ export default function AdminDashboardPage() {
                     <TableHeader>
                       <TableRow>
                         <TableHead>Ride ID</TableHead>
-                        <TableHead>Pickup Location</TableHead>
-                        <TableHead>Drop-off Location</TableHead>
+                        <TableHead>Pick up and drop out</TableHead>
                         <TableHead>Time</TableHead>
                         <TableHead>Transaction ID</TableHead>
                       </TableRow>
@@ -414,8 +413,9 @@ export default function AdminDashboardPage() {
                       {selectedCustomer.rides.map((ride) => (
                         <TableRow key={ride.rideId}>
                           <TableCell>{ride.rideId}</TableCell>
-                          <TableCell>{ride.from}</TableCell>
-                          <TableCell>{ride.to}</TableCell>
+                          <TableCell>
+                            {ride.from} to {ride.to}
+                          </TableCell>
                           <TableCell>{ride.time}</TableCell>
                           <TableCell>{ride.transactionId}</TableCell>
                         </TableRow>
