@@ -70,9 +70,11 @@ export function CustomerLoginForm() {
   function onOtpSubmit(values: z.infer<typeof otpSchema>) {
     // Mock OTP verification. Any 4 digit number will do for this demo.
     if (values.otp.match(/^\d{4}$/)) {
+        const customerData = detailsForm.getValues();
+        localStorage.setItem('toto-customer', JSON.stringify(customerData));
         toast({
           title: "Login Successful",
-          description: "Welcome! Redirecting to your dashboard...",
+          description: "Welcome! You will be kept logged in.",
         });
         router.push('/customer/dashboard');
     } else {

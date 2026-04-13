@@ -21,15 +21,16 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { useEffect, useState } from 'react';
+
+type Customer = {
+  name: string;
+  email: string;
+  mobile: string;
+};
 
 
 // Mock Data
-const customer = {
-    name: 'Anjali Sharma',
-    email: 'anjali@example.com',
-    phone: '9876543210',
-};
-
 const rideHistory = [
     {
         rideId: 'RIDE001',
@@ -58,14 +59,39 @@ const rideHistory = [
 export default function CustomerDashboardPage() {
   const router = useRouter();
   const { toast } = useToast();
+  const [customer, setCustomer] = useState<Customer | null>(null);
+
+  useEffect(() => {
+    const storedCustomer = localStorage.getItem('toto-customer');
+    if (storedCustomer) {
+      try {
+        setCustomer(JSON.parse(storedCustomer));
+      } catch (error) {
+        console.error("Failed to parse customer data from localStorage", error);
+        localStorage.removeItem('toto-customer');
+        router.push('/customer/login');
+      }
+    } else {
+      router.push('/customer/login');
+    }
+  }, [router]);
 
   const handleLogout = () => {
+    localStorage.removeItem('toto-customer');
     toast({
       title: 'Logged Out',
       description: 'You have been successfully logged out.',
     });
     router.push('/');
   };
+
+  if (!customer) {
+    return (
+      <div className="flex min-h-dvh flex-col items-center justify-center bg-secondary">
+        <p>Loading your dashboard...</p>
+      </div>
+    );
+  }
 
 
   return (
@@ -110,8 +136,8 @@ export default function CustomerDashboardPage() {
                             <p>{customer.email}</p>
                         </div>
                         <div>
-                            <p className="font-semibold text-muted-foreground">Phone</p>
-                            <p>{customer.phone}</p>
+                            <p className="font-semibold text-muted-foreground">Mobile</p>
+                            <p>{customer.mobile}</p>
                         </div>
                          <Button variant="outline" size="sm" className="mt-4 w-full">Edit Profile</Button>
                     </CardContent>
