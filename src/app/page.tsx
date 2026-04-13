@@ -11,10 +11,15 @@ export default function Home() {
   return (
     <div className="flex flex-col min-h-dvh bg-background">
       <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="container flex h-14 items-center">
+        <div className="container flex h-14 items-center justify-between">
           <Link href="/" className="flex items-center space-x-2">
             <Icons.TotoLogo className="h-6 w-auto text-primary" />
           </Link>
+          <nav>
+            <Button variant="ghost" asChild>
+              <Link href="/support">Support</Link>
+            </Button>
+          </nav>
         </div>
       </header>
       <main className="flex-1">
