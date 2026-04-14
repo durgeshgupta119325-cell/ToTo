@@ -137,73 +137,73 @@ const customers = [
   },
 ];
 
-const ALL_AVAILABLE_CITIES = [
-    { city: 'Visakhapatnam', state: 'Andhra Pradesh' },
-    { city: 'Vijayawada', state: 'Andhra Pradesh' },
-    { city: 'Guntur', state: 'Andhra Pradesh' },
-    { city: 'Guwahati', state: 'Assam' },
-    { city: 'Patna', state: 'Bihar' },
-    { city: 'Chandigarh', state: 'Chandigarh' },
-    { city: 'Raipur', state: 'Chhattisgarh' },
-    { city: 'Bhilai', state: 'Chhattisgarh' },
-    { city: 'Delhi', state: 'Delhi' },
-    { city: 'Ahmedabad', state: 'Gujarat' },
-    { city: 'Surat', state: 'Gujarat' },
-    { city: 'Vadodara', state: 'Gujarat' },
-    { city: 'Rajkot', state: 'Gujarat' },
-    { city: 'Gurugram', state: 'Haryana' },
-    { city: 'Faridabad', state: 'Haryana' },
-    { city: 'Shimla', state: 'Himachal Pradesh' },
-    { city: 'Ranchi', state: 'Jharkhand' },
-    { city: 'Jamshedpur', state: 'Jharkhand' },
-    { city: 'Srinagar', state: 'Jammu and Kashmir' },
-    { city: 'Jammu', state: 'Jammu and Kashmir' },
-    { city: 'Bengaluru', state: 'Karnataka' },
-    { city: 'Mysore', state: 'Karnataka' },
-    { city: 'Mangalore', state: 'Karnataka' },
-    { city: 'Hubli-Dharwad', state: 'Karnataka' },
-    { city: 'Kochi', state: 'Kerala' },
-    { city: 'Thiruvananthapuram', state: 'Kerala' },
-    { city: 'Kozhikode', state: 'Kerala' },
-    { city: 'Bhopal', state: 'Madhya Pradesh' },
-    { city: 'Indore', state: 'Madhya Pradesh' },
-    { city: 'Gwalior', state: 'Madhya Pradesh' },
-    { city: 'Jabalpur', state: 'Madhya Pradesh' },
-    { city: 'Mumbai', state: 'Maharashtra' },
-    { city: 'Pune', state: 'Maharashtra' },
-    { city: 'Nagpur', state: 'Maharashtra' },
-    { city: 'Thane', state: 'Maharashtra' },
-    { city: 'Pimpri-Chinchwad', state: 'Maharashtra' },
-    { city: 'Nashik', state: 'Maharashtra' },
-    { city: 'Aurangabad', state: 'Maharashtra' },
-    { city: 'Solapur', state: 'Maharashtra' },
-    { city: 'Navi Mumbai', state: 'Maharashtra' },
-    { city: 'Bhubaneswar', state: 'Odisha' },
-    { city: 'Cuttack', state: 'Odisha' },
-    { city: 'Ludhiana', state: 'Punjab' },
-    { city: 'Amritsar', state: 'Punjab' },
-    { city: 'Jalandhar', state: 'Punjab' },
-    { city: 'Jaipur', state: 'Rajasthan' },
-    { city: 'Jodhpur', state: 'Rajasthan' },
-    { city: 'Kota', state: 'Rajasthan' },
-    { city: 'Udaipur', state: 'Rajasthan' },
-    { city: 'Ajmer', state: 'Rajasthan' },
-    { city: 'Chennai', state: 'Tamil Nadu' },
-    { city: 'Coimbatore', state: 'Tamil Nadu' },
-    { city: 'Madurai', state: 'Tamil Nadu' },
-    { city: 'Tiruchirappalli', state: 'Tamil Nadu' },
-    { city: 'Hyderabad', state: 'Telangana' },
-    { city: 'Warangal', state: 'Telangana' },
-    { city: 'Lucknow', state: 'Uttar Pradesh' },
-    { city: 'Kanpur', state: 'Uttar Pradesh' },
-    { city: 'Noida', state: 'Uttar Pradesh' },
-    { city: 'Agra', state: 'Uttar Pradesh' },
-    { city: 'Ghaziabad', state: 'Uttar Pradesh' },
-    { city: 'Varanasi', state: 'Uttar Pradesh' },
-    { city: 'Meerut', state: 'Uttar Pradesh' },
-    { city: 'Prayagraj', state: 'Uttar Pradesh' },
-    { city: 'Dehradun', state: 'Uttarakhand' },
-    { city: 'Kolkata', state: 'West Bengal' },
+const LOCATIONS_DATA = [
+    { state: 'Andhra Pradesh', district: 'Visakhapatnam', city: 'Visakhapatnam' },
+    { state: 'Andhra Pradesh', district: 'Krishna', city: 'Vijayawada' },
+    { state: 'Andhra Pradesh', district: 'Guntur', city: 'Guntur' },
+    { state: 'Assam', district: 'Kamrup Metropolitan', city: 'Guwahati' },
+    { state: 'Bihar', district: 'Patna', city: 'Patna' },
+    { state: 'Chandigarh', district: 'Chandigarh', city: 'Chandigarh' },
+    { state: 'Chhattisgarh', district: 'Raipur', city: 'Raipur' },
+    { state: 'Chhattisgarh', district: 'Durg', city: 'Bhilai' },
+    { state: 'Delhi', district: 'New Delhi', city: 'Delhi' },
+    { state: 'Gujarat', district: 'Ahmedabad', city: 'Ahmedabad' },
+    { state: 'Gujarat', district: 'Surat', city: 'Surat' },
+    { state: 'Gujarat', district: 'Vadodara', city: 'Vadodara' },
+    { state: 'Gujarat', district: 'Rajkot', city: 'Rajkot' },
+    { state: 'Haryana', district: 'Gurgaon', city: 'Gurugram' },
+    { state: 'Haryana', district: 'Faridabad', city: 'Faridabad' },
+    { state: 'Himachal Pradesh', district: 'Shimla', city: 'Shimla' },
+    { state: 'Jharkhand', district: 'Ranchi', city: 'Ranchi' },
+    { state: 'Jharkhand', district: 'East Singhbhum', city: 'Jamshedpur' },
+    { state: 'Jammu and Kashmir', district: 'Srinagar', city: 'Srinagar' },
+    { state: 'Jammu and Kashmir', district: 'Jammu', city: 'Jammu' },
+    { state: 'Karnataka', district: 'Bengaluru Urban', city: 'Bengaluru' },
+    { state: 'Karnataka', district: 'Mysuru', city: 'Mysore' },
+    { state: 'Karnataka', district: 'Dakshina Kannada', city: 'Mangalore' },
+    { state: 'Karnataka', district: 'Dharwad', city: 'Hubli-Dharwad' },
+    { state: 'Kerala', district: 'Ernakulam', city: 'Kochi' },
+    { state: 'Kerala', district: 'Thiruvananthapuram', city: 'Thiruvananthapuram' },
+    { state: 'Kerala', district: 'Kozhikode', city: 'Kozhikode' },
+    { state: 'Madhya Pradesh', district: 'Bhopal', city: 'Bhopal' },
+    { state: 'Madhya Pradesh', district: 'Indore', city: 'Indore' },
+    { state: 'Madhya Pradesh', district: 'Gwalior', city: 'Gwalior' },
+    { state: 'Madhya Pradesh', district: 'Jabalpur', city: 'Jabalpur' },
+    { state: 'Maharashtra', district: 'Mumbai City', city: 'Mumbai' },
+    { state: 'Maharashtra', district: 'Pune', city: 'Pune' },
+    { state: 'Maharashtra', district: 'Nagpur', city: 'Nagpur' },
+    { state: 'Maharashtra', district: 'Thane', city: 'Thane' },
+    { state: 'Maharashtra', district: 'Pune', city: 'Pimpri-Chinchwad' },
+    { state: 'Maharashtra', district: 'Nashik', city: 'Nashik' },
+    { state: 'Maharashtra', district: 'Aurangabad', city: 'Aurangabad' },
+    { state: 'Maharashtra', district: 'Solapur', city: 'Solapur' },
+    { state: 'Maharashtra', district: 'Thane', city: 'Navi Mumbai' },
+    { state: 'Odisha', district: 'Khordha', city: 'Bhubaneswar' },
+    { state: 'Odisha', district: 'Cuttack', city: 'Cuttack' },
+    { state: 'Punjab', district: 'Ludhiana', city: 'Ludhiana' },
+    { state: 'Punjab', district: 'Amritsar', city: 'Amritsar' },
+    { state: 'Punjab', district: 'Jalandhar', city: 'Jalandhar' },
+    { state: 'Rajasthan', district: 'Jaipur', city: 'Jaipur' },
+    { state: 'Rajasthan', district: 'Jodhpur', city: 'Jodhpur' },
+    { state: 'Rajasthan', district: 'Kota', city: 'Kota' },
+    { state: 'Rajasthan', district: 'Udaipur', city: 'Udaipur' },
+    { state: 'Rajasthan', district: 'Ajmer', city: 'Ajmer' },
+    { state: 'Tamil Nadu', district: 'Chennai', city: 'Chennai' },
+    { state: 'Tamil Nadu', district: 'Coimbatore', city: 'Coimbatore' },
+    { state: 'Tamil Nadu', district: 'Madurai', city: 'Madurai' },
+    { state: 'Tamil Nadu', district: 'Tiruchirappalli', city: 'Tiruchirappalli' },
+    { state: 'Telangana', district: 'Hyderabad', city: 'Hyderabad' },
+    { state: 'Telangana', district: 'Warangal Urban', city: 'Warangal' },
+    { state: 'Uttar Pradesh', district: 'Lucknow', city: 'Lucknow' },
+    { state: 'Uttar Pradesh', district: 'Kanpur Nagar', city: 'Kanpur' },
+    { state: 'Uttar Pradesh', district: 'Gautam Buddha Nagar', city: 'Noida' },
+    { state: 'Uttar Pradesh', district: 'Agra', city: 'Agra' },
+    { state: 'Uttar Pradesh', district: 'Ghaziabad', city: 'Ghaziabad' },
+    { state: 'Uttar Pradesh', district: 'Varanasi', city: 'Varanasi' },
+    { state: 'Uttar Pradesh', district: 'Meerut', city: 'Meerut' },
+    { state: 'Uttar Pradesh', district: 'Prayagraj', city: 'Prayagraj' },
+    { state: 'Uttarakhand', district: 'Dehradun', city: 'Dehradun' },
+    { state: 'West Bengal', district: 'Kolkata', city: 'Kolkata' },
 ];
 
 
@@ -213,12 +213,18 @@ export default function AdminDashboardPage() {
   const [driverList, setDriverList] = useState(drivers);
   const [selectedCustomer, setSelectedCustomer] = useState(customers[0]);
   const [serviceAreas, setServiceAreas] = useState([
-    { id: 1, city: 'Mumbai', state: 'Maharashtra', active: true },
-    { id: 2, city: 'Delhi', state: 'Delhi', active: true },
-    { id: 3, city: 'Bengaluru', state: 'Karnataka', active: false },
-    { id: 4, city: 'Gurugram', state: 'Haryana', active: true },
+    { id: 1, city: 'Mumbai', district: 'Mumbai City', state: 'Maharashtra', active: true },
+    { id: 2, city: 'Delhi', district: 'New Delhi', state: 'Delhi', active: true },
+    { id: 3, city: 'Bengaluru', district: 'Bengaluru Urban', state: 'Karnataka', active: false },
+    { id: 4, city: 'Gurugram', district: 'Gurgaon', state: 'Haryana', active: true },
   ]);
-  const [selectedCityToAdd, setSelectedCityToAdd] = useState('');
+
+  const [selectedState, setSelectedState] = useState('');
+  const [selectedDistrict, setSelectedDistrict] = useState('');
+  const [selectedCity, setSelectedCity] = useState('');
+
+  const [districts, setDistricts] = useState<string[]>([]);
+  const [cities, setCities] = useState<string[]>([]);
 
   const handleLogout = () => {
     toast({
@@ -245,25 +251,38 @@ export default function AdminDashboardPage() {
   };
 
   const handleAddServiceArea = () => {
-    if (!selectedCityToAdd) {
+    if (!selectedCity) {
         toast({
             variant: 'destructive',
-            title: 'No City Selected',
-            description: 'Please select a city to add.',
+            title: 'Incomplete Selection',
+            description: 'Please select a state, district, and city to add.',
         });
         return;
     }
 
-    const cityDetails = ALL_AVAILABLE_CITIES.find(c => c.city === selectedCityToAdd);
+    if (serviceAreas.some(area => area.city === selectedCity)) {
+        toast({
+            variant: 'destructive',
+            title: 'Area Already Added',
+            description: `${selectedCity} is already in your service areas.`,
+        });
+        return;
+    }
 
-    if (cityDetails) {
+    const locationDetails = LOCATIONS_DATA.find(l => l.city === selectedCity && l.district === selectedDistrict && l.state === selectedState);
+
+    if (locationDetails) {
         const newArea = {
             id: serviceAreas.length > 0 ? Math.max(...serviceAreas.map(a => a.id)) + 1 : 1,
-            ...cityDetails,
+            ...locationDetails,
             active: true,
         };
         setServiceAreas([...serviceAreas, newArea]);
-        setSelectedCityToAdd('');
+        setSelectedState('');
+        setSelectedDistrict('');
+        setSelectedCity('');
+        setDistricts([]);
+        setCities([]);
         toast({
             title: 'Area Added',
             description: `${newArea.city} has been added to your service areas.`,
@@ -282,9 +301,30 @@ export default function AdminDashboardPage() {
       }
   };
 
-  const availableCitiesToAdd = ALL_AVAILABLE_CITIES.filter(
-      (potentialCity) => !serviceAreas.some((sa) => sa.city === potentialCity.city)
+  const availableLocations = LOCATIONS_DATA.filter(
+      (potentialLoc) => !serviceAreas.some((sa) => sa.city === potentialLoc.city)
   );
+
+  const states = [...new Set(availableLocations.map(l => l.state))].sort();
+
+  const handleStateChange = (state: string) => {
+      setSelectedState(state);
+      setSelectedDistrict('');
+      setSelectedCity('');
+      const availableDistricts = availableLocations.filter(l => l.state === state);
+      const uniqueDistricts = [...new Set(availableDistricts.map(l => l.district))].sort();
+      setDistricts(uniqueDistricts);
+      setCities([]);
+  };
+
+  const handleDistrictChange = (district: string) => {
+      setSelectedDistrict(district);
+      setSelectedCity('');
+      const availableCities = availableLocations.filter(l => l.state === selectedState && l.district === district);
+      const uniqueCities = [...new Set(availableCities.map(l => l.city))].sort();
+      setCities(uniqueCities);
+  };
+
 
   // Dummy data for dashboard stats
   const dashboardStats = {
@@ -599,37 +639,58 @@ export default function AdminDashboardPage() {
                 <CardHeader>
                   <CardTitle>Area Management</CardTitle>
                   <CardDescription>
-                    Manage the areas where your service is available. Add or remove cities and toggle their status.
+                    Manage the areas where your service is available. Add or remove locations and toggle their status.
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <div className="mb-6 flex flex-col gap-4 rounded-md border p-4 sm:flex-row sm:items-center">
-                        <div className="flex-1 space-y-1">
+                    <div className="mb-6 flex flex-col gap-4 rounded-md border p-4">
+                        <div className="space-y-1">
                             <p className="text-sm font-medium">Add a new service area</p>
-                            <p className="text-sm text-muted-foreground">Select a city from the list to add it to your operational areas.</p>
+                            <p className="text-sm text-muted-foreground">Select a state, district, and city to add it to your operational areas.</p>
                         </div>
-                        <div className="flex items-center gap-2">
-                            <Select value={selectedCityToAdd} onValueChange={setSelectedCityToAdd}>
-                                <SelectTrigger className="w-full sm:w-[200px]">
-                                    <SelectValue placeholder="Select a city" />
+                        <div className="flex flex-wrap items-center gap-2">
+                             <Select value={selectedState} onValueChange={handleStateChange}>
+                                <SelectTrigger className="w-full min-w-[180px] flex-1">
+                                    <SelectValue placeholder="Select a state" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    {availableCitiesToAdd.length > 0 ? (
-                                        availableCitiesToAdd.map(city => (
-                                            <SelectItem key={city.city} value={city.city}>{city.city}</SelectItem>
+                                    {states.length > 0 ? (
+                                        states.map(state => (
+                                            <SelectItem key={state} value={state}>{state}</SelectItem>
                                         ))
                                     ) : (
-                                        <SelectItem value="none" disabled>All cities added</SelectItem>
+                                        <SelectItem value="none" disabled>All available locations added</SelectItem>
                                     )}
                                 </SelectContent>
                             </Select>
-                            <Button onClick={handleAddServiceArea}>Add</Button>
+                            <Select value={selectedDistrict} onValueChange={handleDistrictChange} disabled={!selectedState || districts.length === 0}>
+                                <SelectTrigger className="w-full min-w-[180px] flex-1">
+                                    <SelectValue placeholder="Select a district" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {districts.map(district => (
+                                        <SelectItem key={district} value={district}>{district}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                            <Select value={selectedCity} onValueChange={setSelectedCity} disabled={!selectedDistrict || cities.length === 0}>
+                                <SelectTrigger className="w-full min-w-[180px] flex-1">
+                                    <SelectValue placeholder="Select a city" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                     {cities.map(city => (
+                                        <SelectItem key={city} value={city}>{city}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                            <Button onClick={handleAddServiceArea} className="w-full sm:w-auto">Add</Button>
                         </div>
                     </div>
                   <Table>
                     <TableHeader>
                       <TableRow>
                         <TableHead>City</TableHead>
+                        <TableHead>District</TableHead>
                         <TableHead>State</TableHead>
                         <TableHead>Status</TableHead>
                         <TableHead>Availability</TableHead>
@@ -640,6 +701,7 @@ export default function AdminDashboardPage() {
                       {serviceAreas.map((area) => (
                         <TableRow key={area.id}>
                           <TableCell className="font-medium">{area.city}</TableCell>
+                          <TableCell>{area.district}</TableCell>
                           <TableCell>{area.state}</TableCell>
                           <TableCell>
                             <Badge variant={area.active ? 'default' : 'secondary'}>
