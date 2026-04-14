@@ -27,6 +27,10 @@ type Customer = {
   name: string;
   email: string;
   mobile: string;
+  address: string;
+  city: string;
+  state: string;
+  pincode: string;
 };
 
 
@@ -138,6 +142,10 @@ export default function CustomerDashboardPage() {
                         <div>
                             <p className="font-semibold text-muted-foreground">Mobile</p>
                             <p>{customer.mobile}</p>
+                        </div>
+                        <div>
+                            <p className="font-semibold text-muted-foreground">Address</p>
+                            <p>{customer.address}, {customer.city}, {customer.state} - {customer.pincode}</p>
                         </div>
                          <Button variant="outline" size="sm" className="mt-4 w-full">Edit Profile</Button>
                     </CardContent>

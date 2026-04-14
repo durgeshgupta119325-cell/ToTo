@@ -17,7 +17,7 @@ export default function CustomerLoginPage() {
   
   return (
     <div className="flex min-h-dvh flex-col items-center justify-center bg-secondary p-4">
-      <div className="w-full max-w-sm">
+      <div className="w-full max-w-lg">
         <div className="mb-8 flex justify-center">
           <Link href="/">
             <Icons.TotoLogo className="h-8 w-auto text-primary" />
