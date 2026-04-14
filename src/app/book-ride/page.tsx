@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from 'react';
@@ -11,6 +12,14 @@ import { ArrowLeft, MapPin, Car, Zap } from 'lucide-react';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { useToast } from '@/hooks/use-toast';
 
+// This is a mock list. In a real application, this would be fetched from a database.
+const serviceAreas = [
+    { city: 'Mumbai', state: 'Maharashtra', active: true },
+    { city: 'Delhi', state: 'Delhi', active: true },
+    { city: 'Bengaluru', state: 'Karnataka', active: false },
+    { city: 'Gurugram', state: 'Haryana', active: true },
+];
+
 export default function BookRidePage() {
   const { toast } = useToast();
   const [step, setStep] = useState<'search' | 'options' | 'confirmed'>('search');
@@ -19,11 +28,7 @@ export default function BookRidePage() {
 
   const mapImage = PlaceHolderImages.find((img) => img.id === 'book-ride-map');
   
-  const availableCities = [
-    { city: 'Mumbai', state: 'Maharashtra' },
-    { city: 'Delhi', state: 'Delhi' },
-    { city: 'Gurugram', state: 'Haryana' },
-  ];
+  const availableCities = serviceAreas.filter(area => area.active);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -83,9 +88,13 @@ export default function BookRidePage() {
               <CardContent>
                 <div className="mb-4 rounded-md border bg-background/50 p-3">
                   <h4 className="mb-2 text-sm font-semibold">We're currently available in:</h4>
-                  <p className="text-sm text-muted-foreground">
-                    {availableCities.map(c => c.city).join(', ')}
-                  </p>
+                  {availableCities.length > 0 ? (
+                    <p className="text-sm text-muted-foreground">
+                      {availableCities.map(c => c.city).join(', ')}
+                    </p>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">Service is not available in any city right now. Please check back later.</p>
+                  )}
                 </div>
                 <form onSubmit={handleSearch} className="space-y-4">
                   <div className="relative">
@@ -192,3 +201,5 @@ export default function BookRidePage() {
     </div>
   );
 }
+
+    

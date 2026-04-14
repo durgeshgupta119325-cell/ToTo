@@ -21,7 +21,6 @@ import {
   MoreHorizontal,
   Trash2,
   Percent,
-  Settings,
 } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
@@ -58,6 +57,13 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 
@@ -131,6 +137,22 @@ const customers = [
   },
 ];
 
+const ALL_AVAILABLE_CITIES = [
+    { city: 'Mumbai', state: 'Maharashtra' },
+    { city: 'Delhi', state: 'Delhi' },
+    { city: 'Bengaluru', state: 'Karnataka' },
+    { city: 'Gurugram', state: 'Haryana' },
+    { city: 'Pune', state: 'Maharashtra' },
+    { city: 'Kolkata', state: 'West Bengal' },
+    { city: 'Chennai', state: 'Tamil Nadu' },
+    { city: 'Hyderabad', state: 'Telangana' },
+    { city: 'Ahmedabad', state: 'Gujarat' },
+    { city: 'Jaipur', state: 'Rajasthan' },
+    { city: 'Lucknow', state: 'Uttar Pradesh' },
+    { city: 'Noida', state: 'Uttar Pradesh' },
+];
+
+
 export default function AdminDashboardPage() {
   const router = useRouter();
   const { toast } = useToast();
@@ -142,6 +164,7 @@ export default function AdminDashboardPage() {
     { id: 3, city: 'Bengaluru', state: 'Karnataka', active: false },
     { id: 4, city: 'Gurugram', state: 'Haryana', active: true },
   ]);
+  const [selectedCityToAdd, setSelectedCityToAdd] = useState('');
 
   const handleLogout = () => {
     toast({
@@ -166,6 +189,48 @@ export default function AdminDashboardPage() {
       )
     );
   };
+
+  const handleAddServiceArea = () => {
+    if (!selectedCityToAdd) {
+        toast({
+            variant: 'destructive',
+            title: 'No City Selected',
+            description: 'Please select a city to add.',
+        });
+        return;
+    }
+
+    const cityDetails = ALL_AVAILABLE_CITIES.find(c => c.city === selectedCityToAdd);
+
+    if (cityDetails) {
+        const newArea = {
+            id: serviceAreas.length > 0 ? Math.max(...serviceAreas.map(a => a.id)) + 1 : 1,
+            ...cityDetails,
+            active: true,
+        };
+        setServiceAreas([...serviceAreas, newArea]);
+        setSelectedCityToAdd('');
+        toast({
+            title: 'Area Added',
+            description: `${newArea.city} has been added to your service areas.`,
+        });
+    }
+  };
+  
+  const handleRemoveServiceArea = (id: number) => {
+      const areaToRemove = serviceAreas.find(area => area.id === id);
+      setServiceAreas(serviceAreas.filter(area => area.id !== id));
+      if (areaToRemove) {
+          toast({
+              title: 'Area Removed',
+              description: `${areaToRemove.city} has been removed from your service areas.`,
+          });
+      }
+  };
+
+  const availableCitiesToAdd = ALL_AVAILABLE_CITIES.filter(
+      (potentialCity) => !serviceAreas.some((sa) => sa.city === potentialCity.city)
+  );
 
   // Dummy data for dashboard stats
   const dashboardStats = {
@@ -476,21 +541,45 @@ export default function AdminDashboardPage() {
             
             {/* Settings Tab */}
             <TabsContent value="settings">
-              <Card>
+               <Card>
                 <CardHeader>
                   <CardTitle>Area Management</CardTitle>
                   <CardDescription>
-                    Manage the areas where your service is available.
+                    Manage the areas where your service is available. Add or remove cities and toggle their status.
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
+                    <div className="mb-6 flex flex-col gap-4 rounded-md border p-4 sm:flex-row sm:items-center">
+                        <div className="flex-1 space-y-1">
+                            <p className="text-sm font-medium">Add a new service area</p>
+                            <p className="text-sm text-muted-foreground">Select a city from the list to add it to your operational areas.</p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <Select value={selectedCityToAdd} onValueChange={setSelectedCityToAdd}>
+                                <SelectTrigger className="w-full sm:w-[200px]">
+                                    <SelectValue placeholder="Select a city" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {availableCitiesToAdd.length > 0 ? (
+                                        availableCitiesToAdd.map(city => (
+                                            <SelectItem key={city.city} value={city.city}>{city.city}</SelectItem>
+                                        ))
+                                    ) : (
+                                        <SelectItem value="none" disabled>All cities added</SelectItem>
+                                    )}
+                                </SelectContent>
+                            </Select>
+                            <Button onClick={handleAddServiceArea}>Add</Button>
+                        </div>
+                    </div>
                   <Table>
                     <TableHeader>
                       <TableRow>
                         <TableHead>City</TableHead>
                         <TableHead>State</TableHead>
                         <TableHead>Status</TableHead>
-                        <TableHead className="text-right">Action</TableHead>
+                        <TableHead>Availability</TableHead>
+                        <TableHead className="text-right">Actions</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -503,12 +592,58 @@ export default function AdminDashboardPage() {
                               {area.active ? 'Active' : 'Inactive'}
                             </Badge>
                           </TableCell>
-                          <TableCell className="text-right">
+                          <TableCell>
                             <Switch
                               checked={area.active}
                               onCheckedChange={() => handleServiceAreaToggle(area.id)}
                               aria-label={`Toggle service for ${area.city}`}
                             />
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <AlertDialog>
+                                <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                    <Button
+                                        aria-haspopup="true"
+                                        size="icon"
+                                        variant="ghost"
+                                    >
+                                        <MoreHorizontal className="h-4 w-4" />
+                                        <span className="sr-only">Toggle menu</span>
+                                    </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="end">
+                                    <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                                    <AlertDialogTrigger asChild>
+                                        <DropdownMenuItem className="text-destructive focus:text-destructive focus:bg-destructive/10">
+                                        <Trash2 className="mr-2 h-4 w-4" />
+                                        Remove
+                                        </DropdownMenuItem>
+                                    </AlertDialogTrigger>
+                                    </DropdownMenuContent>
+                                </DropdownMenu>
+                                <AlertDialogContent>
+                                    <AlertDialogHeader>
+                                    <AlertDialogTitle>
+                                        Are you sure?
+                                    </AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                        This will remove {area.city} from your list of service areas. You can add it back later if needed.
+                                    </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                    <AlertDialogAction
+                                        className="bg-destructive hover:bg-destructive/90"
+                                        onClick={() =>
+                                            handleRemoveServiceArea(area.id)
+                                        }
+                                    >
+                                        Remove
+                                    </AlertDialogAction>
+                                    </AlertDialogFooter>
+                                </AlertDialogContent>
+                                </AlertDialog>
                           </TableCell>
                         </TableRow>
                       ))}
@@ -523,3 +658,5 @@ export default function AdminDashboardPage() {
     </div>
   );
 }
+
+    
