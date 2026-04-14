@@ -18,6 +18,12 @@ export default function BookRidePage() {
   const [destination, setDestination] = useState('');
 
   const mapImage = PlaceHolderImages.find((img) => img.id === 'book-ride-map');
+  
+  const availableCities = [
+    { city: 'Mumbai', state: 'Maharashtra' },
+    { city: 'Delhi', state: 'Delhi' },
+    { city: 'Gurugram', state: 'Haryana' },
+  ];
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -75,6 +81,12 @@ export default function BookRidePage() {
                 <CardDescription>Enter your pickup and drop-off locations. Please note, service is limited to a 10km range.</CardDescription>
               </CardHeader>
               <CardContent>
+                <div className="mb-4 rounded-md border bg-background/50 p-3">
+                  <h4 className="mb-2 text-sm font-semibold">We're currently available in:</h4>
+                  <p className="text-sm text-muted-foreground">
+                    {availableCities.map(c => c.city).join(', ')}
+                  </p>
+                </div>
                 <form onSubmit={handleSearch} className="space-y-4">
                   <div className="relative">
                     <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />

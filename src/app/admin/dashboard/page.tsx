@@ -20,6 +20,7 @@ import {
   MoreHorizontal,
   Trash2,
   Percent,
+  Settings,
 } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
@@ -56,6 +57,8 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
+import { Switch } from '@/components/ui/switch';
+import { Badge } from '@/components/ui/badge';
 
 import { useState } from 'react';
 
@@ -132,6 +135,12 @@ export default function AdminDashboardPage() {
   const { toast } = useToast();
   const [driverList, setDriverList] = useState(drivers);
   const [selectedCustomer, setSelectedCustomer] = useState(customers[0]);
+  const [serviceAreas, setServiceAreas] = useState([
+    { id: 1, city: 'Mumbai', state: 'Maharashtra', active: true },
+    { id: 2, city: 'Delhi', state: 'Delhi', active: true },
+    { id: 3, city: 'Bengaluru', state: 'Karnataka', active: false },
+    { id: 4, city: 'Gurugram', state: 'Haryana', active: true },
+  ]);
 
   const handleLogout = () => {
     toast({
@@ -147,6 +156,14 @@ export default function AdminDashboardPage() {
       title: 'Driver Removed',
       description: `Driver ${driverId} has been removed from the platform.`,
     });
+  };
+
+  const handleServiceAreaToggle = (id: number) => {
+    setServiceAreas(
+      serviceAreas.map((area) =>
+        area.id === id ? { ...area, active: !area.active } : area
+      )
+    );
   };
 
   // Dummy data for dashboard stats
@@ -183,10 +200,11 @@ export default function AdminDashboardPage() {
           </div>
 
           <Tabs defaultValue="overview">
-            <TabsList className="grid w-full grid-cols-3 md:w-auto md:inline-flex">
+            <TabsList className="grid w-full grid-cols-4 md:w-auto md:inline-flex">
               <TabsTrigger value="overview">Overview</TabsTrigger>
               <TabsTrigger value="drivers">Drivers</TabsTrigger>
               <TabsTrigger value="customers">Customers</TabsTrigger>
+              <TabsTrigger value="settings">Settings</TabsTrigger>
             </TabsList>
 
             {/* Overview Tab */}
@@ -453,6 +471,50 @@ export default function AdminDashboardPage() {
                   </Table>
                 </DialogContent>
               </Dialog>
+            </TabsContent>
+            
+            {/* Settings Tab */}
+            <TabsContent value="settings">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Service Area Management</CardTitle>
+                  <CardDescription>
+                    Enable or disable service for specific cities.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>City</TableHead>
+                        <TableHead>State</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead className="text-right">Action</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {serviceAreas.map((area) => (
+                        <TableRow key={area.id}>
+                          <TableCell className="font-medium">{area.city}</TableCell>
+                          <TableCell>{area.state}</TableCell>
+                          <TableCell>
+                            <Badge variant={area.active ? 'default' : 'secondary'}>
+                              {area.active ? 'Active' : 'Inactive'}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <Switch
+                              checked={area.active}
+                              onCheckedChange={() => handleServiceAreaToggle(area.id)}
+                              aria-label={`Toggle service for ${area.city}`}
+                            />
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </CardContent>
+              </Card>
             </TabsContent>
           </Tabs>
         </div>
