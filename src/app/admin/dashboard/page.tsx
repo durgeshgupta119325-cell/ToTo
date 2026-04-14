@@ -1,3 +1,4 @@
+
 "use client";
 
 import Link from 'next/link';
@@ -477,9 +478,9 @@ export default function AdminDashboardPage() {
             <TabsContent value="settings">
               <Card>
                 <CardHeader>
-                  <CardTitle>Service Area Management</CardTitle>
+                  <CardTitle>Area Management</CardTitle>
                   <CardDescription>
-                    Enable or disable service for specific cities.
+                    Manage the areas where your service is available.
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
