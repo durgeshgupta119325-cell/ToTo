@@ -150,6 +150,16 @@ const ALL_AVAILABLE_CITIES = [
     { city: 'Jaipur', state: 'Rajasthan' },
     { city: 'Lucknow', state: 'Uttar Pradesh' },
     { city: 'Noida', state: 'Uttar Pradesh' },
+    { city: 'Chandigarh', state: 'Chandigarh' },
+    { city: 'Surat', state: 'Gujarat' },
+    { city: 'Indore', state: 'Madhya Pradesh' },
+    { city: 'Bhopal', state: 'Madhya Pradesh' },
+    { city: 'Visakhapatnam', state: 'Andhra Pradesh' },
+    { city: 'Patna', state: 'Bihar' },
+    { city: 'Vadodara', state: 'Gujarat' },
+    { city: 'Ludhiana', state: 'Punjab' },
+    { city: 'Agra', state: 'Uttar Pradesh' },
+    { city: 'Nashik', state: 'Maharashtra' },
 ];
 
 
@@ -658,5 +668,3 @@ export default function AdminDashboardPage() {
     </div>
   );
 }
-
-    
