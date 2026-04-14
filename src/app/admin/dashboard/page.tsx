@@ -138,37 +138,68 @@ const customers = [
 ];
 
 const LOCATIONS_DATA = [
+    // Andhra Pradesh
     { state: 'Andhra Pradesh', district: 'Visakhapatnam', city: 'Visakhapatnam' },
     { state: 'Andhra Pradesh', district: 'Krishna', city: 'Vijayawada' },
     { state: 'Andhra Pradesh', district: 'Guntur', city: 'Guntur' },
+    { state: 'Andhra Pradesh', district: 'Nellore', city: 'Nellore' },
+    { state: 'Andhra Pradesh', district: 'Chittoor', city: 'Tirupati' },
+    // Assam
     { state: 'Assam', district: 'Kamrup Metropolitan', city: 'Guwahati' },
+    // Bihar
     { state: 'Bihar', district: 'Patna', city: 'Patna' },
+    { state: 'Bihar', district: 'Gaya', city: 'Gaya' },
+    { state: 'Bihar', district: 'Bhagalpur', city: 'Bhagalpur' },
+    { state: 'Bihar', district: 'Muzaffarpur', city: 'Muzaffarpur' },
+    // Chandigarh
     { state: 'Chandigarh', district: 'Chandigarh', city: 'Chandigarh' },
+    // Chhattisgarh
     { state: 'Chhattisgarh', district: 'Raipur', city: 'Raipur' },
     { state: 'Chhattisgarh', district: 'Durg', city: 'Bhilai' },
-    { state: 'Delhi', district: 'New Delhi', city: 'Delhi' },
+    { state: 'Chhattisgarh', district: 'Bilaspur', city: 'Bilaspur' },
+    // Delhi
+    { state: 'Delhi', district: 'New Delhi', city: 'New Delhi' },
+    { state: 'Delhi', district: 'North Delhi', city: 'North Delhi' },
+    { state: 'Delhi', district: 'South Delhi', city: 'South Delhi' },
+    { state: 'Delhi', district: 'East Delhi', city: 'East Delhi' },
+    { state: 'Delhi', district: 'West Delhi', city: 'West Delhi' },
+    // Gujarat
     { state: 'Gujarat', district: 'Ahmedabad', city: 'Ahmedabad' },
     { state: 'Gujarat', district: 'Surat', city: 'Surat' },
     { state: 'Gujarat', district: 'Vadodara', city: 'Vadodara' },
     { state: 'Gujarat', district: 'Rajkot', city: 'Rajkot' },
+    // Haryana
     { state: 'Haryana', district: 'Gurgaon', city: 'Gurugram' },
     { state: 'Haryana', district: 'Faridabad', city: 'Faridabad' },
+    { state: 'Haryana', district: 'Panipat', city: 'Panipat' },
+    { state: 'Haryana', district: 'Ambala', city: 'Ambala' },
+    // Himachal Pradesh
     { state: 'Himachal Pradesh', district: 'Shimla', city: 'Shimla' },
+    // Jharkhand
     { state: 'Jharkhand', district: 'Ranchi', city: 'Ranchi' },
     { state: 'Jharkhand', district: 'East Singhbhum', city: 'Jamshedpur' },
+    { state: 'Jharkhand', district: 'Dhanbad', city: 'Dhanbad' },
+    // Jammu and Kashmir
     { state: 'Jammu and Kashmir', district: 'Srinagar', city: 'Srinagar' },
     { state: 'Jammu and Kashmir', district: 'Jammu', city: 'Jammu' },
+    // Karnataka
     { state: 'Karnataka', district: 'Bengaluru Urban', city: 'Bengaluru' },
-    { state: 'Karnataka', district: 'Mysuru', city: 'Mysore' },
-    { state: 'Karnataka', district: 'Dakshina Kannada', city: 'Mangalore' },
+    { state: 'Karnataka', district: 'Mysuru', city: 'Mysuru' },
+    { state: 'Karnataka', district: 'Dakshina Kannada', city: 'Mangaluru' },
     { state: 'Karnataka', district: 'Dharwad', city: 'Hubli-Dharwad' },
+    { state: 'Karnataka', district: 'Belagavi', city: 'Belagavi' },
+    // Kerala
     { state: 'Kerala', district: 'Ernakulam', city: 'Kochi' },
     { state: 'Kerala', district: 'Thiruvananthapuram', city: 'Thiruvananthapuram' },
     { state: 'Kerala', district: 'Kozhikode', city: 'Kozhikode' },
+    { state: 'Kerala', district: 'Thrissur', city: 'Thrissur' },
+    // Madhya Pradesh
     { state: 'Madhya Pradesh', district: 'Bhopal', city: 'Bhopal' },
     { state: 'Madhya Pradesh', district: 'Indore', city: 'Indore' },
     { state: 'Madhya Pradesh', district: 'Gwalior', city: 'Gwalior' },
     { state: 'Madhya Pradesh', district: 'Jabalpur', city: 'Jabalpur' },
+    { state: 'Madhya Pradesh', district: 'Ujjain', city: 'Ujjain' },
+    // Maharashtra
     { state: 'Maharashtra', district: 'Mumbai City', city: 'Mumbai' },
     { state: 'Maharashtra', district: 'Pune', city: 'Pune' },
     { state: 'Maharashtra', district: 'Nagpur', city: 'Nagpur' },
@@ -178,22 +209,30 @@ const LOCATIONS_DATA = [
     { state: 'Maharashtra', district: 'Aurangabad', city: 'Aurangabad' },
     { state: 'Maharashtra', district: 'Solapur', city: 'Solapur' },
     { state: 'Maharashtra', district: 'Thane', city: 'Navi Mumbai' },
+    // Odisha
     { state: 'Odisha', district: 'Khordha', city: 'Bhubaneswar' },
     { state: 'Odisha', district: 'Cuttack', city: 'Cuttack' },
+    // Punjab
     { state: 'Punjab', district: 'Ludhiana', city: 'Ludhiana' },
     { state: 'Punjab', district: 'Amritsar', city: 'Amritsar' },
     { state: 'Punjab', district: 'Jalandhar', city: 'Jalandhar' },
+    // Rajasthan
     { state: 'Rajasthan', district: 'Jaipur', city: 'Jaipur' },
     { state: 'Rajasthan', district: 'Jodhpur', city: 'Jodhpur' },
     { state: 'Rajasthan', district: 'Kota', city: 'Kota' },
+    { state: 'Rajasthan', district: 'Bikaner', city: 'Bikaner' },
     { state: 'Rajasthan', district: 'Udaipur', city: 'Udaipur' },
     { state: 'Rajasthan', district: 'Ajmer', city: 'Ajmer' },
+    // Tamil Nadu
     { state: 'Tamil Nadu', district: 'Chennai', city: 'Chennai' },
     { state: 'Tamil Nadu', district: 'Coimbatore', city: 'Coimbatore' },
     { state: 'Tamil Nadu', district: 'Madurai', city: 'Madurai' },
     { state: 'Tamil Nadu', district: 'Tiruchirappalli', city: 'Tiruchirappalli' },
+    { state: 'Tamil Nadu', district: 'Salem', city: 'Salem' },
+    // Telangana
     { state: 'Telangana', district: 'Hyderabad', city: 'Hyderabad' },
     { state: 'Telangana', district: 'Warangal Urban', city: 'Warangal' },
+    // Uttar Pradesh
     { state: 'Uttar Pradesh', district: 'Lucknow', city: 'Lucknow' },
     { state: 'Uttar Pradesh', district: 'Kanpur Nagar', city: 'Kanpur' },
     { state: 'Uttar Pradesh', district: 'Gautam Buddha Nagar', city: 'Noida' },
@@ -202,8 +241,12 @@ const LOCATIONS_DATA = [
     { state: 'Uttar Pradesh', district: 'Varanasi', city: 'Varanasi' },
     { state: 'Uttar Pradesh', district: 'Meerut', city: 'Meerut' },
     { state: 'Uttar Pradesh', district: 'Prayagraj', city: 'Prayagraj' },
+    // Uttarakhand
     { state: 'Uttarakhand', district: 'Dehradun', city: 'Dehradun' },
+    { state: 'Uttarakhand', district: 'Haridwar', city: 'Haridwar' },
+    // West Bengal
     { state: 'West Bengal', district: 'Kolkata', city: 'Kolkata' },
+    { state: 'West Bengal', district: 'Howrah', city: 'Howrah' },
 ];
 
 
