@@ -66,6 +66,7 @@ import {
 } from "@/components/ui/select";
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
 
 import { useState } from 'react';
 
@@ -308,7 +309,6 @@ export default function AdminDashboardPage() {
   const [selectedCity, setSelectedCity] = useState('');
 
   const [districts, setDistricts] = useState<string[]>([]);
-  const [cities, setCities] = useState<string[]>([]);
 
   const handleLogout = () => {
     toast({
@@ -335,43 +335,42 @@ export default function AdminDashboardPage() {
   };
 
   const handleAddServiceArea = () => {
-    if (!selectedCity) {
+    if (!selectedState || !selectedDistrict || !selectedCity.trim()) {
         toast({
             variant: 'destructive',
-            title: 'Incomplete Selection',
-            description: 'Please select a state, district, and city to add.',
+            title: 'Incomplete Information',
+            description: 'Please select a state, a district, and enter a city name.',
         });
         return;
     }
 
-    if (serviceAreas.some(area => area.city === selectedCity)) {
+    const trimmedCity = selectedCity.trim();
+
+    if (serviceAreas.some(area => area.city.toLowerCase() === trimmedCity.toLowerCase() && area.district === selectedDistrict && area.state === selectedState)) {
         toast({
             variant: 'destructive',
             title: 'Area Already Added',
-            description: `${selectedCity} is already in your service areas.`,
+            description: `${trimmedCity} in ${selectedDistrict}, ${selectedState} is already in your service areas.`,
         });
         return;
     }
 
-    const locationDetails = LOCATIONS_DATA.find(l => l.city === selectedCity && l.district === selectedDistrict && l.state === selectedState);
-
-    if (locationDetails) {
-        const newArea = {
-            id: serviceAreas.length > 0 ? Math.max(...serviceAreas.map(a => a.id)) + 1 : 1,
-            ...locationDetails,
-            active: true,
-        };
-        setServiceAreas([...serviceAreas, newArea]);
-        setSelectedState('');
-        setSelectedDistrict('');
-        setSelectedCity('');
-        setDistricts([]);
-        setCities([]);
-        toast({
-            title: 'Area Added',
-            description: `${newArea.city} has been added to your service areas.`,
-        });
-    }
+    const newArea = {
+        id: serviceAreas.length > 0 ? Math.max(...serviceAreas.map(a => a.id)) + 1 : 1,
+        city: trimmedCity,
+        district: selectedDistrict,
+        state: selectedState,
+        active: true,
+    };
+    setServiceAreas([...serviceAreas, newArea]);
+    setSelectedState('');
+    setSelectedDistrict('');
+    setSelectedCity('');
+    setDistricts([]);
+    toast({
+        title: 'Area Added',
+        description: `${newArea.city} has been added to your service areas.`,
+    });
   };
   
   const handleRemoveServiceArea = (id: number) => {
@@ -385,28 +384,20 @@ export default function AdminDashboardPage() {
       }
   };
 
-  const availableLocations = LOCATIONS_DATA.filter(
-      (potentialLoc) => !serviceAreas.some((sa) => sa.city === potentialLoc.city)
-  );
-
-  const states = [...new Set(availableLocations.map(l => l.state))].sort();
+  const states = [...new Set(LOCATIONS_DATA.map(l => l.state))].sort();
 
   const handleStateChange = (state: string) => {
       setSelectedState(state);
       setSelectedDistrict('');
       setSelectedCity('');
-      const availableDistricts = availableLocations.filter(l => l.state === state);
+      const availableDistricts = LOCATIONS_DATA.filter(l => l.state === state);
       const uniqueDistricts = [...new Set(availableDistricts.map(l => l.district))].sort();
       setDistricts(uniqueDistricts);
-      setCities([]);
   };
 
   const handleDistrictChange = (district: string) => {
       setSelectedDistrict(district);
       setSelectedCity('');
-      const availableCities = availableLocations.filter(l => l.state === selectedState && l.district === district);
-      const uniqueCities = [...new Set(availableCities.map(l => l.city))].sort();
-      setCities(uniqueCities);
   };
 
 
@@ -730,7 +721,7 @@ export default function AdminDashboardPage() {
                     <div className="mb-6 flex flex-col gap-4 rounded-md border p-4">
                         <div className="space-y-1">
                             <p className="text-sm font-medium">Add a new service area</p>
-                            <p className="text-sm text-muted-foreground">Select a state, district, and city to add it to your operational areas.</p>
+                            <p className="text-sm text-muted-foreground">Select a state, district, and enter a city to add it to your operational areas.</p>
                         </div>
                         <div className="flex flex-wrap items-center gap-2">
                              <Select value={selectedState} onValueChange={handleStateChange}>
@@ -738,13 +729,9 @@ export default function AdminDashboardPage() {
                                     <SelectValue placeholder="Select a state" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    {states.length > 0 ? (
-                                        states.map(state => (
-                                            <SelectItem key={state} value={state}>{state}</SelectItem>
-                                        ))
-                                    ) : (
-                                        <SelectItem value="none" disabled>All available locations added</SelectItem>
-                                    )}
+                                    {states.map(state => (
+                                        <SelectItem key={state} value={state}>{state}</SelectItem>
+                                    ))}
                                 </SelectContent>
                             </Select>
                             <Select value={selectedDistrict} onValueChange={handleDistrictChange} disabled={!selectedState || districts.length === 0}>
@@ -757,16 +744,13 @@ export default function AdminDashboardPage() {
                                     ))}
                                 </SelectContent>
                             </Select>
-                            <Select value={selectedCity} onValueChange={setSelectedCity} disabled={!selectedDistrict || cities.length === 0}>
-                                <SelectTrigger className="w-full min-w-[180px] flex-1">
-                                    <SelectValue placeholder="Select a city" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                     {cities.map(city => (
-                                        <SelectItem key={city} value={city}>{city}</SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
+                            <Input
+                                placeholder="Enter a city"
+                                className="w-full min-w-[180px] flex-1"
+                                value={selectedCity}
+                                onChange={(e) => setSelectedCity(e.target.value)}
+                                disabled={!selectedDistrict}
+                            />
                             <Button onClick={handleAddServiceArea} className="w-full sm:w-auto">Add</Button>
                         </div>
                     </div>
