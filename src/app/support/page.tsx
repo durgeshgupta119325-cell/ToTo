@@ -1,3 +1,4 @@
+
 import Link from 'next/link';
 import {
   Accordion,
@@ -9,34 +10,34 @@ import { Button } from '@/components/ui/button';
 import { Icons } from '@/components/icons';
 import { ArrowLeft } from 'lucide-react';
 
-export default function SupportPage() {
-  const faqs = [
-    {
-      question: 'How do I book a ride?',
-      answer:
-        'Go to the "Book a Ride" page, enter your pickup and destination locations, and choose your preferred vehicle type. Your ride will be confirmed instantly!',
-    },
-    {
-      question: 'What types of vehicles are available?',
-      answer:
-        'We offer both eco-friendly E-Rickshaws for short trips and comfortable Cabs for longer journeys.',
-    },
-    {
-      question: 'How is the fare calculated?',
-      answer:
-        'Fares are calculated based on the distance between your pickup and destination points. You will see an estimated fare before you confirm your booking.',
-    },
-    {
-      question: 'Can I cancel a ride?',
-      answer:
-        'Currently, ride cancellation is not supported through the app. Please contact our support team for assistance.',
-    },
-    {
-        question: 'How can I become a driver?',
-        answer: 'You can register as a driver by clicking the "Become a Driver" button on the homepage and filling out the registration form. Our team will review your application and get in touch with you.'
-    }
-  ];
+const faqs = [
+  {
+    question: 'How do I book a ride?',
+    answer:
+      'Go to the "Book a Ride" page, enter your pickup and destination locations, and choose your preferred vehicle type. Your ride will be confirmed instantly!',
+  },
+  {
+    question: 'What types of vehicles are available?',
+    answer:
+      'We offer both eco-friendly E-Rickshaws for short trips and comfortable Cabs for longer journeys.',
+  },
+  {
+    question: 'How is the fare calculated?',
+    answer:
+      'Fares are calculated based on the distance between your pickup and destination points. You will see an estimated fare before you confirm your booking.',
+  },
+  {
+    question: 'Can I cancel a ride?',
+    answer:
+      'Currently, ride cancellation is not supported through the app. Please contact our support team for assistance.',
+  },
+  {
+      question: 'How can I become a driver?',
+      answer: 'You can register as a driver by clicking the "Become a Driver" button on the homepage and filling out the registration form. Our team will review your application and get in touch with you.'
+  }
+];
 
+export default function SupportPage() {
   return (
     <div className="flex min-h-dvh flex-col">
       <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
