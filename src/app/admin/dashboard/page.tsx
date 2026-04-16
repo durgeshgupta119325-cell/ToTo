@@ -104,6 +104,10 @@ const DUMMY_CUSTOMERS = [
     name: 'Anjali Sharma',
     email: 'anjali@example.com',
     phone: '9876543210',
+    address: '123, MG Road',
+    city: 'Bengaluru',
+    state: 'Karnataka',
+    pincode: '560034',
     rides: [
       {
         rideId: 'RIDE001',
@@ -126,6 +130,10 @@ const DUMMY_CUSTOMERS = [
     name: 'Vikram Batra',
     email: 'vikram@example.com',
     phone: '9123456780',
+    address: '456, Marine Drive',
+    city: 'Mumbai',
+    state: 'Maharashtra',
+    pincode: '400001',
     rides: [
       {
         rideId: 'RIDE003',
@@ -676,7 +684,7 @@ export default function AdminDashboardPage() {
                                         setSelectedCustomer(customer)
                                       }
                                     >
-                                      View Ride History
+                                      View Details
                                     </DropdownMenuItem>
                                   </DialogTrigger>
                                 </DropdownMenuContent>
@@ -688,37 +696,68 @@ export default function AdminDashboardPage() {
                     </Table>
                   </CardContent>
                 </Card>
-                <DialogContent className="sm:max-w-2xl">
+                <DialogContent className="sm:max-w-3xl">
                   <DialogHeader>
                     <DialogTitle>
-                      Ride History for {selectedCustomer.name}
+                      Customer Details: {selectedCustomer.name}
                     </DialogTitle>
                     <DialogDescription>
-                      A complete log of all rides taken by the customer.
+                      View customer information and their complete ride history.
                     </DialogDescription>
                   </DialogHeader>
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Ride ID</TableHead>
-                        <TableHead>Pick up and drop out</TableHead>
-                        <TableHead>Time</TableHead>
-                        <TableHead>Transaction ID</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {selectedCustomer.rides.map((ride) => (
-                        <TableRow key={ride.rideId}>
-                          <TableCell>{ride.rideId}</TableCell>
-                          <TableCell>
-                            {ride.from} to {ride.to}
-                          </TableCell>
-                          <TableCell>{ride.time}</TableCell>
-                          <TableCell>{ride.transactionId}</TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
+                   <div className="grid gap-6">
+                        <Card>
+                        <CardHeader>
+                            <CardTitle className="text-lg">Customer Information</CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-3 text-sm">
+                            <div className="grid grid-cols-2 gap-x-4 gap-y-2">
+                                <div>
+                                    <p className="font-semibold text-muted-foreground">Name</p>
+                                    <p>{selectedCustomer.name}</p>
+                                </div>
+                                <div>
+                                    <p className="font-semibold text-muted-foreground">Phone</p>
+                                    <p>{selectedCustomer.phone}</p>
+                                </div>
+                            </div>
+                            <div>
+                                <p className="font-semibold text-muted-foreground">Email</p>
+                                <p>{selectedCustomer.email}</p>
+                            </div>
+                            <div>
+                                <p className="font-semibold text-muted-foreground">Address</p>
+                                <p>{selectedCustomer.address}, {selectedCustomer.city}, {selectedCustomer.state} - {selectedCustomer.pincode}</p>
+                            </div>
+                        </CardContent>
+                        </Card>
+
+                        <div>
+                        <h3 className="mb-4 text-lg font-medium">Ride History</h3>
+                        <Table>
+                            <TableHeader>
+                            <TableRow>
+                                <TableHead>Ride ID</TableHead>
+                                <TableHead>Pick up and drop off</TableHead>
+                                <TableHead>Time</TableHead>
+                                <TableHead>Transaction ID</TableHead>
+                            </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                            {selectedCustomer.rides.map((ride) => (
+                                <TableRow key={ride.rideId}>
+                                <TableCell>{ride.rideId}</TableCell>
+                                <TableCell>
+                                    {ride.from} to {ride.to}
+                                </TableCell>
+                                <TableCell>{ride.time}</TableCell>
+                                <TableCell>{ride.transactionId}</TableCell>
+                                </TableRow>
+                            ))}
+                            </TableBody>
+                        </Table>
+                        </div>
+                    </div>
                 </DialogContent>
               </Dialog>
             </TabsContent>
