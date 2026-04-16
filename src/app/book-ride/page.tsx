@@ -11,14 +11,7 @@ import { Icons } from '@/components/icons';
 import { ArrowLeft, MapPin, Car, Zap } from 'lucide-react';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { useToast } from '@/hooks/use-toast';
-
-// This is a mock list. In a real application, this would be fetched from a database.
-const serviceAreas = [
-    { city: 'Mumbai', state: 'Maharashtra', active: true },
-    { city: 'Delhi', state: 'Delhi', active: true },
-    { city: 'Bengaluru', state: 'Karnataka', active: false },
-    { city: 'Gurugram', state: 'Haryana', active: true },
-];
+import { BOOK_RIDE_SERVICE_AREAS } from '@/lib/mock-data';
 
 export default function BookRidePage() {
   const { toast } = useToast();
@@ -28,7 +21,7 @@ export default function BookRidePage() {
 
   const mapImage = PlaceHolderImages.find((img) => img.id === 'book-ride-map');
   
-  const availableCities = serviceAreas.filter(area => area.active);
+  const availableCities = BOOK_RIDE_SERVICE_AREAS.filter(area => area.active);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -201,5 +194,3 @@ export default function BookRidePage() {
     </div>
   );
 }
-
-    

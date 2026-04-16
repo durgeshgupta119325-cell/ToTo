@@ -23,6 +23,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { useEffect, useState } from 'react';
+import { CUSTOMER_DASHBOARD_RIDE_HISTORY } from '@/lib/mock-data';
 
 type Customer = {
   name: string;
@@ -33,33 +34,6 @@ type Customer = {
   state: string;
   pincode: string;
 };
-
-
-// Mock Data
-const rideHistory = [
-    {
-        rideId: 'RIDE001',
-        from: 'Connaught Place',
-        to: 'India Gate',
-        date: '2023-10-27',
-        fare: '₹75',
-    },
-    {
-        rideId: 'RIDE002',
-        from: 'Cyber Hub',
-        to: 'Ambience Mall',
-        date: '2023-10-26',
-        fare: '₹150',
-    },
-     {
-        rideId: 'RIDE004',
-        from: 'Hauz Khas Village',
-        to: 'Select Citywalk',
-        date: '2023-10-25',
-        fare: '₹120',
-    }
-];
-
 
 export default function CustomerDashboardPage() {
   const router = useRouter();
@@ -167,7 +141,7 @@ export default function CustomerDashboardPage() {
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {rideHistory.map((ride) => (
+                                {CUSTOMER_DASHBOARD_RIDE_HISTORY.map((ride) => (
                                 <TableRow key={ride.rideId}>
                                     <TableCell className="font-medium">{ride.date}</TableCell>
                                     <TableCell>{ride.from}</TableCell>

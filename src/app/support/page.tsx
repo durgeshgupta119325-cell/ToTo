@@ -9,33 +9,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Icons } from '@/components/icons';
 import { ArrowLeft } from 'lucide-react';
-
-const faqs = [
-  {
-    question: 'How do I book a ride?',
-    answer:
-      'Go to the "Book a Ride" page, enter your pickup and destination locations, and choose your preferred vehicle type. Your ride will be confirmed instantly!',
-  },
-  {
-    question: 'What types of vehicles are available?',
-    answer:
-      'We offer both eco-friendly E-Rickshaws for short trips and comfortable Cabs for longer journeys.',
-  },
-  {
-    question: 'How is the fare calculated?',
-    answer:
-      'Fares are calculated based on the distance between your pickup and destination points. You will see an estimated fare before you confirm your booking.',
-  },
-  {
-    question: 'Can I cancel a ride?',
-    answer:
-      'Currently, ride cancellation is not supported through the app. Please contact our support team for assistance.',
-  },
-  {
-      question: 'How can I become a driver?',
-      answer: 'You can register as a driver by clicking the "Become a Driver" button on the homepage and filling out the registration form. Our team will review your application and get in touch with you.'
-  }
-];
+import { SUPPORT_FAQS } from '@/lib/mock-data';
 
 export default function SupportPage() {
   return (
@@ -62,7 +36,7 @@ export default function SupportPage() {
           </div>
 
           <Accordion type="single" collapsible className="w-full">
-            {faqs.map((faq, index) => (
+            {SUPPORT_FAQS.map((faq, index) => (
               <AccordionItem key={index} value={`item-${index}`}>
                 <AccordionTrigger className="text-lg">{faq.question}</AccordionTrigger>
                 <AccordionContent className="text-base text-muted-foreground">
