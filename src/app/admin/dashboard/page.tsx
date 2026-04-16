@@ -71,7 +71,7 @@ import { Input } from '@/components/ui/input';
 import { useState } from 'react';
 
 // Mock Data
-const drivers = [
+const DUMMY_DRIVERS = [
   {
     id: 'DRV001',
     name: 'Ramesh Kumar',
@@ -98,7 +98,7 @@ const drivers = [
   },
 ];
 
-const customers = [
+const DUMMY_CUSTOMERS = [
   {
     id: 'CUST001',
     name: 'Anjali Sharma',
@@ -138,7 +138,7 @@ const customers = [
   },
 ];
 
-const LOCATIONS_DATA = [
+const DUMMY_LOCATIONS_DATA = [
     // Andhra Pradesh
     { state: 'Andhra Pradesh', district: 'Visakhapatnam', city: 'Visakhapatnam' },
     { state: 'Andhra Pradesh', district: 'Krishna', city: 'Vijayawada' },
@@ -291,12 +291,19 @@ const LOCATIONS_DATA = [
     { state: 'West Bengal', district: 'Darjeeling', city: 'Siliguri' },
 ];
 
+const dashboardStats = {
+    totalRides: 1250,
+    grossVolume: 85230,
+    platformCommission: 85230 * 0.02,
+};
+
 
 export default function AdminDashboardPage() {
   const router = useRouter();
   const { toast } = useToast();
-  const [driverList, setDriverList] = useState(drivers);
-  const [selectedCustomer, setSelectedCustomer] = useState(customers[0]);
+  const [driverList, setDriverList] = useState(DUMMY_DRIVERS);
+  const [selectedCustomer, setSelectedCustomer] = useState(DUMMY_CUSTOMERS[0]);
+  const [customerSearch, setCustomerSearch] = useState('');
   const [serviceAreas, setServiceAreas] = useState([
     { id: 1, city: 'Mumbai', district: 'Mumbai City', state: 'Maharashtra', active: true },
     { id: 2, city: 'Delhi', district: 'New Delhi', state: 'Delhi', active: true },
@@ -384,13 +391,13 @@ export default function AdminDashboardPage() {
       }
   };
 
-  const states = [...new Set(LOCATIONS_DATA.map(l => l.state))].sort();
+  const states = [...new Set(DUMMY_LOCATIONS_DATA.map(l => l.state))].sort();
 
   const handleStateChange = (state: string) => {
       setSelectedState(state);
       setSelectedDistrict('');
       setSelectedCity('');
-      const availableDistricts = LOCATIONS_DATA.filter(l => l.state === state);
+      const availableDistricts = DUMMY_LOCATIONS_DATA.filter(l => l.state === state);
       const uniqueDistricts = [...new Set(availableDistricts.map(l => l.district))].sort();
       setDistricts(uniqueDistricts);
   };
@@ -400,13 +407,12 @@ export default function AdminDashboardPage() {
       setSelectedCity('');
   };
 
+  const filteredCustomers = DUMMY_CUSTOMERS.filter(
+    (customer) =>
+      customer.name.toLowerCase().includes(customerSearch.toLowerCase()) ||
+      customer.phone.includes(customerSearch)
+  );
 
-  // Dummy data for dashboard stats
-  const dashboardStats = {
-    totalRides: 1250,
-    grossVolume: 85230,
-    platformCommission: 85230 * 0.02,
-  };
 
   return (
     <div className="flex min-h-dvh flex-col bg-secondary">
@@ -616,8 +622,17 @@ export default function AdminDashboardPage() {
                   <CardHeader>
                     <CardTitle>Customer Management</CardTitle>
                     <CardDescription>
-                      View customer details and their ride history.
+                      Search for customers by name or mobile number to view their details and ride history.
                     </CardDescription>
+                    <div className="relative pt-4">
+                        <Users className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground mt-2" />
+                        <Input 
+                            placeholder="Search by name or mobile number..."
+                            value={customerSearch}
+                            onChange={(e) => setCustomerSearch(e.target.value)}
+                            className="pl-10 max-w-sm"
+                        />
+                    </div>
                   </CardHeader>
                   <CardContent>
                     <Table>
@@ -633,7 +648,7 @@ export default function AdminDashboardPage() {
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {customers.map((customer) => (
+                        {filteredCustomers.map((customer) => (
                           <TableRow key={customer.id}>
                             <TableCell className="font-medium">
                               {customer.id}
