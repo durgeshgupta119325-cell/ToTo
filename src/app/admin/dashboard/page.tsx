@@ -1,3 +1,4 @@
+
 "use client";
 
 import Link from 'next/link';
@@ -543,8 +544,9 @@ export default function AdminDashboardPage() {
                             <TableHeader>
                             <TableRow>
                                 <TableHead>Ride ID</TableHead>
-                                <TableHead>Pick up and drop off</TableHead>
-                                <TableHead>Time</TableHead>
+                                <TableHead>Booking Time</TableHead>
+                                <TableHead>Pick up</TableHead>
+                                <TableHead>Drop off</TableHead>
                                 <TableHead>Transaction ID</TableHead>
                             </TableRow>
                             </TableHeader>
@@ -552,10 +554,9 @@ export default function AdminDashboardPage() {
                             {selectedCustomer.rides.map((ride) => (
                                 <TableRow key={ride.rideId}>
                                 <TableCell>{ride.rideId}</TableCell>
-                                <TableCell>
-                                    {ride.from} to {ride.to}
-                                </TableCell>
                                 <TableCell>{ride.time}</TableCell>
+                                <TableCell>{ride.from}</TableCell>
+                                <TableCell>{ride.to}</TableCell>
                                 <TableCell>{ride.transactionId}</TableCell>
                                 </TableRow>
                             ))}
