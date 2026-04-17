@@ -2,6 +2,7 @@
 "use client";
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import {
@@ -37,6 +38,7 @@ import {
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuTrigger,
+  DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
 import {
   AlertDialog,
@@ -77,6 +79,7 @@ export default function AdminDashboardPage() {
   const router = useRouter();
   const { toast } = useToast();
   const [driverList, setDriverList] = useState(DUMMY_DRIVERS);
+  const [selectedDriver, setSelectedDriver] = useState(DUMMY_DRIVERS[0]);
   const [selectedCustomer, setSelectedCustomer] = useState(DUMMY_CUSTOMERS[0]);
   const [customerSearch, setCustomerSearch] = useState('');
   const [serviceAreas, setServiceAreas] = useState([
@@ -334,99 +337,223 @@ export default function AdminDashboardPage() {
 
             {/* Drivers Tab */}
             <TabsContent value="drivers">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Driver Management</CardTitle>
-                  <CardDescription>
-                    View, manage, and remove drivers from the platform.
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Driver ID</TableHead>
-                        <TableHead>Name</TableHead>
-                        <TableHead>Email</TableHead>
-                        <TableHead>Vehicle No.</TableHead>
-                        <TableHead>Account No.</TableHead>
-                        <TableHead className="text-right">Gross Earnings</TableHead>
-                        <TableHead className="text-right">Net Payout</TableHead>
-                        <TableHead>
-                          <span className="sr-only">Actions</span>
-                        </TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {driverList.map((driver) => (
-                        <TableRow key={driver.id}>
-                          <TableCell className="font-medium">
-                            {driver.id}
-                          </TableCell>
-                          <TableCell>{driver.name}</TableCell>
-                          <TableCell>{driver.email}</TableCell>
-                          <TableCell>{driver.vehicleNumber}</TableCell>
-                          <TableCell>{driver.accountNumber}</TableCell>
-                          <TableCell className="text-right">
-                            ₹{driver.grossEarnings.toLocaleString()}
-                          </TableCell>
-                          <TableCell className="text-right">
-                            ₹{(driver.grossEarnings * (1 - (commissionInfo?.rate || commissionRates.day / 100))).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                          </TableCell>
-                          <TableCell>
-                            <AlertDialog>
-                              <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                  <Button
-                                    aria-haspopup="true"
-                                    size="icon"
-                                    variant="ghost"
-                                  >
-                                    <MoreHorizontal className="h-4 w-4" />
-                                    <span className="sr-only">Toggle menu</span>
-                                  </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end">
-                                  <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                                  <AlertDialogTrigger asChild>
-                                    <DropdownMenuItem className="text-destructive focus:text-destructive focus:bg-destructive/10">
-                                      <Trash2 className="mr-2 h-4 w-4" />
-                                      Remove Driver
-                                    </DropdownMenuItem>
-                                  </AlertDialogTrigger>
-                                </DropdownMenuContent>
-                              </DropdownMenu>
-                              <AlertDialogContent>
-                                <AlertDialogHeader>
-                                  <AlertDialogTitle>
-                                    Are you sure?
-                                  </AlertDialogTitle>
-                                  <AlertDialogDescription>
-                                    This action cannot be undone. This will
-                                    permanently remove the driver and their
-                                    data from the platform.
-                                  </AlertDialogDescription>
-                                </AlertDialogHeader>
-                                <AlertDialogFooter>
-                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                  <AlertDialogAction
-                                    className="bg-destructive hover:bg-destructive/90"
-                                    onClick={() =>
-                                      handleRemoveDriver(driver.id)
-                                    }
-                                  >
-                                    Remove
-                                  </AlertDialogAction>
-                                </AlertDialogFooter>
-                              </AlertDialogContent>
-                            </AlertDialog>
-                          </TableCell>
+              <Dialog>
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Driver Management</CardTitle>
+                    <CardDescription>
+                      View, manage, and remove drivers from the platform.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Driver ID</TableHead>
+                          <TableHead>Name</TableHead>
+                          <TableHead>Email</TableHead>
+                          <TableHead>Vehicle No.</TableHead>
+                          <TableHead>Account No.</TableHead>
+                          <TableHead className="text-right">Gross Earnings</TableHead>
+                          <TableHead className="text-right">Net Payout</TableHead>
+                          <TableHead>
+                            <span className="sr-only">Actions</span>
+                          </TableHead>
                         </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </CardContent>
-              </Card>
+                      </TableHeader>
+                      <TableBody>
+                        {driverList.map((driver) => (
+                          <TableRow key={driver.id}>
+                            <TableCell className="font-medium">
+                              {driver.id}
+                            </TableCell>
+                            <TableCell>{driver.name}</TableCell>
+                            <TableCell>{driver.email}</TableCell>
+                            <TableCell>{driver.vehicleNumber}</TableCell>
+                            <TableCell>{driver.accountNumber}</TableCell>
+                            <TableCell className="text-right">
+                              ₹{driver.grossEarnings.toLocaleString()}
+                            </TableCell>
+                            <TableCell className="text-right">
+                              ₹{(driver.grossEarnings * (1 - (commissionInfo?.rate || commissionRates.day / 100))).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            </TableCell>
+                            <TableCell>
+                              <AlertDialog>
+                                <DropdownMenu>
+                                  <DropdownMenuTrigger asChild>
+                                    <Button
+                                      aria-haspopup="true"
+                                      size="icon"
+                                      variant="ghost"
+                                    >
+                                      <MoreHorizontal className="h-4 w-4" />
+                                      <span className="sr-only">Toggle menu</span>
+                                    </Button>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent align="end">
+                                    <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                                    <DialogTrigger asChild>
+                                      <DropdownMenuItem
+                                        onClick={() =>
+                                          setSelectedDriver(driver)
+                                        }
+                                      >
+                                        View Details
+                                      </DropdownMenuItem>
+                                    </DialogTrigger>
+                                    <DropdownMenuSeparator />
+                                    <AlertDialogTrigger asChild>
+                                      <DropdownMenuItem className="text-destructive focus:text-destructive focus:bg-destructive/10">
+                                        <Trash2 className="mr-2 h-4 w-4" />
+                                        Remove Driver
+                                      </DropdownMenuItem>
+                                    </AlertDialogTrigger>
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
+                                <AlertDialogContent>
+                                  <AlertDialogHeader>
+                                    <AlertDialogTitle>
+                                      Are you sure?
+                                    </AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                      This action cannot be undone. This will
+                                      permanently remove the driver and their
+                                      data from the platform.
+                                    </AlertDialogDescription>
+                                  </AlertDialogHeader>
+                                  <AlertDialogFooter>
+                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                    <AlertDialogAction
+                                      className="bg-destructive hover:bg-destructive/90"
+                                      onClick={() =>
+                                        handleRemoveDriver(driver.id)
+                                      }
+                                    >
+                                      Remove
+                                    </AlertDialogAction>
+                                  </AlertDialogFooter>
+                                </AlertDialogContent>
+                              </AlertDialog>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </CardContent>
+                </Card>
+                <DialogContent className="sm:max-w-4xl">
+                  <DialogHeader>
+                    <DialogTitle>Driver Details: {selectedDriver.name}</DialogTitle>
+                    <DialogDescription>
+                      View driver information, vehicle details, and documents.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="grid gap-6 py-4 md:grid-cols-3">
+                    <div className="space-y-4 md:col-span-1">
+                      <Card>
+                        <CardContent className="pt-6">
+                          <div className="flex flex-col items-center gap-4">
+                            <Image
+                              src={selectedDriver.photoUrl}
+                              alt={selectedDriver.name}
+                              width={128}
+                              height={128}
+                              className="rounded-full"
+                              data-ai-hint="driver profile photo"
+                            />
+                            <div className="text-center">
+                              <h3 className="text-xl font-semibold">
+                                {selectedDriver.name}
+                              </h3>
+                              <p className="text-muted-foreground">
+                                {selectedDriver.id}
+                              </p>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                      <Card>
+                        <CardHeader>
+                          <CardTitle className="text-lg">
+                            Contact Information
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-3 text-sm">
+                          <div>
+                            <p className="font-semibold text-muted-foreground">
+                              Email
+                            </p>
+                            <p>{selectedDriver.email}</p>
+                          </div>
+                          <div>
+                            <p className="font-semibold text-muted-foreground">
+                              Mobile
+                            </p>
+                            <p>{selectedDriver.mobile}</p>
+                          </div>
+                          <div>
+                            <p className="font-semibold text-muted-foreground">
+                              Address
+                            </p>
+                            <p>
+                              {selectedDriver.address}, {selectedDriver.city},{' '}
+                              {selectedDriver.state} - {selectedDriver.pincode}
+                            </p>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </div>
+                    <div className="space-y-4 md:col-span-2">
+                      <Card>
+                        <CardHeader>
+                          <CardTitle className="text-lg">
+                            Vehicle & Bank Details
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-4 text-sm">
+                          <div className="grid grid-cols-2 gap-4">
+                            <div>
+                              <p className="font-semibold text-muted-foreground">
+                                Vehicle Type
+                              </p>
+                              <p>{selectedDriver.vehicleType}</p>
+                            </div>
+                            <div>
+                              <p className="font-semibold text-muted-foreground">
+                                Vehicle Number
+                              </p>
+                              <p>{selectedDriver.vehicleNumber}</p>
+                            </div>
+                          </div>
+                          <div>
+                            <p className="font-semibold text-muted-foreground">
+                              Bank Account No.
+                            </p>
+                            <p>{selectedDriver.accountNumber}</p>
+                          </div>
+                        </CardContent>
+                      </Card>
+                      <Card>
+                        <CardHeader>
+                          <CardTitle className="text-lg">
+                            Identification Proof
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <Image
+                            src={selectedDriver.idProofUrl}
+                            alt="ID Proof"
+                            width={400}
+                            height={250}
+                            className="w-full rounded-md border object-cover"
+                            data-ai-hint="identification card"
+                          />
+                        </CardContent>
+                      </Card>
+                    </div>
+                  </div>
+                </DialogContent>
+              </Dialog>
             </TabsContent>
 
             {/* Customers Tab */}

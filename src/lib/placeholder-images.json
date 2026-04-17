@@ -11,6 +11,18 @@
       "description": "A map showing a route from pickup to destination",
       "imageUrl": "https://picsum.photos/seed/toto-map/800/400",
       "imageHint": "map route"
+    },
+    {
+      "id": "driver-photo",
+      "description": "A placeholder for a driver's profile picture",
+      "imageUrl": "https://picsum.photos/seed/driver-pfp/200/200",
+      "imageHint": "profile portrait"
+    },
+    {
+      "id": "id-proof",
+      "description": "A placeholder for an ID proof document",
+      "imageUrl": "https://picsum.photos/seed/id-card/400/250",
+      "imageHint": "identification card"
     }
   ]
 }
