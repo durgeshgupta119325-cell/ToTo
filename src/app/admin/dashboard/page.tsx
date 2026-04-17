@@ -1,4 +1,3 @@
-
 "use client";
 
 import Link from 'next/link';
@@ -69,7 +68,7 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { DUMMY_DRIVERS, DUMMY_CUSTOMERS, DUMMY_LOCATIONS_DATA, ADMIN_DASHBOARD_STATS, DEFAULT_RATES } from '@/lib/mock-data';
 
 
@@ -92,6 +91,19 @@ export default function AdminDashboardPage() {
   const [rates, setRates] = useState({ erickshaw: DEFAULT_RATES.erickshaw, cab: DEFAULT_RATES.cab });
 
   const [districts, setDistricts] = useState<string[]>([]);
+  const [commissionInfo, setCommissionInfo] = useState<{rate: number; amount: number} | null>(null);
+
+  useEffect(() => {
+    const now = new Date();
+    const currentHour = now.getHours();
+    const isNightTime = currentHour >= 21 || currentHour < 6;
+
+    const rate = isNightTime ? 0.03 : 0.02;
+    setCommissionInfo({
+        rate: rate,
+        amount: ADMIN_DASHBOARD_STATS.grossVolume * rate
+    });
+  }, []);
 
   const handleLogout = () => {
     toast({
@@ -291,12 +303,21 @@ export default function AdminDashboardPage() {
                     <Percent className="h-4 w-4 text-muted-foreground" />
                   </CardHeader>
                   <CardContent>
-                    <div className="text-2xl font-bold">
-                      ₹{ADMIN_DASHBOARD_STATS.platformCommission.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                    </div>
-                    <p className="text-xs text-muted-foreground">
-                      2% of Gross Volume
-                    </p>
+                    {commissionInfo ? (
+                        <>
+                            <div className="text-2xl font-bold">
+                                ₹{commissionInfo.amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            </div>
+                            <p className="text-xs text-muted-foreground">
+                                {commissionInfo.rate * 100}% of Gross Volume {commissionInfo.rate === 0.03 && '(Night Rate)'}
+                            </p>
+                        </>
+                    ) : (
+                        <>
+                            <div className="h-8 w-24 animate-pulse rounded-md bg-muted" />
+                            <div className="mt-1 h-4 w-32 animate-pulse rounded-md bg-muted" />
+                        </>
+                    )}
                   </CardContent>
                 </Card>
               </div>
@@ -341,7 +362,7 @@ export default function AdminDashboardPage() {
                             ₹{driver.grossEarnings.toLocaleString()}
                           </TableCell>
                           <TableCell className="text-right">
-                            ₹{(driver.grossEarnings * 0.98).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            ₹{(driver.grossEarnings * (1 - (commissionInfo?.rate || 0.02))).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                           </TableCell>
                           <TableCell>
                             <AlertDialog>

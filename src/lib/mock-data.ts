@@ -230,7 +230,6 @@ export const DUMMY_LOCATIONS_DATA = [
 export const ADMIN_DASHBOARD_STATS = {
     totalRides: 1250,
     grossVolume: 85230,
-    platformCommission: 85230 * 0.02,
 };
 
 export const BOOK_RIDE_SERVICE_AREAS = [

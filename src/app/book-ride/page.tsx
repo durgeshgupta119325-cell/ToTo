@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState } from 'react';
@@ -27,6 +26,7 @@ export default function BookRidePage() {
   const [destination, setDestination] = useState('');
   const [distance, setDistance] = useState<number | null>(null);
   const [rideOptions, setRideOptions] = useState<RideOption[]>([]);
+  const [isNight, setIsNight] = useState(false);
 
   const mapImage = PlaceHolderImages.find((img) => img.id === 'book-ride-map');
   
@@ -39,18 +39,29 @@ export default function BookRidePage() {
       const randomDistance = parseFloat((Math.random() * (10 - 1) + 1).toFixed(1)); // 1.0 to 10.0 km
       setDistance(randomDistance);
 
+      const now = new Date();
+      const currentHour = now.getHours();
+      const isNightTime = currentHour >= 21 || currentHour < 6;
+      setIsNight(isNightTime);
+
+      const baseFareErickshaw = randomDistance * DEFAULT_RATES.erickshaw;
+      const baseFareCab = randomDistance * DEFAULT_RATES.cab;
+
+      const finalFareErickshaw = isNightTime ? baseFareErickshaw * 1.05 : baseFareErickshaw;
+      const finalFareCab = isNightTime ? baseFareCab * 1.05 : baseFareCab;
+
       const options: RideOption[] = [
         {
           type: 'E-Rickshaw',
           description: 'Eco-friendly & affordable',
           icon: Zap,
-          fare: Math.round(randomDistance * DEFAULT_RATES.erickshaw),
+          fare: Math.round(finalFareErickshaw),
         },
         {
           type: 'Cab',
           description: 'Comfortable & private',
           icon: Car,
-          fare: Math.round(randomDistance * DEFAULT_RATES.cab),
+          fare: Math.round(finalFareCab),
         },
       ];
       setRideOptions(options);
@@ -150,6 +161,7 @@ export default function BookRidePage() {
                     <CardTitle>Select a Ride</CardTitle>
                     <CardDescription>
                       Your ride is approximately {distance} km. Choose a ride that suits you.
+                      {isNight && <span className="block pt-1 text-xs text-primary">A 5% night surcharge (9pm - 6am) has been applied.</span>}
                     </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
