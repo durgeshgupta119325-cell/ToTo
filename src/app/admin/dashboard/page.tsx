@@ -89,6 +89,7 @@ export default function AdminDashboardPage() {
   const [selectedDistrict, setSelectedDistrict] = useState('');
   const [selectedCity, setSelectedCity] = useState('');
   const [rates, setRates] = useState({ erickshaw: DEFAULT_RATES.erickshaw, cab: DEFAULT_RATES.cab });
+  const [commissionRates, setCommissionRates] = useState({ day: 2, night: 3 });
 
   const [districts, setDistricts] = useState<string[]>([]);
   const [commissionInfo, setCommissionInfo] = useState<{rate: number; amount: number} | null>(null);
@@ -98,12 +99,12 @@ export default function AdminDashboardPage() {
     const currentHour = now.getHours();
     const isNightTime = currentHour >= 21 || currentHour < 6;
 
-    const rate = isNightTime ? 0.03 : 0.02;
+    const rate = isNightTime ? commissionRates.night / 100 : commissionRates.day / 100;
     setCommissionInfo({
         rate: rate,
         amount: ADMIN_DASHBOARD_STATS.grossVolume * rate
     });
-  }, []);
+  }, [commissionRates]);
 
   const handleLogout = () => {
     toast({
@@ -184,6 +185,13 @@ export default function AdminDashboardPage() {
     toast({
         title: 'Rates Saved',
         description: 'The per-kilometer rates have been updated.',
+    });
+  };
+
+  const handleSaveCommissionRates = () => {
+    toast({
+      title: 'Commission Rates Saved',
+      description: 'The platform commission rates have been updated.',
     });
   };
 
@@ -309,7 +317,7 @@ export default function AdminDashboardPage() {
                                 ₹{commissionInfo.amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                             </div>
                             <p className="text-xs text-muted-foreground">
-                                {commissionInfo.rate * 100}% of Gross Volume {commissionInfo.rate === 0.03 && '(Night Rate)'}
+                                {commissionInfo.rate * 100}% of Gross Volume {commissionInfo.rate === commissionRates.night / 100 && '(Night Rate)'}
                             </p>
                         </>
                     ) : (
@@ -362,7 +370,7 @@ export default function AdminDashboardPage() {
                             ₹{driver.grossEarnings.toLocaleString()}
                           </TableCell>
                           <TableCell className="text-right">
-                            ₹{(driver.grossEarnings * (1 - (commissionInfo?.rate || 0.02))).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            ₹{(driver.grossEarnings * (1 - (commissionInfo?.rate || commissionRates.day / 100))).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                           </TableCell>
                           <TableCell>
                             <AlertDialog>
@@ -728,6 +736,49 @@ export default function AdminDashboardPage() {
                         </div>
                     </div>
                     <Button onClick={handleSaveRates}>Save Rates</Button>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Commission Management</CardTitle>
+                    <CardDescription>
+                      Set the platform commission rates for day and night.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="flex items-center justify-between rounded-md border p-4">
+                        <div>
+                            <Label htmlFor="day-commission" className="font-medium">Day Commission Rate</Label>
+                            <p className="text-sm text-muted-foreground">Commission from 6 AM to 9 PM.</p>
+                        </div>
+                        <div className="relative">
+                            <Input
+                                id="day-commission"
+                                type="number"
+                                value={commissionRates.day}
+                                onChange={(e) => setCommissionRates({ ...commissionRates, day: Number(e.target.value) || 0 })}
+                                className="w-32 pr-8"
+                            />
+                            <span className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3 text-muted-foreground">%</span>
+                        </div>
+                    </div>
+                    <div className="flex items-center justify-between rounded-md border p-4">
+                        <div>
+                            <Label htmlFor="night-commission" className="font-medium">Night Commission Rate</Label>
+                            <p className="text-sm text-muted-foreground">Commission from 9 PM to 6 AM.</p>
+                        </div>
+                        <div className="relative">
+                            <Input
+                                id="night-commission"
+                                type="number"
+                                value={commissionRates.night}
+                                onChange={(e) => setCommissionRates({ ...commissionRates, night: Number(e.target.value) || 0 })}
+                                className="w-32 pr-8"
+                            />
+                             <span className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3 text-muted-foreground">%</span>
+                        </div>
+                    </div>
+                    <Button onClick={handleSaveCommissionRates}>Save Commission Rates</Button>
                   </CardContent>
                 </Card>
               </div>
