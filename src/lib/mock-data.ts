@@ -290,3 +290,8 @@ export const SUPPORT_FAQS = [
       answer: 'You can register as a driver by clicking the "Become a Driver" button on the homepage and filling out the registration form. Our team will review your application and get in touch with you.'
   }
 ];
+
+export const DEFAULT_RATES = {
+    erickshaw: 10,
+    cab: 15,
+};

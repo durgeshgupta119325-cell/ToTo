@@ -67,9 +67,10 @@ import {
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 
 import { useState } from 'react';
-import { DUMMY_DRIVERS, DUMMY_CUSTOMERS, DUMMY_LOCATIONS_DATA, ADMIN_DASHBOARD_STATS } from '@/lib/mock-data';
+import { DUMMY_DRIVERS, DUMMY_CUSTOMERS, DUMMY_LOCATIONS_DATA, ADMIN_DASHBOARD_STATS, DEFAULT_RATES } from '@/lib/mock-data';
 
 
 export default function AdminDashboardPage() {
@@ -88,6 +89,7 @@ export default function AdminDashboardPage() {
   const [selectedState, setSelectedState] = useState('');
   const [selectedDistrict, setSelectedDistrict] = useState('');
   const [selectedCity, setSelectedCity] = useState('');
+  const [rates, setRates] = useState({ erickshaw: DEFAULT_RATES.erickshaw, cab: DEFAULT_RATES.cab });
 
   const [districts, setDistricts] = useState<string[]>([]);
 
@@ -163,6 +165,14 @@ export default function AdminDashboardPage() {
               description: `${areaToRemove.city} has been removed from your service areas.`,
           });
       }
+  };
+
+  const handleSaveRates = () => {
+    // In a real app, you'd save this to a database
+    toast({
+        title: 'Rates Saved',
+        description: 'The per-kilometer rates have been updated.',
+    });
   };
 
   const states = [...new Set(DUMMY_LOCATIONS_DATA.map(l => l.state))].sort();
@@ -530,131 +540,176 @@ export default function AdminDashboardPage() {
             
             {/* Settings Tab */}
             <TabsContent value="settings">
-               <Card>
-                <CardHeader>
-                  <CardTitle>Area Management</CardTitle>
-                  <CardDescription>
-                    Manage the areas where your service is available. Add or remove locations and toggle their status.
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <div className="mb-6 flex flex-col gap-4 rounded-md border p-4">
-                        <div className="space-y-1">
-                            <p className="text-sm font-medium">Add a new service area</p>
-                            <p className="text-sm text-muted-foreground">Select a state, district, and enter a city to add it to your operational areas.</p>
+              <div className="space-y-6">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Area Management</CardTitle>
+                    <CardDescription>
+                      Manage the areas where your service is available. Add or remove locations and toggle their status.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                      <div className="mb-6 flex flex-col gap-4 rounded-md border p-4">
+                          <div className="space-y-1">
+                              <p className="text-sm font-medium">Add a new service area</p>
+                              <p className="text-sm text-muted-foreground">Select a state, district, and enter a city to add it to your operational areas.</p>
+                          </div>
+                          <div className="flex flex-wrap items-center gap-2">
+                              <Select value={selectedState} onValueChange={handleStateChange}>
+                                  <SelectTrigger className="w-full min-w-[180px] flex-1">
+                                      <SelectValue placeholder="Select a state" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                      {states.map(state => (
+                                          <SelectItem key={state} value={state}>{state}</SelectItem>
+                                      ))}
+                                  </SelectContent>
+                              </Select>
+                              <Select value={selectedDistrict} onValueChange={handleDistrictChange} disabled={!selectedState || districts.length === 0}>
+                                  <SelectTrigger className="w-full min-w-[180px] flex-1">
+                                      <SelectValue placeholder="Select a district" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                      {districts.map(district => (
+                                          <SelectItem key={district} value={district}>{district}</SelectItem>
+                                      ))}
+                                  </SelectContent>
+                              </Select>
+                              <Input
+                                  placeholder="Enter a city"
+                                  className="w-full min-w-[180px] flex-1"
+                                  value={selectedCity}
+                                  onChange={(e) => setSelectedCity(e.target.value)}
+                                  disabled={!selectedDistrict}
+                              />
+                              <Button onClick={handleAddServiceArea} className="w-full sm:w-auto">Add</Button>
+                          </div>
+                      </div>
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>City</TableHead>
+                          <TableHead>District</TableHead>
+                          <TableHead>State</TableHead>
+                          <TableHead>Status</TableHead>
+                          <TableHead>Availability</TableHead>
+                          <TableHead className="text-right">Actions</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {serviceAreas.map((area) => (
+                          <TableRow key={area.id}>
+                            <TableCell className="font-medium">{area.city}</TableCell>
+                            <TableCell>{area.district}</TableCell>
+                            <TableCell>{area.state}</TableCell>
+                            <TableCell>
+                              <Badge variant={area.active ? 'default' : 'secondary'}>
+                                {area.active ? 'Active' : 'Inactive'}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>
+                              <Switch
+                                checked={area.active}
+                                onCheckedChange={() => handleServiceAreaToggle(area.id)}
+                                aria-label={`Toggle service for ${area.city}`}
+                              />
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <AlertDialog>
+                                  <DropdownMenu>
+                                      <DropdownMenuTrigger asChild>
+                                      <Button
+                                          aria-haspopup="true"
+                                          size="icon"
+                                          variant="ghost"
+                                      >
+                                          <MoreHorizontal className="h-4 w-4" />
+                                          <span className="sr-only">Toggle menu</span>
+                                      </Button>
+                                      </DropdownMenuTrigger>
+                                      <DropdownMenuContent align="end">
+                                      <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                                      <AlertDialogTrigger asChild>
+                                          <DropdownMenuItem className="text-destructive focus:text-destructive focus:bg-destructive/10">
+                                          <Trash2 className="mr-2 h-4 w-4" />
+                                          Remove
+                                          </DropdownMenuItem>
+                                      </AlertDialogTrigger>
+                                      </DropdownMenuContent>
+                                  </DropdownMenu>
+                                  <AlertDialogContent>
+                                      <AlertDialogHeader>
+                                      <AlertDialogTitle>
+                                          Are you sure?
+                                      </AlertDialogTitle>
+                                      <AlertDialogDescription>
+                                          This will remove {area.city} from your list of service areas. You can add it back later if needed.
+                                      </AlertDialogDescription>
+                                      </AlertDialogHeader>
+                                      <AlertDialogFooter>
+                                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                      <AlertDialogAction
+                                          className="bg-destructive hover:bg-destructive/90"
+                                          onClick={() =>
+                                              handleRemoveServiceArea(area.id)
+                                          }
+                                      >
+                                          Remove
+                                      </AlertDialogAction>
+                                      </AlertDialogFooter>
+                                  </AlertDialogContent>
+                                  </AlertDialog>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Rate Management</CardTitle>
+                    <CardDescription>
+                      Set the per-kilometer rates for different vehicle types.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="flex items-center justify-between rounded-md border p-4">
+                        <div>
+                            <Label htmlFor="erickshaw-rate" className="font-medium">E-Rickshaw Rate</Label>
+                            <p className="text-sm text-muted-foreground">Price per kilometer for e-rickshaws.</p>
                         </div>
-                        <div className="flex flex-wrap items-center gap-2">
-                             <Select value={selectedState} onValueChange={handleStateChange}>
-                                <SelectTrigger className="w-full min-w-[180px] flex-1">
-                                    <SelectValue placeholder="Select a state" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {states.map(state => (
-                                        <SelectItem key={state} value={state}>{state}</SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                            <Select value={selectedDistrict} onValueChange={handleDistrictChange} disabled={!selectedState || districts.length === 0}>
-                                <SelectTrigger className="w-full min-w-[180px] flex-1">
-                                    <SelectValue placeholder="Select a district" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {districts.map(district => (
-                                        <SelectItem key={district} value={district}>{district}</SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
+                        <div className="relative">
+                            <span className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-muted-foreground">₹</span>
                             <Input
-                                placeholder="Enter a city"
-                                className="w-full min-w-[180px] flex-1"
-                                value={selectedCity}
-                                onChange={(e) => setSelectedCity(e.target.value)}
-                                disabled={!selectedDistrict}
+                                id="erickshaw-rate"
+                                type="number"
+                                value={rates.erickshaw}
+                                onChange={(e) => setRates({ ...rates, erickshaw: Number(e.target.value) || 0 })}
+                                className="w-32 pl-7"
                             />
-                            <Button onClick={handleAddServiceArea} className="w-full sm:w-auto">Add</Button>
                         </div>
                     </div>
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>City</TableHead>
-                        <TableHead>District</TableHead>
-                        <TableHead>State</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead>Availability</TableHead>
-                        <TableHead className="text-right">Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {serviceAreas.map((area) => (
-                        <TableRow key={area.id}>
-                          <TableCell className="font-medium">{area.city}</TableCell>
-                          <TableCell>{area.district}</TableCell>
-                          <TableCell>{area.state}</TableCell>
-                          <TableCell>
-                            <Badge variant={area.active ? 'default' : 'secondary'}>
-                              {area.active ? 'Active' : 'Inactive'}
-                            </Badge>
-                          </TableCell>
-                          <TableCell>
-                            <Switch
-                              checked={area.active}
-                              onCheckedChange={() => handleServiceAreaToggle(area.id)}
-                              aria-label={`Toggle service for ${area.city}`}
+                    <div className="flex items-center justify-between rounded-md border p-4">
+                        <div>
+                            <Label htmlFor="cab-rate" className="font-medium">Cab Rate</Label>
+                            <p className="text-sm text-muted-foreground">Price per kilometer for cabs.</p>
+                        </div>
+                        <div className="relative">
+                            <span className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-muted-foreground">₹</span>
+                            <Input
+                                id="cab-rate"
+                                type="number"
+                                value={rates.cab}
+                                onChange={(e) => setRates({ ...rates, cab: Number(e.target.value) || 0 })}
+                                className="w-32 pl-7"
                             />
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <AlertDialog>
-                                <DropdownMenu>
-                                    <DropdownMenuTrigger asChild>
-                                    <Button
-                                        aria-haspopup="true"
-                                        size="icon"
-                                        variant="ghost"
-                                    >
-                                        <MoreHorizontal className="h-4 w-4" />
-                                        <span className="sr-only">Toggle menu</span>
-                                    </Button>
-                                    </DropdownMenuTrigger>
-                                    <DropdownMenuContent align="end">
-                                    <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                                    <AlertDialogTrigger asChild>
-                                        <DropdownMenuItem className="text-destructive focus:text-destructive focus:bg-destructive/10">
-                                        <Trash2 className="mr-2 h-4 w-4" />
-                                        Remove
-                                        </DropdownMenuItem>
-                                    </AlertDialogTrigger>
-                                    </DropdownMenuContent>
-                                </DropdownMenu>
-                                <AlertDialogContent>
-                                    <AlertDialogHeader>
-                                    <AlertDialogTitle>
-                                        Are you sure?
-                                    </AlertDialogTitle>
-                                    <AlertDialogDescription>
-                                        This will remove {area.city} from your list of service areas. You can add it back later if needed.
-                                    </AlertDialogDescription>
-                                    </AlertDialogHeader>
-                                    <AlertDialogFooter>
-                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                    <AlertDialogAction
-                                        className="bg-destructive hover:bg-destructive/90"
-                                        onClick={() =>
-                                            handleRemoveServiceArea(area.id)
-                                        }
-                                    >
-                                        Remove
-                                    </AlertDialogAction>
-                                    </AlertDialogFooter>
-                                </AlertDialogContent>
-                                </AlertDialog>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </CardContent>
-              </Card>
+                        </div>
+                    </div>
+                    <Button onClick={handleSaveRates}>Save Rates</Button>
+                  </CardContent>
+                </Card>
+              </div>
             </TabsContent>
           </Tabs>
         </div>

@@ -11,13 +11,22 @@ import { Icons } from '@/components/icons';
 import { ArrowLeft, MapPin, Car, Zap } from 'lucide-react';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { useToast } from '@/hooks/use-toast';
-import { BOOK_RIDE_SERVICE_AREAS } from '@/lib/mock-data';
+import { BOOK_RIDE_SERVICE_AREAS, DEFAULT_RATES } from '@/lib/mock-data';
+
+type RideOption = {
+    type: string;
+    description: string;
+    icon: React.ElementType;
+    fare: number;
+};
 
 export default function BookRidePage() {
   const { toast } = useToast();
   const [step, setStep] = useState<'search' | 'options' | 'confirmed'>('search');
   const [pickup, setPickup] = useState('');
   const [destination, setDestination] = useState('');
+  const [distance, setDistance] = useState<number | null>(null);
+  const [rideOptions, setRideOptions] = useState<RideOption[]>([]);
 
   const mapImage = PlaceHolderImages.find((img) => img.id === 'book-ride-map');
   
@@ -26,6 +35,25 @@ export default function BookRidePage() {
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (pickup && destination) {
+      // Simulate distance calculation
+      const randomDistance = parseFloat((Math.random() * (10 - 1) + 1).toFixed(1)); // 1.0 to 10.0 km
+      setDistance(randomDistance);
+
+      const options: RideOption[] = [
+        {
+          type: 'E-Rickshaw',
+          description: 'Eco-friendly & affordable',
+          icon: Zap,
+          fare: Math.round(randomDistance * DEFAULT_RATES.erickshaw),
+        },
+        {
+          type: 'Cab',
+          description: 'Comfortable & private',
+          icon: Car,
+          fare: Math.round(randomDistance * DEFAULT_RATES.cab),
+        },
+      ];
+      setRideOptions(options);
       setStep('options');
     } else {
       toast({
@@ -120,7 +148,9 @@ export default function BookRidePage() {
             <Card className="w-full max-w-lg">
                 <CardHeader>
                     <CardTitle>Select a Ride</CardTitle>
-                    <CardDescription>Choose a ride that suits you.</CardDescription>
+                    <CardDescription>
+                      Your ride is approximately {distance} km. Choose a ride that suits you.
+                    </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                     {mapImage && (
@@ -136,32 +166,22 @@ export default function BookRidePage() {
                         </div>
                     )}
                     <div className="space-y-3">
-                        <button
-                            onClick={() => handleSelectRide('E-Rickshaw')}
-                            className="flex w-full items-center justify-between rounded-lg border bg-background p-4 text-left transition-colors hover:bg-accent"
-                        >
-                            <div className="flex items-center gap-4">
-                                <Zap className="h-8 w-8 text-primary" />
-                                <div>
-                                    <p className="font-bold">E-Rickshaw</p>
-                                    <p className="text-sm text-muted-foreground">Eco-friendly & affordable</p>
+                        {rideOptions.map((option) => (
+                            <button
+                                key={option.type}
+                                onClick={() => handleSelectRide(option.type)}
+                                className="flex w-full items-center justify-between rounded-lg border bg-background p-4 text-left transition-colors hover:bg-accent"
+                            >
+                                <div className="flex items-center gap-4">
+                                    <option.icon className="h-8 w-8 text-primary" />
+                                    <div>
+                                        <p className="font-bold">{option.type}</p>
+                                        <p className="text-sm text-muted-foreground">{option.description}</p>
+                                    </div>
                                 </div>
-                            </div>
-                            <p className="font-semibold">₹50</p>
-                        </button>
-                        <button
-                            onClick={() => handleSelectRide('Cab')}
-                            className="flex w-full items-center justify-between rounded-lg border bg-background p-4 text-left transition-colors hover:bg-accent"
-                        >
-                            <div className="flex items-center gap-4">
-                                <Car className="h-8 w-8 text-primary" />
-                                <div>
-                                    <p className="font-bold">Cab</p>
-                                    <p className="text-sm text-muted-foreground">Comfortable & private</p>
-                                </div>
-                            </div>
-                            <p className="font-semibold">₹120</p>
-                        </button>
+                                <p className="font-semibold">₹{option.fare}</p>
+                            </button>
+                        ))}
                     </div>
                      <Button variant="outline" className="w-full" onClick={() => setStep('search')}>
                         Go Back
