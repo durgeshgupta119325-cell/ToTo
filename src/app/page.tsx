@@ -56,7 +56,7 @@ export default function Home() {
                 </div>
                 <div className="flex flex-col gap-4 min-[400px]:flex-row">
                   <Button asChild size="lg" className="group">
-                    <Link href="/book-ride">
+                    <Link href="/customer/login">
                       Book a Ride
                       <ArrowRight className="ml-2 h-5 w-5 transition-transform group-hover:translate-x-1" />
                     </Link>
