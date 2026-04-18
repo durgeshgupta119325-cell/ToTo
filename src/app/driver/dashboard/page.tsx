@@ -1,3 +1,4 @@
+
 "use client";
 
 import Link from 'next/link';
@@ -11,7 +12,8 @@ import {
 } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { Icons } from '@/components/icons';
-import { LogOut, Car, IndianRupee, Star } from 'lucide-react';
+import { LogOut, Car, IndianRupee, Star, Users } from 'lucide-react';
+import { DUMMY_DRIVERS } from '@/lib/mock-data';
 
 export default function DriverDashboardPage() {
   const router = useRouter();
@@ -53,7 +55,21 @@ export default function DriverDashboardPage() {
                 <h1 className="text-3xl font-bold tracking-tight">Today's Summary</h1>
                 <p className="text-muted-foreground">A quick overview of your performance today.</p>
             </div>
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">
+                  Total Drivers
+                </CardTitle>
+                <Users className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{DUMMY_DRIVERS.length}</div>
+                <p className="text-xs text-muted-foreground">
+                  Active on the platform
+                </p>
+              </CardContent>
+            </Card>
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">
