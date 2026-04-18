@@ -98,8 +98,8 @@ export default function AdminDashboardPage() {
   const [districts, setDistricts] = useState<string[]>([]);
   const [commissionInfo, setCommissionInfo] = useState<{rate: number; amount: number} | null>(null);
 
-  const maleUsers = DUMMY_DRIVERS.filter(d => d.gender === 'Male').length + DUMMY_CUSTOMERS.filter(c => c.gender === 'Male').length;
-  const femaleUsers = DUMMY_DRIVERS.filter(d => d.gender === 'Female').length + DUMMY_CUSTOMERS.filter(c => c.gender === 'Female').length;
+  const maleCustomers = DUMMY_CUSTOMERS.filter(c => c.gender === 'Male').length;
+  const femaleCustomers = DUMMY_CUSTOMERS.filter(c => c.gender === 'Female').length;
 
   useEffect(() => {
     const now = new Date();
@@ -265,32 +265,32 @@ export default function AdminDashboardPage() {
                 <Card>
                   <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                     <CardTitle className="text-sm font-medium">
-                      Male Users
+                      Male Customers
                     </CardTitle>
                     <User className="h-4 w-4 text-muted-foreground" />
                   </CardHeader>
                   <CardContent>
                     <div className="text-2xl font-bold">
-                      {maleUsers}
+                      {maleCustomers}
                     </div>
                     <p className="text-xs text-muted-foreground">
-                      Male drivers & customers
+                      Total male customers
                     </p>
                   </CardContent>
                 </Card>
                 <Card>
                   <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                     <CardTitle className="text-sm font-medium">
-                      Female Users
+                      Female Customers
                     </CardTitle>
                     <User className="h-4 w-4 text-muted-foreground" />
                   </CardHeader>
                   <CardContent>
                     <div className="text-2xl font-bold">
-                      {femaleUsers}
+                      {femaleCustomers}
                     </div>
                     <p className="text-xs text-muted-foreground">
-                      Female drivers & customers
+                      Total female customers
                     </p>
                   </CardContent>
                 </Card>
