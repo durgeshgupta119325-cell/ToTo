@@ -22,6 +22,7 @@ import {
   Trash2,
   Percent,
   User,
+  Send,
 } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
@@ -199,6 +200,14 @@ export default function AdminDashboardPage() {
     toast({
       title: 'Commission Rates Saved',
       description: 'The platform commission rates have been updated.',
+    });
+  };
+
+  const handlePaymentTransfer = (driver: typeof DUMMY_DRIVERS[0]) => {
+    const netPayout = driver.grossEarnings * (1 - (commissionInfo?.rate || commissionRates.day / 100));
+    toast({
+      title: 'Payment Initiated',
+      description: `Transfer of ₹${netPayout.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} to ${driver.name} has been initiated via UPI.`,
     });
   };
 
@@ -404,6 +413,10 @@ export default function AdminDashboardPage() {
                                         View Details
                                       </DropdownMenuItem>
                                     </DialogTrigger>
+                                    <DropdownMenuItem onClick={() => handlePaymentTransfer(driver)}>
+                                      <Send className="mr-2 h-4 w-4" />
+                                      <span>Transfer Payment</span>
+                                    </DropdownMenuItem>
                                     <DropdownMenuSeparator />
                                     <AlertDialogTrigger asChild>
                                       <DropdownMenuItem className="text-destructive focus:text-destructive focus:bg-destructive/10">
