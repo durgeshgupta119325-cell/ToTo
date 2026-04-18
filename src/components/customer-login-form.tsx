@@ -96,21 +96,38 @@ export function CustomerLoginForm() {
     // Mock OTP verification. Any 4 digit number will do for this demo.
     if (values.otp.match(/^\d{4}$/)) {
         const enteredDetails = detailsForm.getValues();
-        const existingCustomer = DUMMY_CUSTOMERS.find(c => c.mobile === enteredDetails.mobile);
-
         let customerToStore;
 
-        if (existingCustomer) {
-            // Login for existing user. Merge entered details to update their info, but keep their rides.
-            customerToStore = { ...existingCustomer, ...enteredDetails };
+        if (isEditMode) {
+            const storedCustomerRaw = localStorage.getItem('toto-customer');
+            if (storedCustomerRaw) {
+                const storedCustomer = JSON.parse(storedCustomerRaw);
+                // Merge new details, but keep crucial data like ID and rides from the stored object.
+                customerToStore = { ...storedCustomer, ...enteredDetails };
+            } else {
+                // Fallback for an unlikely edge case where we are in edit mode but there's no stored customer.
+                customerToStore = {
+                    ...enteredDetails,
+                    id: `CUST${Date.now().toString().slice(-4)}`,
+                    gender: 'Not specified',
+                    rides: []
+                };
+            }
         } else {
-            // New user registration.
-            customerToStore = { 
-                ...enteredDetails, 
-                id: `CUST${Date.now().toString().slice(-4)}`, // generate new ID
-                gender: 'Not specified',
-                rides: [] // new user has no rides
-            };
+            const existingCustomer = DUMMY_CUSTOMERS.find(c => c.mobile === enteredDetails.mobile);
+
+            if (existingCustomer) {
+                // Login for existing user from mock data. Merge entered details to update their info, but keep their rides.
+                customerToStore = { ...existingCustomer, ...enteredDetails };
+            } else {
+                // New user registration.
+                customerToStore = { 
+                    ...enteredDetails, 
+                    id: `CUST${Date.now().toString().slice(-4)}`, // generate new ID
+                    gender: 'Not specified',
+                    rides: [] // new user has no rides
+                };
+            }
         }
 
         localStorage.setItem('toto-customer', JSON.stringify(customerToStore));
