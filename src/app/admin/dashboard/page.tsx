@@ -16,12 +16,12 @@ import { useToast } from '@/hooks/use-toast';
 import { Icons } from '@/components/icons';
 import {
   LogOut,
-  Car,
   Users,
   IndianRupee,
   MoreHorizontal,
   Trash2,
   Percent,
+  User,
 } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
@@ -97,6 +97,9 @@ export default function AdminDashboardPage() {
 
   const [districts, setDistricts] = useState<string[]>([]);
   const [commissionInfo, setCommissionInfo] = useState<{rate: number; amount: number} | null>(null);
+
+  const maleUsers = DUMMY_DRIVERS.filter(d => d.gender === 'Male').length + DUMMY_CUSTOMERS.filter(c => c.gender === 'Male').length;
+  const femaleUsers = DUMMY_DRIVERS.filter(d => d.gender === 'Female').length + DUMMY_CUSTOMERS.filter(c => c.gender === 'Female').length;
 
   useEffect(() => {
     const now = new Date();
@@ -262,32 +265,32 @@ export default function AdminDashboardPage() {
                 <Card>
                   <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                     <CardTitle className="text-sm font-medium">
-                      Total Rides
+                      Male Users
                     </CardTitle>
-                    <Car className="h-4 w-4 text-muted-foreground" />
+                    <User className="h-4 w-4 text-muted-foreground" />
                   </CardHeader>
                   <CardContent>
                     <div className="text-2xl font-bold">
-                      {ADMIN_DASHBOARD_STATS.totalRides.toLocaleString()}
+                      {maleUsers}
                     </div>
                     <p className="text-xs text-muted-foreground">
-                      Across all drivers
+                      Male drivers & customers
                     </p>
                   </CardContent>
                 </Card>
                 <Card>
                   <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                     <CardTitle className="text-sm font-medium">
-                      Total Drivers
+                      Female Users
                     </CardTitle>
-                    <Users className="h-4 w-4 text-muted-foreground" />
+                    <User className="h-4 w-4 text-muted-foreground" />
                   </CardHeader>
                   <CardContent>
                     <div className="text-2xl font-bold">
-                      {driverList.length}
+                      {femaleUsers}
                     </div>
                     <p className="text-xs text-muted-foreground">
-                      Active on the platform
+                      Female drivers & customers
                     </p>
                   </CardContent>
                 </Card>

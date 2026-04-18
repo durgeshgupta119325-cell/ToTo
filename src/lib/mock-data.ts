@@ -3,6 +3,7 @@ export const DUMMY_DRIVERS = [
   {
     id: 'DRV001',
     name: 'Ramesh Kumar',
+    gender: 'Male',
     email: 'ramesh@example.com',
     mobile: '9876543211',
     address: '123, Driver Lane',
@@ -19,6 +20,7 @@ export const DUMMY_DRIVERS = [
   {
     id: 'DRV002',
     name: 'Suresh Singh',
+    gender: 'Male',
     email: 'suresh@example.com',
     mobile: '9876543212',
     address: '456, Auto Road',
@@ -35,6 +37,7 @@ export const DUMMY_DRIVERS = [
   {
     id: 'DRV003',
     name: 'Deepak Verma',
+    gender: 'Male',
     email: 'deepak@example.com',
     mobile: '9876543213',
     address: '789, Transport Nagar',
@@ -48,12 +51,30 @@ export const DUMMY_DRIVERS = [
     photoUrl: 'https://picsum.photos/seed/driver3/200/200',
     idProofUrl: 'https://picsum.photos/seed/id3/400/250',
   },
+  {
+    id: 'DRV004',
+    name: 'Sunita Sharma',
+    gender: 'Female',
+    email: 'sunita@example.com',
+    mobile: '9876543214',
+    address: '101, Shakti Apartments',
+    city: 'Gurugram',
+    state: 'Haryana',
+    pincode: '122001',
+    vehicleType: 'E-Rickshaw',
+    vehicleNumber: 'HR26DE3456',
+    accountNumber: '...3456',
+    grossEarnings: 8500,
+    photoUrl: 'https://picsum.photos/seed/driver4/200/200',
+    idProofUrl: 'https://picsum.photos/seed/id4/400/250',
+  },
 ];
 
 export const DUMMY_CUSTOMERS = [
   {
     id: 'CUST001',
     name: 'Anjali Sharma',
+    gender: 'Female',
     email: 'anjali@example.com',
     phone: '9876543210',
     address: '123, MG Road',
@@ -80,6 +101,7 @@ export const DUMMY_CUSTOMERS = [
   {
     id: 'CUST002',
     name: 'Vikram Batra',
+    gender: 'Male',
     email: 'vikram@example.com',
     phone: '9123456780',
     address: '456, Marine Drive',
@@ -108,6 +130,26 @@ export const DUMMY_CUSTOMERS = [
         time: '2023-10-29 09:00 AM',
         transactionId: 'TXN006',
       },
+    ],
+  },
+  {
+    id: 'CUST003',
+    name: 'Priya Patel',
+    gender: 'Female',
+    email: 'priya@example.com',
+    phone: '9988776655',
+    address: '789, Park Street',
+    city: 'Ahmedabad',
+    state: 'Gujarat',
+    pincode: '380009',
+    rides: [
+        {
+            rideId: 'RIDE007',
+            from: 'Sabarmati Ashram',
+            to: 'Kankaria Lake',
+            time: '2023-11-01 12:00 PM',
+            transactionId: 'TXN007',
+        }
     ],
   },
 ];
