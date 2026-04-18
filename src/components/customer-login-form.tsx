@@ -3,8 +3,8 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -25,6 +25,7 @@ import {
 } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft } from "lucide-react";
+import { DUMMY_CUSTOMERS } from "@/lib/mock-data";
 
 const detailsSchema = z.object({
   name: z.string().min(2, { message: "Name must be at least 2 characters." }),
@@ -45,6 +46,8 @@ export function CustomerLoginForm() {
   const [step, setStep] = useState<'details' | 'otp'>('details');
   const { toast } = useToast();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const isEditMode = searchParams.get('edit') === 'true';
 
   const detailsForm = useForm<z.infer<typeof detailsSchema>>({
     resolver: zodResolver(detailsSchema),
@@ -66,6 +69,20 @@ export function CustomerLoginForm() {
     },
   });
 
+  useEffect(() => {
+    if (isEditMode) {
+      const storedCustomer = localStorage.getItem('toto-customer');
+      if (storedCustomer) {
+        try {
+          const customerData = JSON.parse(storedCustomer);
+          detailsForm.reset(customerData);
+        } catch (error) {
+          console.error("Failed to parse customer data from localStorage", error);
+        }
+      }
+    }
+  }, [isEditMode, detailsForm]);
+
   function onDetailsSubmit(values: z.infer<typeof detailsSchema>) {
     // Mock sending OTP
     toast({
@@ -78,11 +95,28 @@ export function CustomerLoginForm() {
   function onOtpSubmit(values: z.infer<typeof otpSchema>) {
     // Mock OTP verification. Any 4 digit number will do for this demo.
     if (values.otp.match(/^\d{4}$/)) {
-        const customerData = detailsForm.getValues();
-        localStorage.setItem('toto-customer', JSON.stringify(customerData));
+        const enteredDetails = detailsForm.getValues();
+        const existingCustomer = DUMMY_CUSTOMERS.find(c => c.mobile === enteredDetails.mobile);
+
+        let customerToStore;
+
+        if (existingCustomer) {
+            // Login for existing user. Merge entered details to update their info, but keep their rides.
+            customerToStore = { ...existingCustomer, ...enteredDetails };
+        } else {
+            // New user registration.
+            customerToStore = { 
+                ...enteredDetails, 
+                id: `CUST${Date.now().toString().slice(-4)}`, // generate new ID
+                gender: 'Not specified',
+                rides: [] // new user has no rides
+            };
+        }
+
+        localStorage.setItem('toto-customer', JSON.stringify(customerToStore));
         toast({
-          title: "Login Successful",
-          description: "Welcome! You will be kept logged in.",
+          title: isEditMode ? "Profile Updated" : "Login Successful",
+          description: isEditMode ? "Your details have been successfully updated." : "Welcome! You're now logged in.",
         });
         router.push('/customer/dashboard');
     } else {
@@ -103,9 +137,11 @@ export function CustomerLoginForm() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-2xl">Customer Login / Sign Up</CardTitle>
+        <CardTitle className="text-2xl">{isEditMode ? 'Edit Your Profile' : 'Customer Login / Sign Up'}</CardTitle>
         <CardDescription>
-          {step === 'details' ? "Enter your details to login or create an account." : "Enter the 4-digit OTP sent to your mobile."}
+          {step === 'details' 
+            ? isEditMode ? "Update your personal information below." : "Enter your details to login or create an account." 
+            : `Enter the 4-digit OTP sent to ${detailsForm.getValues('mobile')}.`}
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -210,7 +246,9 @@ export function CustomerLoginForm() {
                 className="w-full !mt-6"
                 disabled={detailsForm.formState.isSubmitting}
                 >
-                {detailsForm.formState.isSubmitting ? "Sending OTP..." : "Send OTP"}
+                {detailsForm.formState.isSubmitting 
+                    ? "Sending OTP..." 
+                    : isEditMode ? "Update & Send OTP" : "Send OTP"}
                 </Button>
             </form>
             </Form>

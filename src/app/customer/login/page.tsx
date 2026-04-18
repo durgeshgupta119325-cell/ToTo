@@ -4,16 +4,18 @@ import Link from 'next/link';
 import { CustomerLoginForm } from '@/components/customer-login-form';
 import { Icons } from '@/components/icons';
 import { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 
 export default function CustomerLoginPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
 
   useEffect(() => {
-    if (localStorage.getItem('toto-customer')) {
+    const isEditMode = searchParams.get('edit') === 'true';
+    if (!isEditMode && localStorage.getItem('toto-customer')) {
       router.push('/customer/dashboard');
     }
-  }, [router]);
+  }, [router, searchParams]);
   
   return (
     <div className="flex min-h-dvh flex-col items-center justify-center bg-secondary p-4">

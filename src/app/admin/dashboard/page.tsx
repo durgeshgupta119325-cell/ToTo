@@ -221,7 +221,7 @@ export default function AdminDashboardPage() {
   const filteredCustomers = DUMMY_CUSTOMERS.filter(
     (customer) =>
       customer.name.toLowerCase().includes(customerSearch.toLowerCase()) ||
-      customer.phone.includes(customerSearch)
+      customer.mobile.includes(customerSearch)
   );
 
 
@@ -585,7 +585,7 @@ export default function AdminDashboardPage() {
                           <TableHead>Customer ID</TableHead>
                           <TableHead>Name</TableHead>
                           <TableHead>Email</TableHead>
-                          <TableHead>Phone Number</TableHead>
+                          <TableHead>Mobile Number</TableHead>
                           <TableHead>
                             <span className="sr-only">Actions</span>
                           </TableHead>
@@ -599,7 +599,7 @@ export default function AdminDashboardPage() {
                             </TableCell>
                             <TableCell>{customer.name}</TableCell>
                             <TableCell>{customer.email}</TableCell>
-                            <TableCell>{customer.phone}</TableCell>
+                            <TableCell>{customer.mobile}</TableCell>
                             <TableCell>
                               <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
@@ -653,8 +653,8 @@ export default function AdminDashboardPage() {
                                     <p>{selectedCustomer.name}</p>
                                 </div>
                                 <div>
-                                    <p className="font-semibold text-muted-foreground">Phone</p>
-                                    <p>{selectedCustomer.phone}</p>
+                                    <p className="font-semibold text-muted-foreground">Mobile</p>
+                                    <p>{selectedCustomer.mobile}</p>
                                 </div>
                             </div>
                             <div>
@@ -674,20 +674,20 @@ export default function AdminDashboardPage() {
                             <TableHeader>
                             <TableRow>
                                 <TableHead>Ride ID</TableHead>
-                                <TableHead>Booking Time</TableHead>
+                                <TableHead>Date</TableHead>
                                 <TableHead>Pick up</TableHead>
                                 <TableHead>Drop off</TableHead>
-                                <TableHead>Transaction ID</TableHead>
+                                <TableHead className="text-right">Fare</TableHead>
                             </TableRow>
                             </TableHeader>
                             <TableBody>
                             {selectedCustomer.rides.map((ride) => (
                                 <TableRow key={ride.rideId}>
                                 <TableCell>{ride.rideId}</TableCell>
-                                <TableCell>{ride.time}</TableCell>
+                                <TableCell>{ride.date}</TableCell>
                                 <TableCell>{ride.from}</TableCell>
                                 <TableCell>{ride.to}</TableCell>
-                                <TableCell>{ride.transactionId}</TableCell>
+                                <TableCell className="text-right">{ride.fare}</TableCell>
                                 </TableRow>
                             ))}
                             </TableBody>

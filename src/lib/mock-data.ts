@@ -76,7 +76,7 @@ export const DUMMY_CUSTOMERS = [
     name: 'Anjali Sharma',
     gender: 'Female',
     email: 'anjali@example.com',
-    phone: '9876543210',
+    mobile: '9876543210',
     address: '123, MG Road',
     city: 'Bengaluru',
     state: 'Karnataka',
@@ -87,6 +87,8 @@ export const DUMMY_CUSTOMERS = [
         from: 'Connaught Place',
         to: 'India Gate',
         time: '2023-10-27 10:00 AM',
+        date: '2023-10-27',
+        fare: '₹75',
         transactionId: 'TXN001',
       },
       {
@@ -94,6 +96,8 @@ export const DUMMY_CUSTOMERS = [
         from: 'Cyber Hub',
         to: 'Ambience Mall',
         time: '2023-10-26 08:30 PM',
+        date: '2023-10-26',
+        fare: '₹150',
         transactionId: 'TXN002',
       },
     ],
@@ -103,7 +107,7 @@ export const DUMMY_CUSTOMERS = [
     name: 'Vikram Batra',
     gender: 'Male',
     email: 'vikram@example.com',
-    phone: '9123456780',
+    mobile: '9123456780',
     address: '456, Marine Drive',
     city: 'Mumbai',
     state: 'Maharashtra',
@@ -114,6 +118,8 @@ export const DUMMY_CUSTOMERS = [
         from: 'Koramangala',
         to: 'MG Road',
         time: '2023-10-27 11:00 AM',
+        date: '2023-10-27',
+        fare: '₹110',
         transactionId: 'TXN003',
       },
        {
@@ -121,6 +127,8 @@ export const DUMMY_CUSTOMERS = [
         from: 'Gateway of India',
         to: 'Bandra-Worli Sea Link',
         time: '2023-10-28 05:00 PM',
+        date: '2023-10-28',
+        fare: '₹220',
         transactionId: 'TXN005',
       },
       {
@@ -128,6 +136,8 @@ export const DUMMY_CUSTOMERS = [
         from: 'Juhu Beach',
         to: 'Siddhivinayak Temple',
         time: '2023-10-29 09:00 AM',
+        date: '2023-10-29',
+        fare: '₹180',
         transactionId: 'TXN006',
       },
     ],
@@ -137,7 +147,7 @@ export const DUMMY_CUSTOMERS = [
     name: 'Priya Patel',
     gender: 'Female',
     email: 'priya@example.com',
-    phone: '9988776655',
+    mobile: '9988776655',
     address: '789, Park Street',
     city: 'Ahmedabad',
     state: 'Gujarat',
@@ -148,6 +158,8 @@ export const DUMMY_CUSTOMERS = [
             from: 'Sabarmati Ashram',
             to: 'Kankaria Lake',
             time: '2023-11-01 12:00 PM',
+            date: '2023-11-01',
+            fare: '₹95',
             transactionId: 'TXN007',
         }
     ],
@@ -278,30 +290,6 @@ export const BOOK_RIDE_SERVICE_AREAS = [
     { city: 'Delhi', state: 'Delhi', active: true },
     { city: 'Bengaluru', state: 'Karnataka', active: false },
     { city: 'Gurugram', state: 'Haryana', active: true },
-];
-
-export const CUSTOMER_DASHBOARD_RIDE_HISTORY = [
-    {
-        rideId: 'RIDE001',
-        from: 'Connaught Place',
-        to: 'India Gate',
-        date: '2023-10-27',
-        fare: '₹75',
-    },
-    {
-        rideId: 'RIDE002',
-        from: 'Cyber Hub',
-        to: 'Ambience Mall',
-        date: '2023-10-26',
-        fare: '₹150',
-    },
-     {
-        rideId: 'RIDE004',
-        from: 'Hauz Khas Village',
-        to: 'Select Citywalk',
-        date: '2023-10-25',
-        fare: '₹120',
-    }
 ];
 
 export const SUPPORT_FAQS = [

@@ -23,7 +23,14 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { useEffect, useState } from 'react';
-import { CUSTOMER_DASHBOARD_RIDE_HISTORY } from '@/lib/mock-data';
+
+type Ride = {
+  rideId: string;
+  date: string;
+  from: string;
+  to: string;
+  fare: string;
+};
 
 type Customer = {
   name: string;
@@ -33,6 +40,7 @@ type Customer = {
   city: string;
   state: string;
   pincode: string;
+  rides: Ride[];
 };
 
 export default function CustomerDashboardPage() {
@@ -122,7 +130,9 @@ export default function CustomerDashboardPage() {
                             <p className="font-semibold text-muted-foreground">Address</p>
                             <p>{customer.address}, {customer.city}, {customer.state} - {customer.pincode}</p>
                         </div>
-                         <Button variant="outline" size="sm" className="mt-4 w-full">Edit Profile</Button>
+                         <Button asChild variant="outline" size="sm" className="mt-4 w-full">
+                           <Link href="/customer/login?edit=true">Edit Profile</Link>
+                         </Button>
                     </CardContent>
                 </Card>
                  <Card className="lg:col-span-2">
@@ -141,14 +151,20 @@ export default function CustomerDashboardPage() {
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {CUSTOMER_DASHBOARD_RIDE_HISTORY.map((ride) => (
-                                <TableRow key={ride.rideId}>
-                                    <TableCell className="font-medium">{ride.date}</TableCell>
-                                    <TableCell>{ride.from}</TableCell>
-                                    <TableCell>{ride.to}</TableCell>
-                                    <TableCell className="text-right">{ride.fare}</TableCell>
-                                </TableRow>
-                                ))}
+                                {customer.rides.length > 0 ? (
+                                  customer.rides.map((ride) => (
+                                    <TableRow key={ride.rideId}>
+                                        <TableCell className="font-medium">{ride.date}</TableCell>
+                                        <TableCell>{ride.from}</TableCell>
+                                        <TableCell>{ride.to}</TableCell>
+                                        <TableCell className="text-right">{ride.fare}</TableCell>
+                                    </TableRow>
+                                  ))
+                                ) : (
+                                  <TableRow>
+                                    <TableCell colSpan={4} className="text-center">You have no ride history yet.</TableCell>
+                                  </TableRow>
+                                )}
                             </TableBody>
                         </Table>
                     </CardContent>
