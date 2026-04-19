@@ -157,6 +157,41 @@ export default function AdminDashboardPage() {
     }
   }, [commissionRates]);
 
+  const [todayStats, setTodayStats] = useState(() => {
+    if (typeof window === 'undefined') {
+      return { rides: 15, grossVolume: 10500, lastReset: Date.now() };
+    }
+    try {
+      const stored = localStorage.getItem('toto-admin-today-stats');
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        const oneDay = 24 * 60 * 60 * 1000;
+        if (Date.now() - parsed.lastReset > oneDay) {
+          const newStats = {
+            rides: Math.floor(Math.random() * 50) + 10,
+            grossVolume: Math.floor(Math.random() * 15000) + 5000,
+            lastReset: Date.now(),
+          };
+          localStorage.setItem('toto-admin-today-stats', JSON.stringify(newStats));
+          return newStats;
+        }
+        return parsed;
+      }
+    } catch (e) {
+      console.error("Failed to parse today's stats from localStorage", e);
+    }
+    const initialStats = {
+        rides: Math.floor(Math.random() * 50) + 10,
+        grossVolume: Math.floor(Math.random() * 15000) + 5000,
+        lastReset: Date.now(),
+    };
+    if (typeof window !== 'undefined') {
+        localStorage.setItem('toto-admin-today-stats', JSON.stringify(initialStats));
+    }
+    return initialStats;
+  });
+
+
   const [selectedDriver, setSelectedDriver] = useState<Driver | null>(null);
   const [selectedCustomer, setSelectedCustomer] = useState(DUMMY_CUSTOMERS[0]);
   const [customerSearch, setCustomerSearch] = useState('');
@@ -165,6 +200,8 @@ export default function AdminDashboardPage() {
   const [selectedCity, setSelectedCity] = useState('');
   const [districts, setDistricts] = useState<string[]>([]);
   const [commissionInfo, setCommissionInfo] = useState<{rate: number; amount: number} | null>(null);
+  const [todayCommissionInfo, setTodayCommissionInfo] = useState<{rate: number; amount: number} | null>(null);
+
 
   useEffect(() => {
       if (selectedDriver && !driverList.find(d => d.id === selectedDriver.id)) {
@@ -183,11 +220,17 @@ export default function AdminDashboardPage() {
     const isNightTime = currentHour >= 21 || currentHour < 6;
 
     const rate = isNightTime ? commissionRates.night / 100 : commissionRates.day / 100;
+    
     setCommissionInfo({
         rate: rate,
         amount: ADMIN_DASHBOARD_STATS.grossVolume * rate
     });
-  }, [commissionRates]);
+
+    setTodayCommissionInfo({
+        rate: rate,
+        amount: todayStats.grossVolume * rate,
+    });
+  }, [commissionRates, todayStats.grossVolume]);
 
   const handleLogout = () => {
     toast({
@@ -345,96 +388,166 @@ export default function AdminDashboardPage() {
 
             {/* Overview Tab */}
             <TabsContent value="overview">
-              <div className="mt-6 grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-                <Card>
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">
-                      Total Rides
-                    </CardTitle>
-                    <Car className="h-4 w-4 text-muted-foreground" />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold">
-                      {ADMIN_DASHBOARD_STATS.totalRides.toLocaleString()}
-                    </div>
-                    <p className="text-xs text-muted-foreground">
-                      Total rides completed
-                    </p>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">
-                      Male Customers
-                    </CardTitle>
-                    <User className="h-4 w-4 text-muted-foreground" />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold">
-                      {maleCustomers}
-                    </div>
-                    <p className="text-xs text-muted-foreground">
-                      Total male customers
-                    </p>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">
-                      Female Customers
-                    </CardTitle>
-                    <User className="h-4 w-4 text-muted-foreground" />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold">
-                      {femaleCustomers}
-                    </div>
-                    <p className="text-xs text-muted-foreground">
-                      Total female customers
-                    </p>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">
-                      Gross Volume
-                    </CardTitle>
-                    <IndianRupee className="h-4 w-4 text-muted-foreground" />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold">
-                      ₹{ADMIN_DASHBOARD_STATS.grossVolume.toLocaleString()}
-                    </div>
-                    <p className="text-xs text-muted-foreground">
-                      Total value of all rides
-                    </p>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">
-                      Platform Commission
-                    </CardTitle>
-                    <Percent className="h-4 w-4 text-muted-foreground" />
-                  </CardHeader>
-                  <CardContent>
-                    {commissionInfo ? (
-                        <>
+               <div className="space-y-8">
+                <div>
+                    <h2 className="text-2xl font-bold tracking-tight">Today's Overview</h2>
+                    <p className="text-muted-foreground">Statistics for the last 24 hours.</p>
+                </div>
+                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                    <Card>
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <CardTitle className="text-sm font-medium">
+                                Today's Rides
+                            </CardTitle>
+                            <Car className="h-4 w-4 text-muted-foreground" />
+                        </CardHeader>
+                        <CardContent>
                             <div className="text-2xl font-bold">
-                                ₹{commissionInfo.amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                {todayStats.rides.toLocaleString()}
                             </div>
                             <p className="text-xs text-muted-foreground">
-                                {commissionInfo.rate * 100}% of Gross Volume {commissionInfo.rate === commissionRates.night / 100 && '(Night Rate)'}
+                                Rides in the last 24 hours
                             </p>
-                        </>
-                    ) : (
-                        <>
-                            <div className="h-8 w-24 animate-pulse rounded-md bg-muted" />
-                            <div className="mt-1 h-4 w-32 animate-pulse rounded-md bg-muted" />
-                        </>
-                    )}
-                  </CardContent>
-                </Card>
+                        </CardContent>
+                    </Card>
+                    <Card>
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <CardTitle className="text-sm font-medium">
+                                Today's Gross Volume
+                            </CardTitle>
+                            <IndianRupee className="h-4 w-4 text-muted-foreground" />
+                        </CardHeader>
+                        <CardContent>
+                            <div className="text-2xl font-bold">
+                                ₹{todayStats.grossVolume.toLocaleString()}
+                            </div>
+                            <p className="text-xs text-muted-foreground">
+                                Value of rides in the last 24 hours
+                            </p>
+                        </CardContent>
+                    </Card>
+                    <Card>
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <CardTitle className="text-sm font-medium">
+                                Today's Commission
+                            </CardTitle>
+                            <Percent className="h-4 w-4 text-muted-foreground" />
+                        </CardHeader>
+                        <CardContent>
+                            {todayCommissionInfo ? (
+                                <>
+                                    <div className="text-2xl font-bold">
+                                        ₹{todayCommissionInfo.amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                    </div>
+                                    <p className="text-xs text-muted-foreground">
+                                        {todayCommissionInfo.rate * 100}% of Today's Volume {todayCommissionInfo.rate === commissionRates.night / 100 && '(Night Rate)'}
+                                    </p>
+                                </>
+                            ) : (
+                                <>
+                                    <div className="h-8 w-24 animate-pulse rounded-md bg-muted" />
+                                    <div className="mt-1 h-4 w-32 animate-pulse rounded-md bg-muted" />
+                                </>
+                            )}
+                        </CardContent>
+                    </Card>
+                </div>
+
+                <div className="pt-8">
+                    <h2 className="text-2xl font-bold tracking-tight">All-Time Overview</h2>
+                    <p className="text-muted-foreground">Total platform statistics.</p>
+                </div>
+                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+                    <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium">
+                        Total Rides
+                        </CardTitle>
+                        <Car className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-2xl font-bold">
+                        {ADMIN_DASHBOARD_STATS.totalRides.toLocaleString()}
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                        Total rides completed
+                        </p>
+                    </CardContent>
+                    </Card>
+                    <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium">
+                        Male Customers
+                        </CardTitle>
+                        <User className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-2xl font-bold">
+                        {maleCustomers}
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                        Total male customers
+                        </p>
+                    </CardContent>
+                    </Card>
+                    <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium">
+                        Female Customers
+                        </CardTitle>
+                        <User className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-2xl font-bold">
+                        {femaleCustomers}
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                        Total female customers
+                        </p>
+                    </CardContent>
+                    </Card>
+                    <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium">
+                        Gross Volume
+                        </CardTitle>
+                        <IndianRupee className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-2xl font-bold">
+                        ₹{ADMIN_DASHBOARD_STATS.grossVolume.toLocaleString()}
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                        Total value of all rides
+                        </p>
+                    </CardContent>
+                    </Card>
+                    <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium">
+                        Platform Commission
+                        </CardTitle>
+                        <Percent className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                        {commissionInfo ? (
+                            <>
+                                <div className="text-2xl font-bold">
+                                    ₹{commissionInfo.amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                </div>
+                                <p className="text-xs text-muted-foreground">
+                                    {commissionInfo.rate * 100}% of Gross Volume {commissionInfo.rate === commissionRates.night / 100 && '(Night Rate)'}
+                                </p>
+                            </>
+                        ) : (
+                            <>
+                                <div className="h-8 w-24 animate-pulse rounded-md bg-muted" />
+                                <div className="mt-1 h-4 w-32 animate-pulse rounded-md bg-muted" />
+                            </>
+                        )}
+                    </CardContent>
+                    </Card>
+                </div>
               </div>
             </TabsContent>
 
