@@ -8,16 +8,13 @@ export const Icons = {
       xmlns="http://www.w3.org/2000/svg"
       {...props}
     >
-      <path
-        d="M10 10 L50 2 L90 10 L90 60 C 90 80, 50 98, 50 98 C 50 98, 10 80, 10 60 Z"
-        fill="currentColor"
-      />
+      <circle cx="50" cy="50" r="45" fill="currentColor" />
       <text
         x="50"
-        y="55"
+        y="60"
         textAnchor="middle"
         fill="white"
-        fontSize="24"
+        fontSize="30"
         fontFamily="Inter, sans-serif"
         fontWeight="bold"
       >
