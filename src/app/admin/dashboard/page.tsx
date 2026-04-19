@@ -76,29 +76,103 @@ import { Label } from '@/components/ui/label';
 import { useState, useEffect } from 'react';
 import { DUMMY_DRIVERS, DUMMY_CUSTOMERS, DUMMY_LOCATIONS_DATA, ADMIN_DASHBOARD_STATS, DEFAULT_RATES } from '@/lib/mock-data';
 
+type Driver = (typeof DUMMY_DRIVERS)[0];
 
 export default function AdminDashboardPage() {
   const router = useRouter();
   const { toast } = useToast();
-  const [driverList, setDriverList] = useState(DUMMY_DRIVERS);
-  const [selectedDriver, setSelectedDriver] = useState(DUMMY_DRIVERS[0]);
-  const [selectedCustomer, setSelectedCustomer] = useState(DUMMY_CUSTOMERS[0]);
-  const [customerSearch, setCustomerSearch] = useState('');
-  const [serviceAreas, setServiceAreas] = useState([
+
+  const [driverList, setDriverList] = useState<Driver[]>(() => {
+    if (typeof window === 'undefined') return DUMMY_DRIVERS;
+    try {
+      const stored = localStorage.getItem('toto-admin-drivers');
+      return stored ? JSON.parse(stored) : DUMMY_DRIVERS;
+    } catch (e) {
+      console.error("Failed to parse drivers from localStorage", e);
+      return DUMMY_DRIVERS;
+    }
+  });
+  
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('toto-admin-drivers', JSON.stringify(driverList));
+    }
+  }, [driverList]);
+
+  const initialServiceAreas = [
     { id: 1, city: 'Mumbai', district: 'Mumbai City', state: 'Maharashtra', active: true },
     { id: 2, city: 'Delhi', district: 'New Delhi', state: 'Delhi', active: true },
     { id: 3, city: 'Bengaluru', district: 'Bengaluru Urban', state: 'Karnataka', active: false },
     { id: 4, city: 'Gurugram', district: 'Gurgaon', state: 'Haryana', active: true },
-  ]);
+  ];
+  
+  const [serviceAreas, setServiceAreas] = useState(() => {
+    if (typeof window === 'undefined') return initialServiceAreas;
+    try {
+      const stored = localStorage.getItem('toto-admin-service-areas');
+      return stored ? JSON.parse(stored) : initialServiceAreas;
+    } catch (e) {
+      console.error("Failed to parse service areas from localStorage", e);
+      return initialServiceAreas;
+    }
+  });
 
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('toto-admin-service-areas', JSON.stringify(serviceAreas));
+    }
+  }, [serviceAreas]);
+  
+  const [rates, setRates] = useState(() => {
+    if (typeof window === 'undefined') return { erickshaw: DEFAULT_RATES.erickshaw, cab: DEFAULT_RATES.cab };
+    try {
+      const stored = localStorage.getItem('toto-admin-rates');
+      return stored ? JSON.parse(stored) : { erickshaw: DEFAULT_RATES.erickshaw, cab: DEFAULT_RATES.cab };
+    } catch (e) {
+      console.error("Failed to parse rates from localStorage", e);
+      return { erickshaw: DEFAULT_RATES.erickshaw, cab: DEFAULT_RATES.cab };
+    }
+  });
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('toto-admin-rates', JSON.stringify(rates));
+    }
+  }, [rates]);
+  
+  const [commissionRates, setCommissionRates] = useState(() => {
+    if (typeof window === 'undefined') return { day: 2, night: 3 };
+    try {
+      const stored = localStorage.getItem('toto-admin-commission-rates');
+      return stored ? JSON.parse(stored) : { day: 2, night: 3 };
+    } catch (e) {
+      console.error("Failed to parse commission rates from localStorage", e);
+      return { day: 2, night: 3 };
+    }
+  });
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('toto-admin-commission-rates', JSON.stringify(commissionRates));
+    }
+  }, [commissionRates]);
+
+  const [selectedDriver, setSelectedDriver] = useState<Driver | null>(null);
+  const [selectedCustomer, setSelectedCustomer] = useState(DUMMY_CUSTOMERS[0]);
+  const [customerSearch, setCustomerSearch] = useState('');
   const [selectedState, setSelectedState] = useState('');
   const [selectedDistrict, setSelectedDistrict] = useState('');
   const [selectedCity, setSelectedCity] = useState('');
-  const [rates, setRates] = useState({ erickshaw: DEFAULT_RATES.erickshaw, cab: DEFAULT_RATES.cab });
-  const [commissionRates, setCommissionRates] = useState({ day: 2, night: 3 });
-
   const [districts, setDistricts] = useState<string[]>([]);
   const [commissionInfo, setCommissionInfo] = useState<{rate: number; amount: number} | null>(null);
+
+  useEffect(() => {
+      if (selectedDriver && !driverList.find(d => d.id === selectedDriver.id)) {
+          setSelectedDriver(driverList.length > 0 ? driverList[0] : null);
+      } else if (!selectedDriver && driverList.length > 0) {
+          setSelectedDriver(driverList[0]);
+      }
+  }, [driverList, selectedDriver]);
 
   const maleCustomers = DUMMY_CUSTOMERS.filter(c => c.gender === 'Male').length;
   const femaleCustomers = DUMMY_CUSTOMERS.filter(c => c.gender === 'Female').length;
@@ -475,116 +549,125 @@ export default function AdminDashboardPage() {
                   </CardContent>
                 </Card>
                 <DialogContent className="sm:max-w-4xl">
-                  <DialogHeader>
-                    <DialogTitle>Driver Details: {selectedDriver.name}</DialogTitle>
-                    <DialogDescription>
-                      View driver information, vehicle details, and documents.
-                    </DialogDescription>
-                  </DialogHeader>
-                  <div className="grid gap-6 py-4 md:grid-cols-3">
-                    <div className="space-y-4 md:col-span-1">
-                      <Card>
-                        <CardContent className="pt-6">
-                          <div className="flex flex-col items-center gap-4">
-                            <Image
-                              src={selectedDriver.photoUrl}
-                              alt={selectedDriver.name}
-                              width={128}
-                              height={128}
-                              className="rounded-full"
-                              data-ai-hint="driver profile photo"
-                            />
-                            <div className="text-center">
-                              <h3 className="text-xl font-semibold">
-                                {selectedDriver.name}
-                              </h3>
-                              <p className="text-muted-foreground">
-                                {selectedDriver.id}
-                              </p>
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                      <Card>
-                        <CardHeader>
-                          <CardTitle className="text-lg">
-                            Contact Information
-                          </CardTitle>
-                        </CardHeader>
-                        <CardContent className="space-y-3 text-sm">
-                          <div>
-                            <p className="font-semibold text-muted-foreground">
-                              Email
-                            </p>
-                            <p>{selectedDriver.email}</p>
-                          </div>
-                          <div>
-                            <p className="font-semibold text-muted-foreground">
-                              Mobile
-                            </p>
-                            <p>{selectedDriver.mobile}</p>
-                          </div>
-                          <div>
-                            <p className="font-semibold text-muted-foreground">
-                              Address
-                            </p>
-                            <p>
-                              {selectedDriver.address}, {selectedDriver.city},{' '}
-                              {selectedDriver.state} - {selectedDriver.pincode}
-                            </p>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    </div>
-                    <div className="space-y-4 md:col-span-2">
-                      <Card>
-                        <CardHeader>
-                          <CardTitle className="text-lg">
-                            Vehicle & Bank Details
-                          </CardTitle>
-                        </CardHeader>
-                        <CardContent className="space-y-4 text-sm">
-                          <div className="grid grid-cols-2 gap-4">
-                            <div>
-                              <p className="font-semibold text-muted-foreground">
-                                Vehicle Type
-                              </p>
-                              <p>{selectedDriver.vehicleType}</p>
-                            </div>
-                            <div>
-                              <p className="font-semibold text-muted-foreground">
-                                Vehicle Number
-                              </p>
-                              <p>{selectedDriver.vehicleNumber}</p>
-                            </div>
-                          </div>
-                          <div>
-                            <p className="font-semibold text-muted-foreground">
-                              Bank Account No.
-                            </p>
-                            <p>{selectedDriver.accountNumber}</p>
-                          </div>
-                        </CardContent>
-                      </Card>
-                      <Card>
-                        <CardHeader>
-                          <CardTitle className="text-lg">
-                            Identification Proof
-                          </CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                          <Image
-                            src={selectedDriver.idProofUrl}
-                            alt="ID Proof"
-                            width={400}
-                            height={250}
-                            className="w-full rounded-md border object-cover"
-                            data-ai-hint="identification card"
-                          />
-                        </CardContent>
-                      </Card>
-                    </div>
-                  </div>
+                  {selectedDriver ? (
+                    <>
+                      <DialogHeader>
+                        <DialogTitle>Driver Details: {selectedDriver.name}</DialogTitle>
+                        <DialogDescription>
+                          View driver information, vehicle details, and documents.
+                        </DialogDescription>
+                      </DialogHeader>
+                      <div className="grid gap-6 py-4 md:grid-cols-3">
+                        <div className="space-y-4 md:col-span-1">
+                          <Card>
+                            <CardContent className="pt-6">
+                              <div className="flex flex-col items-center gap-4">
+                                <Image
+                                  src={selectedDriver.photoUrl}
+                                  alt={selectedDriver.name}
+                                  width={128}
+                                  height={128}
+                                  className="rounded-full"
+                                  data-ai-hint="driver profile photo"
+                                />
+                                <div className="text-center">
+                                  <h3 className="text-xl font-semibold">
+                                    {selectedDriver.name}
+                                  </h3>
+                                  <p className="text-muted-foreground">
+                                    {selectedDriver.id}
+                                  </p>
+                                </div>
+                              </div>
+                            </CardContent>
+                          </Card>
+                          <Card>
+                            <CardHeader>
+                              <CardTitle className="text-lg">
+                                Contact Information
+                              </CardTitle>
+                            </CardHeader>
+                            <CardContent className="space-y-3 text-sm">
+                              <div>
+                                <p className="font-semibold text-muted-foreground">
+                                  Email
+                                </p>
+                                <p>{selectedDriver.email}</p>
+                              </div>
+                              <div>
+                                <p className="font-semibold text-muted-foreground">
+                                  Mobile
+                                </p>
+                                <p>{selectedDriver.mobile}</p>
+                              </div>
+                              <div>
+                                <p className="font-semibold text-muted-foreground">
+                                  Address
+                                </p>
+                                <p>
+                                  {selectedDriver.address}, {selectedDriver.city},{' '}
+                                  {selectedDriver.state} - {selectedDriver.pincode}
+                                </p>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        </div>
+                        <div className="space-y-4 md:col-span-2">
+                          <Card>
+                            <CardHeader>
+                              <CardTitle className="text-lg">
+                                Vehicle & Bank Details
+                              </CardTitle>
+                            </CardHeader>
+                            <CardContent className="space-y-4 text-sm">
+                              <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                  <p className="font-semibold text-muted-foreground">
+                                    Vehicle Type
+                                  </p>
+                                  <p>{selectedDriver.vehicleType}</p>
+                                </div>
+                                <div>
+                                  <p className="font-semibold text-muted-foreground">
+                                    Vehicle Number
+                                  </p>
+                                  <p>{selectedDriver.vehicleNumber}</p>
+                                </div>
+                              </div>
+                              <div>
+                                <p className="font-semibold text-muted-foreground">
+                                  Bank Account No.
+                                </p>
+                                <p>{selectedDriver.accountNumber}</p>
+                              </div>
+                            </CardContent>
+                          </Card>
+                          <Card>
+                            <CardHeader>
+                              <CardTitle className="text-lg">
+                                Identification Proof
+                              </CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                              <Image
+                                src={selectedDriver.idProofUrl}
+                                alt="ID Proof"
+                                width={400}
+                                height={250}
+                                className="w-full rounded-md border object-cover"
+                                data-ai-hint="identification card"
+                              />
+                            </CardContent>
+                          </Card>
+                        </div>
+                      </div>
+                    </>
+                  ) : (
+                    <DialogHeader>
+                      <DialogTitle>No Driver Selected</DialogTitle>
+                      <DialogDescription>Select a driver from the list to see their details.</DialogDescription>
+                    </DialogHeader>
+                  )}
                 </DialogContent>
               </Dialog>
             </TabsContent>
