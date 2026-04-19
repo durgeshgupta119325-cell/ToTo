@@ -151,7 +151,7 @@ export default function CustomerDashboardPage() {
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {customer.rides.length > 0 ? (
+                                {customer.rides && customer.rides.length > 0 ? (
                                   customer.rides.map((ride) => (
                                     <TableRow key={ride.rideId}>
                                         <TableCell className="font-medium">{ride.date}</TableCell>
