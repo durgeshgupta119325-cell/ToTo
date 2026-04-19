@@ -329,6 +329,34 @@ export default function AdminDashboardPage() {
     });
   };
 
+  const handleTransferAllPayments = () => {
+    if (driverList.length === 0) {
+      toast({
+        variant: 'destructive',
+        title: 'No Drivers Found',
+        description: 'There are no drivers to pay.',
+      });
+      return;
+    }
+
+    const totalPayout = driverList.reduce((acc, driver) => {
+      const netPayout =
+        driver.grossEarnings *
+        (1 - (commissionInfo?.rate || commissionRates.day / 100));
+      return acc + netPayout;
+    }, 0);
+
+    toast({
+      title: 'All Payments Initiated',
+      description: `Transfers totaling ₹${totalPayout.toLocaleString(undefined, {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      })} to ${
+        driverList.length
+      } drivers have been initiated via UPI.`,
+    });
+  };
+
   const states = [...new Set(DUMMY_LOCATIONS_DATA.map(l => l.state))].sort();
 
   const handleStateChange = (state: string) => {
@@ -555,11 +583,17 @@ export default function AdminDashboardPage() {
             <TabsContent value="drivers">
               <Dialog>
                 <Card>
-                  <CardHeader>
-                    <CardTitle>Driver Management</CardTitle>
-                    <CardDescription>
-                      View, manage, and remove drivers from the platform.
-                    </CardDescription>
+                  <CardHeader className="flex flex-row items-center justify-between">
+                    <div>
+                      <CardTitle>Driver Management</CardTitle>
+                      <CardDescription>
+                        View, manage, and remove drivers from the platform.
+                      </CardDescription>
+                    </div>
+                    <Button onClick={handleTransferAllPayments}>
+                      <Send className="mr-2 h-4 w-4" />
+                      Transfer All Payouts
+                    </Button>
                   </CardHeader>
                   <CardContent>
                     <Table>
@@ -1146,3 +1180,5 @@ export default function AdminDashboardPage() {
     </div>
   );
 }
+
+    
