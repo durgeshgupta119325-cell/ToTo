@@ -82,22 +82,7 @@ export default function AdminDashboardPage() {
   const router = useRouter();
   const { toast } = useToast();
 
-  const [driverList, setDriverList] = useState<Driver[]>(() => {
-    if (typeof window === 'undefined') return DUMMY_DRIVERS;
-    try {
-      const stored = localStorage.getItem('toto-admin-drivers');
-      return stored ? JSON.parse(stored) : DUMMY_DRIVERS;
-    } catch (e) {
-      console.error("Failed to parse drivers from localStorage", e);
-      return DUMMY_DRIVERS;
-    }
-  });
-  
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('toto-admin-drivers', JSON.stringify(driverList));
-    }
-  }, [driverList]);
+  const [driverList, setDriverList] = useState<Driver[]>(DUMMY_DRIVERS);
 
   const initialServiceAreas = [
     { id: 1, city: 'Mumbai', district: 'Mumbai City', state: 'Maharashtra', active: true },
@@ -105,91 +90,97 @@ export default function AdminDashboardPage() {
     { id: 3, city: 'Bengaluru', district: 'Bengaluru Urban', state: 'Karnataka', active: false },
     { id: 4, city: 'Gurugram', district: 'Gurgaon', state: 'Haryana', active: true },
   ];
-  
-  const [serviceAreas, setServiceAreas] = useState(() => {
-    if (typeof window === 'undefined') return initialServiceAreas;
+  const [serviceAreas, setServiceAreas] = useState(initialServiceAreas);
+  const [rates, setRates] = useState({ erickshaw: DEFAULT_RATES.erickshaw, cab: DEFAULT_RATES.cab });
+  const [commissionRates, setCommissionRates] = useState({ day: 2, night: 3 });
+  const [todayStats, setTodayStats] = useState({
+    rides: 15,
+    grossVolume: 10500,
+    lastReset: 0,
+  });
+
+  // Load state from localStorage on initial client render
+  useEffect(() => {
     try {
-      const stored = localStorage.getItem('toto-admin-service-areas');
-      return stored ? JSON.parse(stored) : initialServiceAreas;
+      const storedDrivers = localStorage.getItem('toto-admin-drivers');
+      if (storedDrivers) setDriverList(JSON.parse(storedDrivers));
+    } catch (e) {
+      console.error("Failed to parse drivers from localStorage", e);
+    }
+    
+    try {
+      const storedAreas = localStorage.getItem('toto-admin-service-areas');
+      if (storedAreas) setServiceAreas(JSON.parse(storedAreas));
     } catch (e) {
       console.error("Failed to parse service areas from localStorage", e);
-      return initialServiceAreas;
     }
-  });
-
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('toto-admin-service-areas', JSON.stringify(serviceAreas));
-    }
-  }, [serviceAreas]);
-  
-  const [rates, setRates] = useState(() => {
-    if (typeof window === 'undefined') return { erickshaw: DEFAULT_RATES.erickshaw, cab: DEFAULT_RATES.cab };
+    
     try {
-      const stored = localStorage.getItem('toto-admin-rates');
-      return stored ? JSON.parse(stored) : { erickshaw: DEFAULT_RATES.erickshaw, cab: DEFAULT_RATES.cab };
+      const storedRates = localStorage.getItem('toto-admin-rates');
+      if (storedRates) setRates(JSON.parse(storedRates));
     } catch (e) {
       console.error("Failed to parse rates from localStorage", e);
-      return { erickshaw: DEFAULT_RATES.erickshaw, cab: DEFAULT_RATES.cab };
     }
-  });
-
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('toto-admin-rates', JSON.stringify(rates));
-    }
-  }, [rates]);
-  
-  const [commissionRates, setCommissionRates] = useState(() => {
-    if (typeof window === 'undefined') return { day: 2, night: 3 };
+    
     try {
-      const stored = localStorage.getItem('toto-admin-commission-rates');
-      return stored ? JSON.parse(stored) : { day: 2, night: 3 };
+      const storedCommission = localStorage.getItem('toto-admin-commission-rates');
+      if (storedCommission) setCommissionRates(JSON.parse(storedCommission));
     } catch (e) {
       console.error("Failed to parse commission rates from localStorage", e);
-      return { day: 2, night: 3 };
     }
-  });
 
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('toto-admin-commission-rates', JSON.stringify(commissionRates));
-    }
-  }, [commissionRates]);
-
-  const [todayStats, setTodayStats] = useState(() => {
-    if (typeof window === 'undefined') {
-      return { rides: 15, grossVolume: 10500, lastReset: Date.now() };
-    }
-    try {
-      const stored = localStorage.getItem('toto-admin-today-stats');
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        const oneDay = 24 * 60 * 60 * 1000;
-        if (Date.now() - parsed.lastReset > oneDay) {
-          const newStats = {
-            rides: Math.floor(Math.random() * 50) + 10,
-            grossVolume: Math.floor(Math.random() * 15000) + 5000,
-            lastReset: Date.now(),
-          };
-          localStorage.setItem('toto-admin-today-stats', JSON.stringify(newStats));
-          return newStats;
+    // Handle today's stats logic on the client
+    const getClientTodayStats = () => {
+      try {
+        const stored = localStorage.getItem('toto-admin-today-stats');
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          const oneDay = 24 * 60 * 60 * 1000;
+          if (Date.now() - parsed.lastReset > oneDay) {
+            // Time to reset
+            const newStats = {
+              rides: Math.floor(Math.random() * 50) + 10,
+              grossVolume: Math.floor(Math.random() * 15000) + 5000,
+              lastReset: Date.now(),
+            };
+            localStorage.setItem('toto-admin-today-stats', JSON.stringify(newStats));
+            return newStats;
+          }
+          // Not time to reset, use stored
+          return parsed;
         }
-        return parsed;
+      } catch (e) {
+        console.error("Failed to parse today's stats from localStorage", e);
       }
-    } catch (e) {
-      console.error("Failed to parse today's stats from localStorage", e);
-    }
-    const initialStats = {
+      
+      // No stored stats or error, create initial ones
+      const initialStats = {
         rides: Math.floor(Math.random() * 50) + 10,
         grossVolume: Math.floor(Math.random() * 15000) + 5000,
         lastReset: Date.now(),
-    };
-    if (typeof window !== 'undefined') {
-        localStorage.setItem('toto-admin-today-stats', JSON.stringify(initialStats));
+      };
+      localStorage.setItem('toto-admin-today-stats', JSON.stringify(initialStats));
+      return initialStats;
     }
-    return initialStats;
-  });
+    setTodayStats(getClientTodayStats());
+  }, []);
+
+  // Save state back to localStorage when it changes
+  useEffect(() => {
+    localStorage.setItem('toto-admin-drivers', JSON.stringify(driverList));
+  }, [driverList]);
+  
+  useEffect(() => {
+    localStorage.setItem('toto-admin-service-areas', JSON.stringify(serviceAreas));
+  }, [serviceAreas]);
+  
+  useEffect(() => {
+    localStorage.setItem('toto-admin-rates', JSON.stringify(rates));
+  }, [rates]);
+
+  useEffect(() => {
+    localStorage.setItem('toto-admin-commission-rates', JSON.stringify(commissionRates));
+  }, [commissionRates]);
 
 
   const [selectedDriver, setSelectedDriver] = useState<Driver | null>(null);
@@ -1200,4 +1191,6 @@ export default function AdminDashboardPage() {
 }
 
     
+    
+
     
