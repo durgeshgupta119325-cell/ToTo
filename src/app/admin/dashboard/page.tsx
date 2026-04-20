@@ -195,6 +195,7 @@ export default function AdminDashboardPage() {
   const [selectedDriver, setSelectedDriver] = useState<Driver | null>(null);
   const [selectedCustomer, setSelectedCustomer] = useState(DUMMY_CUSTOMERS[0]);
   const [customerSearch, setCustomerSearch] = useState('');
+  const [driverSearch, setDriverSearch] = useState('');
   const [selectedState, setSelectedState] = useState('');
   const [selectedDistrict, setSelectedDistrict] = useState('');
   const [selectedCity, setSelectedCity] = useState('');
@@ -377,6 +378,12 @@ export default function AdminDashboardPage() {
     (customer) =>
       customer.name.toLowerCase().includes(customerSearch.toLowerCase()) ||
       customer.mobile.includes(customerSearch)
+  );
+
+  const filteredDrivers = driverList.filter(
+    (driver) =>
+      driver.name.toLowerCase().includes(driverSearch.toLowerCase()) ||
+      driver.id.toLowerCase().includes(driverSearch.toLowerCase())
   );
 
 
@@ -583,17 +590,28 @@ export default function AdminDashboardPage() {
             <TabsContent value="drivers">
               <Dialog>
                 <Card>
-                  <CardHeader className="flex flex-row items-center justify-between">
-                    <div>
-                      <CardTitle>Driver Management</CardTitle>
-                      <CardDescription>
-                        View, manage, and remove drivers from the platform.
-                      </CardDescription>
+                  <CardHeader>
+                    <div className="flex flex-row items-start justify-between">
+                      <div>
+                        <CardTitle>Driver Management</CardTitle>
+                        <CardDescription>
+                          View, manage, and remove drivers from the platform.
+                        </CardDescription>
+                      </div>
+                      <Button onClick={handleTransferAllPayments}>
+                        <Send className="mr-2 h-4 w-4" />
+                        Transfer All Payouts
+                      </Button>
                     </div>
-                    <Button onClick={handleTransferAllPayments}>
-                      <Send className="mr-2 h-4 w-4" />
-                      Transfer All Payouts
-                    </Button>
+                    <div className="relative pt-4">
+                      <Users className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground mt-2" />
+                      <Input
+                        placeholder="Search by name or ID..."
+                        value={driverSearch}
+                        onChange={(e) => setDriverSearch(e.target.value)}
+                        className="pl-10 max-w-sm"
+                      />
+                    </div>
                   </CardHeader>
                   <CardContent>
                     <Table>
@@ -612,7 +630,7 @@ export default function AdminDashboardPage() {
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {driverList.map((driver) => (
+                        {filteredDrivers.map((driver) => (
                           <TableRow key={driver.id}>
                             <TableCell className="font-medium">
                               {driver.id}
@@ -1181,4 +1199,5 @@ export default function AdminDashboardPage() {
   );
 }
 
+    
     
