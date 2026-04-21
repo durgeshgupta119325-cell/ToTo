@@ -5,6 +5,7 @@ import { useForm } from "react-hook-form";
 import * as z from "zod";
 import { Eye, EyeOff } from "lucide-react";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -31,6 +32,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
+import { DUMMY_DRIVERS } from "@/lib/mock-data";
 
 const MAX_FILE_SIZE = 5000000;
 const ACCEPTED_FILE_TYPES = [
@@ -82,6 +84,7 @@ export function DriverRegistrationForm() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const { toast } = useToast();
+  const router = useRouter();
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -96,14 +99,55 @@ export function DriverRegistrationForm() {
   });
 
   function onSubmit(values: z.infer<typeof formSchema>) {
-    console.log(values);
-    // Here you would handle the form submission, e.g., API call to register driver
+    let drivers = [];
+    try {
+      const storedDrivers = localStorage.getItem('toto-admin-drivers');
+      drivers = storedDrivers ? JSON.parse(storedDrivers) : DUMMY_DRIVERS;
+    } catch (e) {
+      console.error("Could not parse drivers from localStorage, falling back to default.", e);
+      drivers = DUMMY_DRIVERS;
+    }
+
+    const driverExists = drivers.some(
+      (driver: any) => driver.email === values.email || driver.mobile === values.mobile
+    );
+
+    if (driverExists) {
+      toast({
+        variant: "destructive",
+        title: "Registration Failed",
+        description: "A driver with this email or mobile number already exists.",
+      });
+      return;
+    }
+
+    const newDriver = {
+      id: `DRV${Date.now().toString().slice(-6)}`,
+      name: values.fullName,
+      gender: "Not specified",
+      email: values.email,
+      mobile: values.mobile,
+      address: "N/A",
+      city: "N/A",
+      state: "N/A",
+      pincode: "N/A",
+      vehicleType: values.vehicleType === "erickshaw" ? "E-Rickshaw" : "Cab",
+      vehicleNumber: values.vehicleNumber.toUpperCase(),
+      accountNumber: `...${Math.floor(1000 + Math.random() * 9000)}`, // Dummy account
+      grossEarnings: 0,
+      photoUrl: `https://picsum.photos/seed/newdriver${drivers.length}/200/200`,
+      idProofUrl: `https://picsum.photos/seed/newid${drivers.length}/400/250`,
+    };
+
+    const updatedDrivers = [...drivers, newDriver];
+    localStorage.setItem('toto-admin-drivers', JSON.stringify(updatedDrivers));
+
     toast({
-      title: "Registration Submitted",
-      description:
-        "Your registration is being processed. We will get back to you shortly.",
+      title: "Registration Successful",
+      description: "You have been registered. Redirecting to login...",
     });
     form.reset();
+    router.push('/driver/login');
   }
 
   return (
