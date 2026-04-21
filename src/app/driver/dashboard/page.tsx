@@ -14,10 +14,14 @@ import { useToast } from '@/hooks/use-toast';
 import { Icons } from '@/components/icons';
 import { LogOut, Car, IndianRupee, Star, Users } from 'lucide-react';
 import { DUMMY_DRIVERS } from '@/lib/mock-data';
+import { useState } from 'react';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 
 export default function DriverDashboardPage() {
   const router = useRouter();
   const { toast } = useToast();
+  const [isOnline, setIsOnline] = useState(true);
 
   const handleLogout = () => {
     toast({
@@ -25,6 +29,16 @@ export default function DriverDashboardPage() {
       description: 'You have been successfully logged out.',
     });
     router.push('/driver/login');
+  };
+
+  const handleOnlineToggle = (online: boolean) => {
+    setIsOnline(online);
+    toast({
+      title: `You are now ${online ? 'Online' : 'Offline'}`,
+      description: online
+        ? 'You will now receive new ride requests.'
+        : 'You will not receive ride requests until you go online.',
+    });
   };
 
   // Dummy data for dashboard stats
@@ -51,9 +65,21 @@ export default function DriverDashboardPage() {
 
       <main className="flex-1 p-4 md:p-8">
         <div className="mx-auto max-w-4xl space-y-8">
-           <div>
-                <h1 className="text-3xl font-bold tracking-tight">Today's Summary</h1>
-                <p className="text-muted-foreground">A quick overview of your performance today.</p>
+           <div className="flex flex-wrap items-center justify-between gap-4">
+                <div>
+                    <h1 className="text-3xl font-bold tracking-tight">Today's Summary</h1>
+                    <p className="text-muted-foreground">A quick overview of your performance today.</p>
+                </div>
+                 <div className="flex items-center space-x-3 rounded-lg border bg-card p-3 shadow-sm">
+                    <Label htmlFor="online-status" className="font-medium text-card-foreground">
+                        {isOnline ? 'Online' : 'Offline'}
+                    </Label>
+                    <Switch
+                        id="online-status"
+                        checked={isOnline}
+                        onCheckedChange={handleOnlineToggle}
+                    />
+                </div>
             </div>
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
             <Card>
