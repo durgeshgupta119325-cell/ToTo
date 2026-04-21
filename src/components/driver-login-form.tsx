@@ -50,8 +50,17 @@ export function DriverLoginForm() {
   });
 
   function onSubmit(values: z.infer<typeof formSchema>) {
-    // Check against dummy drivers. For this demo, we'll assume the password is 'password'.
-    const driver = DUMMY_DRIVERS.find(d => d.email === values.email);
+    let drivers = [];
+    try {
+        const storedDrivers = localStorage.getItem('toto-admin-drivers');
+        drivers = storedDrivers ? JSON.parse(storedDrivers) : DUMMY_DRIVERS;
+    } catch (e) {
+        console.error("Could not parse drivers from localStorage, falling back to default.", e);
+        drivers = DUMMY_DRIVERS;
+    }
+    
+    // For this demo, we'll assume the password is 'password'.
+    const driver = drivers.find((d: any) => d.email === values.email);
 
     if (driver && values.password === 'password') {
       localStorage.setItem('toto-driver', JSON.stringify(driver));

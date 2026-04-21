@@ -2,6 +2,7 @@
 "use client";
 
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -12,13 +13,48 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { Icons } from '@/components/icons';
 import { Car, IndianRupee, Star, Home } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 
+type Driver = {
+  id: string;
+  name: string;
+  gender: string;
+  email: string;
+  mobile: string;
+  address: string;
+  city: string;
+  state: string;
+  pincode: string;
+  vehicleType: string;
+  vehicleNumber: string;
+  accountNumber: string;
+  grossEarnings: number;
+  photoUrl: string;
+  idProofUrl: string;
+};
+
 export default function DriverDashboardPage() {
   const { toast } = useToast();
+  const router = useRouter();
   const [isOnline, setIsOnline] = useState(true);
+  const [driver, setDriver] = useState<Driver | null>(null);
+
+  useEffect(() => {
+    const storedDriver = localStorage.getItem('toto-driver');
+    if (storedDriver) {
+      try {
+        setDriver(JSON.parse(storedDriver));
+      } catch (error) {
+        console.error("Failed to parse driver data from localStorage", error);
+        localStorage.removeItem('toto-driver');
+        router.push('/driver/login');
+      }
+    } else {
+      router.push('/driver/login');
+    }
+  }, [router]);
 
   const handleOnlineToggle = (online: boolean) => {
     setIsOnline(online);
@@ -36,6 +72,14 @@ export default function DriverDashboardPage() {
     earnings: 1540,
     rating: 4.8,
   };
+
+  if (!driver) {
+    return (
+      <div className="flex min-h-dvh flex-col items-center justify-center bg-secondary">
+        <p>Loading your dashboard...</p>
+      </div>
+    );
+  }
 
 
   return (
@@ -59,7 +103,7 @@ export default function DriverDashboardPage() {
         <div className="mx-auto max-w-4xl space-y-8">
            <div className="flex flex-wrap items-center justify-between gap-4">
                 <div>
-                    <h1 className="text-3xl font-bold tracking-tight">Today's Summary</h1>
+                    <h1 className="text-3xl font-bold tracking-tight">Welcome, {driver.name}!</h1>
                     <p className="text-muted-foreground">A quick overview of your performance today.</p>
                 </div>
                  <div className="flex items-center space-x-3 rounded-lg border bg-card p-3 shadow-sm">
