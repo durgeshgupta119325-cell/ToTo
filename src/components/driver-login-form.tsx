@@ -59,10 +59,10 @@ export function DriverLoginForm() {
         drivers = DUMMY_DRIVERS;
     }
     
-    // For this demo, we'll assume the password is 'password'.
     const driver = drivers.find((d: any) => d.email === values.email);
 
-    if (driver && values.password === 'password') {
+    // The password for dummy drivers is 'password', but registered drivers have their own.
+    if (driver && (driver.password ? values.password === driver.password : values.password === 'password')) {
       localStorage.setItem('toto-driver', JSON.stringify(driver));
       toast({
         title: "Login Successful",

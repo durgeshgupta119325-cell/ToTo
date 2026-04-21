@@ -137,6 +137,7 @@ export function DriverRegistrationForm() {
       grossEarnings: 0,
       photoUrl: `https://picsum.photos/seed/newdriver${drivers.length}/200/200`,
       idProofUrl: `https://picsum.photos/seed/newid${drivers.length}/400/250`,
+      password: values.password,
     };
 
     const updatedDrivers = [...drivers, newDriver];
