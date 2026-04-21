@@ -25,6 +25,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
+import { DUMMY_DRIVERS } from "@/lib/mock-data";
 
 const formSchema = z.object({
   email: z.string().email({
@@ -49,13 +50,23 @@ export function DriverLoginForm() {
   });
 
   function onSubmit(values: z.infer<typeof formSchema>) {
-    console.log(values);
-    // Here you would handle login, e.g., API call
-    toast({
-      title: "Login Successful",
-      description: "Welcome back! Redirecting to your dashboard...",
-    });
-    router.push('/driver/dashboard');
+    // Check against dummy drivers. For this demo, we'll assume the password is 'password'.
+    const driver = DUMMY_DRIVERS.find(d => d.email === values.email);
+
+    if (driver && values.password === 'password') {
+      localStorage.setItem('toto-driver', JSON.stringify(driver));
+      toast({
+        title: "Login Successful",
+        description: "Welcome back! Redirecting to your dashboard...",
+      });
+      router.push('/driver/dashboard');
+    } else {
+      toast({
+        variant: "destructive",
+        title: "Login Failed",
+        description: "Invalid email or password.",
+      });
+    }
   }
 
   return (

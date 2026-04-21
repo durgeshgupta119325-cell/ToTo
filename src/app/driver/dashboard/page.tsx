@@ -12,18 +12,37 @@ import {
 } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { Icons } from '@/components/icons';
-import { LogOut, Car, IndianRupee, Star, Users } from 'lucide-react';
+import { LogOut, Car, IndianRupee, Star } from 'lucide-react';
 import { DUMMY_DRIVERS } from '@/lib/mock-data';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
+
+type Driver = (typeof DUMMY_DRIVERS)[0];
 
 export default function DriverDashboardPage() {
   const router = useRouter();
   const { toast } = useToast();
   const [isOnline, setIsOnline] = useState(true);
+  const [driver, setDriver] = useState<Driver | null>(null);
+
+  useEffect(() => {
+    const storedDriver = localStorage.getItem('toto-driver');
+    if (storedDriver) {
+      try {
+        setDriver(JSON.parse(storedDriver));
+      } catch (error) {
+        console.error("Failed to parse driver data from localStorage", error);
+        localStorage.removeItem('toto-driver');
+        router.push('/driver/login');
+      }
+    } else {
+      router.push('/driver/login');
+    }
+  }, [router]);
 
   const handleLogout = () => {
+    localStorage.removeItem('toto-driver');
     toast({
       title: 'Logged Out',
       description: 'You have been successfully logged out.',
@@ -47,6 +66,15 @@ export default function DriverDashboardPage() {
     earnings: 1540,
     rating: 4.8,
   };
+  
+  if (!driver) {
+    return (
+      <div className="flex min-h-dvh flex-col items-center justify-center bg-secondary">
+        <p>Loading your dashboard...</p>
+      </div>
+    );
+  }
+
 
   return (
     <div className="flex min-h-dvh flex-col bg-secondary">
@@ -67,7 +95,7 @@ export default function DriverDashboardPage() {
         <div className="mx-auto max-w-4xl space-y-8">
            <div className="flex flex-wrap items-center justify-between gap-4">
                 <div>
-                    <h1 className="text-3xl font-bold tracking-tight">Today's Summary</h1>
+                    <h1 className="text-3xl font-bold tracking-tight">Welcome, {driver.name}!</h1>
                     <p className="text-muted-foreground">A quick overview of your performance today.</p>
                 </div>
                  <div className="flex items-center space-x-3 rounded-lg border bg-card p-3 shadow-sm">
@@ -81,21 +109,7 @@ export default function DriverDashboardPage() {
                     />
                 </div>
             </div>
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">
-                  Total Drivers
-                </CardTitle>
-                <Users className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{DUMMY_DRIVERS.length}</div>
-                <p className="text-xs text-muted-foreground">
-                  Active on the platform
-                </p>
-              </CardContent>
-            </Card>
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">
