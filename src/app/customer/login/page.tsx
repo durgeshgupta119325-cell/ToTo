@@ -9,13 +9,13 @@ import { useRouter, useSearchParams } from 'next/navigation';
 export default function CustomerLoginPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const isEditMode = searchParams.get('edit') === 'true';
 
   useEffect(() => {
-    const isEditMode = searchParams.get('edit') === 'true';
     if (!isEditMode && localStorage.getItem('toto-customer')) {
       router.push('/customer/dashboard');
     }
-  }, [router, searchParams]);
+  }, [router, isEditMode]);
   
   return (
     <div className="flex min-h-dvh flex-col items-center justify-center bg-secondary p-4">
