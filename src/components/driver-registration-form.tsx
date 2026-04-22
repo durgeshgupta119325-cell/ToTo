@@ -59,17 +59,7 @@ const formSchema = z
     vehicleType: z.enum(["erickshaw", "cab"], {
       required_error: "Please select a vehicle type.",
     }),
-    verificationId: z
-      .any()
-      .refine((files) => files?.length == 1, "Verification ID is required.")
-      .refine(
-        (files) => files?.[0]?.size <= MAX_FILE_SIZE,
-        `Max file size is 5MB.`
-      )
-      .refine(
-        (files) => ACCEPTED_FILE_TYPES.includes(files?.[0]?.type),
-        "Only .jpg, .png, and .pdf formats are supported."
-      ),
+    verificationId: z.any().optional(),
     password: z.string().min(8, {
       message: "Password must be at least 8 characters.",
     }),
