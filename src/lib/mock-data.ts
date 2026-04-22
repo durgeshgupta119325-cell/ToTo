@@ -16,6 +16,7 @@ export const DUMMY_DRIVERS = [
     grossEarnings: 12500,
     photoUrl: 'https://picsum.photos/seed/driver1/200/200',
     idProofUrl: 'https://picsum.photos/seed/id1/400/250',
+    password: 'password',
   },
   {
     id: 'DRV002',
@@ -33,6 +34,7 @@ export const DUMMY_DRIVERS = [
     grossEarnings: 9800,
     photoUrl: 'https://picsum.photos/seed/driver2/200/200',
     idProofUrl: 'https://picsum.photos/seed/id2/400/250',
+    password: 'password',
   },
   {
     id: 'DRV003',
@@ -50,6 +52,7 @@ export const DUMMY_DRIVERS = [
     grossEarnings: 15200,
     photoUrl: 'https://picsum.photos/seed/driver3/200/200',
     idProofUrl: 'https://picsum.photos/seed/id3/400/250',
+    password: 'password',
   },
   {
     id: 'DRV004',
@@ -67,6 +70,7 @@ export const DUMMY_DRIVERS = [
     grossEarnings: 8500,
     photoUrl: 'https://picsum.photos/seed/driver4/200/200',
     idProofUrl: 'https://picsum.photos/seed/id4/400/250',
+    password: 'password',
   },
 ];
 
