@@ -4,7 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
 import { Eye, EyeOff } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
@@ -34,27 +34,18 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { DUMMY_DRIVERS } from "@/lib/mock-data";
 
+// Schema for the registration form
 const formSchema = z
   .object({
-    fullName: z.string().min(2, {
-      message: "Full name must be at least 2 characters.",
-    }),
-    email: z.string().email({
-      message: "Please enter a valid email address.",
-    }),
-    mobile: z.string().regex(/^\d{10}$/, {
-      message: "Please enter a valid 10-digit mobile number.",
-    }),
-    vehicleNumber: z.string().min(4, {
-      message: "Vehicle number must be at least 4 characters.",
-    }),
+    fullName: z.string().min(2, "Full name must be at least 2 characters."),
+    email: z.string().email("Please enter a valid email address."),
+    mobile: z.string().regex(/^\d{10}$/, "Please enter a valid 10-digit mobile number."),
+    vehicleNumber: z.string().min(4, "Vehicle number must be at least 4 characters."),
     vehicleType: z.enum(["erickshaw", "cab"], {
       required_error: "Please select a vehicle type.",
     }),
-    verificationId: z.any().optional(),
-    password: z.string().min(8, {
-      message: "Password must be at least 8 characters.",
-    }),
+    verificationId: z.any().optional(), // File upload is optional
+    password: z.string().min(8, "Password must be at least 8 characters."),
     confirmPassword: z.string(),
   })
   .refine((data) => data.password === data.confirmPassword, {
@@ -67,13 +58,6 @@ export function DriverRegistrationForm() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const { toast } = useToast();
   const router = useRouter();
-
-  useEffect(() => {
-    const storedDrivers = localStorage.getItem('toto-admin-drivers');
-    if (!storedDrivers) {
-      localStorage.setItem('toto-admin-drivers', JSON.stringify(DUMMY_DRIVERS));
-    }
-  }, []);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -88,16 +72,19 @@ export function DriverRegistrationForm() {
   });
 
   function onSubmit(values: z.infer<typeof formSchema>) {
-    let drivers = [];
+    // 1. Get the current list of drivers from localStorage
+    let drivers: (typeof DUMMY_DRIVERS);
     try {
       const storedDrivers = localStorage.getItem('toto-admin-drivers');
-      // On submission, we assume storage is initialized due to the useEffect.
-      drivers = storedDrivers ? JSON.parse(storedDrivers) : [];
+      // If storage exists, use it. Otherwise, initialize with DUMMY_DRIVERS.
+      drivers = storedDrivers ? JSON.parse(storedDrivers) : DUMMY_DRIVERS;
     } catch (e) {
-      console.error("Could not parse drivers from localStorage, falling back to an empty list.", e);
-      drivers = [];
+      // If parsing fails, fall back to DUMMY_DRIVERS as a safety measure.
+      console.error("Could not parse drivers from localStorage, falling back to default.", e);
+      drivers = DUMMY_DRIVERS;
     }
 
+    // 2. Check if a driver with the same email or mobile already exists
     const driverExists = drivers.some(
       (driver: any) => driver.email === values.email || driver.mobile === values.mobile
     );
@@ -111,6 +98,7 @@ export function DriverRegistrationForm() {
       return;
     }
 
+    // 3. Create the new driver object
     const newDriver = {
       id: `DRV${Date.now().toString().slice(-6)}`,
       name: values.fullName,
@@ -127,12 +115,14 @@ export function DriverRegistrationForm() {
       grossEarnings: 0,
       photoUrl: `https://picsum.photos/seed/newdriver${drivers.length}/200/200`,
       idProofUrl: `https://picsum.photos/seed/newid${drivers.length}/400/250`,
-      password: values.password,
+      password: values.password, // Save the actual password
     };
 
+    // 4. Add the new driver to the list and save back to localStorage
     const updatedDrivers = [...drivers, newDriver];
     localStorage.setItem('toto-admin-drivers', JSON.stringify(updatedDrivers));
 
+    // 5. Show success and redirect
     toast({
       title: "Registration Successful",
       description: "You have been registered. Redirecting to login...",

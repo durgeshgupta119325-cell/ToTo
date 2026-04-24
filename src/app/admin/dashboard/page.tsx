@@ -97,8 +97,11 @@ export default function AdminDashboardPage() {
     grossVolume: 0,
     lastReset: 0,
   });
+  
+  // State to prevent localStorage overwrites on initial load
+  const [dataLoaded, setDataLoaded] = useState(false);
 
-  // Load state from localStorage on initial client render
+  // Load all state from localStorage on initial client render
   useEffect(() => {
     try {
       const storedDrivers = localStorage.getItem('toto-admin-drivers');
@@ -132,7 +135,6 @@ export default function AdminDashboardPage() {
       setCommissionRates({ day: 2, night: 3 });
     }
 
-    // Handle today's stats logic on the client
     const getClientTodayStats = () => {
       try {
         const stored = localStorage.getItem('toto-admin-today-stats');
@@ -140,7 +142,6 @@ export default function AdminDashboardPage() {
           const parsed = JSON.parse(stored);
           const oneDay = 24 * 60 * 60 * 1000;
           if (Date.now() - parsed.lastReset > oneDay) {
-            // Time to reset
             const newStats = {
               rides: Math.floor(Math.random() * 50) + 10,
               grossVolume: Math.floor(Math.random() * 15000) + 5000,
@@ -149,14 +150,12 @@ export default function AdminDashboardPage() {
             localStorage.setItem('toto-admin-today-stats', JSON.stringify(newStats));
             return newStats;
           }
-          // Not time to reset, use stored
           return parsed;
         }
       } catch (e) {
         console.error("Failed to parse today's stats from localStorage", e);
       }
       
-      // No stored stats or error, create initial ones
       const initialStats = {
         rides: Math.floor(Math.random() * 50) + 10,
         grossVolume: Math.floor(Math.random() * 15000) + 5000,
@@ -166,29 +165,35 @@ export default function AdminDashboardPage() {
       return initialStats;
     }
     setTodayStats(getClientTodayStats());
+
+    // Signal that all data has been loaded from client-side storage
+    setDataLoaded(true);
   }, []);
 
-  // Save state back to localStorage when it changes
+  // Save state back to localStorage only after initial load and when data actually changes
   useEffect(() => {
-    // Prevent saving the initial empty state before data is loaded
-    if (driverList.length > 0) {
+    if (dataLoaded) {
       localStorage.setItem('toto-admin-drivers', JSON.stringify(driverList));
     }
-  }, [driverList]);
+  }, [driverList, dataLoaded]);
   
   useEffect(() => {
-    if (serviceAreas.length > 0) {
+    if (dataLoaded) {
       localStorage.setItem('toto-admin-service-areas', JSON.stringify(serviceAreas));
     }
-  }, [serviceAreas]);
+  }, [serviceAreas, dataLoaded]);
   
   useEffect(() => {
-    localStorage.setItem('toto-admin-rates', JSON.stringify(rates));
-  }, [rates]);
+    if (dataLoaded) {
+      localStorage.setItem('toto-admin-rates', JSON.stringify(rates));
+    }
+  }, [rates, dataLoaded]);
 
   useEffect(() => {
-    localStorage.setItem('toto-admin-commission-rates', JSON.stringify(commissionRates));
-  }, [commissionRates]);
+    if (dataLoaded) {
+      localStorage.setItem('toto-admin-commission-rates', JSON.stringify(commissionRates));
+    }
+  }, [commissionRates, dataLoaded]);
 
 
   const [selectedDriver, setSelectedDriver] = useState<Driver | null>(null);

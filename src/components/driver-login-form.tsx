@@ -27,13 +27,10 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { DUMMY_DRIVERS } from "@/lib/mock-data";
 
+// Schema for the login form
 const formSchema = z.object({
-  email: z.string().email({
-    message: "Please enter a valid email address.",
-  }),
-  password: z.string().min(1, {
-    message: "Password is required.",
-  }),
+  email: z.string().email("Please enter a valid email address."),
+  password: z.string().min(1, "Password is required."),
 });
 
 export function DriverLoginForm() {
@@ -50,19 +47,26 @@ export function DriverLoginForm() {
   });
 
   function onSubmit(values: z.infer<typeof formSchema>) {
-    let drivers = [];
+    // 1. Get the current list of drivers from localStorage
+    let drivers: (typeof DUMMY_DRIVERS);
     try {
         const storedDrivers = localStorage.getItem('toto-admin-drivers');
+        // If storage exists, use it. Otherwise, fall back to the default list.
         drivers = storedDrivers ? JSON.parse(storedDrivers) : DUMMY_DRIVERS;
     } catch (e) {
+        // If parsing fails, fall back to DUMMY_DRIVERS as a safety measure.
         console.error("Could not parse drivers from localStorage, falling back to default.", e);
         drivers = DUMMY_DRIVERS;
     }
     
+    // 2. Find the driver by email
     const driver = drivers.find((d: any) => d.email === values.email);
 
+    // 3. Check if driver exists and password matches
     if (driver && driver.password && values.password === driver.password) {
+      // 4. Save logged-in driver's data to localStorage for the dashboard
       localStorage.setItem('toto-driver', JSON.stringify(driver));
+      
       toast({
         title: "Login Successful",
         description: "Welcome back! Redirecting to your dashboard...",
@@ -72,7 +76,7 @@ export function DriverLoginForm() {
       toast({
         variant: "destructive",
         title: "Login Failed",
-        description: "Invalid email or password.",
+        description: "Invalid email or password. Please check your credentials or register.",
       });
     }
   }
@@ -93,7 +97,7 @@ export function DriverLoginForm() {
               name="email"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Email (Driver ID)</FormLabel>
+                  <FormLabel>Email</FormLabel>
                   <FormControl>
                     <Input placeholder="driver@example.com" {...field} />
                   </FormControl>
