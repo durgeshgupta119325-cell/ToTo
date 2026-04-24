@@ -4,7 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
 import { Eye, EyeOff } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
@@ -33,14 +33,6 @@ import {
 } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { DUMMY_DRIVERS } from "@/lib/mock-data";
-
-const MAX_FILE_SIZE = 5000000;
-const ACCEPTED_FILE_TYPES = [
-  "image/jpeg",
-  "image/jpg",
-  "image/png",
-  "application/pdf",
-];
 
 const formSchema = z
   .object({
@@ -76,6 +68,13 @@ export function DriverRegistrationForm() {
   const { toast } = useToast();
   const router = useRouter();
 
+  useEffect(() => {
+    const storedDrivers = localStorage.getItem('toto-admin-drivers');
+    if (!storedDrivers) {
+      localStorage.setItem('toto-admin-drivers', JSON.stringify(DUMMY_DRIVERS));
+    }
+  }, []);
+
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -92,10 +91,11 @@ export function DriverRegistrationForm() {
     let drivers = [];
     try {
       const storedDrivers = localStorage.getItem('toto-admin-drivers');
-      drivers = storedDrivers ? JSON.parse(storedDrivers) : DUMMY_DRIVERS;
+      // On submission, we assume storage is initialized due to the useEffect.
+      drivers = storedDrivers ? JSON.parse(storedDrivers) : [];
     } catch (e) {
-      console.error("Could not parse drivers from localStorage, falling back to default.", e);
-      drivers = DUMMY_DRIVERS;
+      console.error("Could not parse drivers from localStorage, falling back to an empty list.", e);
+      drivers = [];
     }
 
     const driverExists = drivers.some(
@@ -237,7 +237,7 @@ export function DriverRegistrationForm() {
               name="verificationId"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Verification ID (Aadhaar/PAN)</FormLabel>
+                  <FormLabel>Verification ID (Aadhaar/PAN) (Optional)</FormLabel>
                   <FormControl>
                     <Input
                       type="file"
