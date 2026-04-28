@@ -3,7 +3,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Eye, EyeOff } from "lucide-react";
 
@@ -46,17 +46,31 @@ export function DriverLoginForm() {
     },
   });
 
+  // Robustly initialize driver data on component mount to ensure login can check against all drivers.
+  useEffect(() => {
+    try {
+      const storedDrivers = localStorage.getItem('toto-admin-drivers');
+      if (!storedDrivers) {
+        // If no drivers are in storage, initialize storage with the default list.
+        localStorage.setItem('toto-admin-drivers', JSON.stringify(DUMMY_DRIVERS));
+      }
+    } catch (e) {
+      console.error("Failed to initialize driver storage, falling back to default.", e);
+      // In case of error, still ensure there's a list to check against.
+      localStorage.setItem('toto-admin-drivers', JSON.stringify(DUMMY_DRIVERS));
+    }
+  }, []); // Empty dependency array ensures it runs once on mount.
+
+
   function onSubmit(values: z.infer<typeof formSchema>) {
-    // 1. Get the current list of drivers from localStorage
-    let drivers: (typeof DUMMY_DRIVERS);
+    // 1. Get the current list of drivers from localStorage. This should now always exist.
+    let drivers: typeof DUMMY_DRIVERS = [];
     try {
         const storedDrivers = localStorage.getItem('toto-admin-drivers');
-        // If storage exists, use it. Otherwise, fall back to the default list.
-        drivers = storedDrivers ? JSON.parse(storedDrivers) : DUMMY_DRIVERS;
+        drivers = storedDrivers ? JSON.parse(storedDrivers) : [];
     } catch (e) {
-        // If parsing fails, fall back to DUMMY_DRIVERS as a safety measure.
         console.error("Could not parse drivers from localStorage, falling back to default.", e);
-        drivers = DUMMY_DRIVERS;
+        drivers = DUMMY_DRIVERS; // Fallback to defaults as a last resort
     }
     
     // 2. Find the driver by email
