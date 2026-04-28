@@ -6,6 +6,7 @@ import * as z from "zod";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Eye, EyeOff } from "lucide-react";
+import { getAuth, GoogleAuthProvider, signInWithPopup } from "firebase/auth";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -26,6 +27,7 @@ import {
 } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { DUMMY_DRIVERS } from "@/lib/mock-data";
+import { useFirebaseApp } from "@/firebase";
 
 // Schema for the login form
 const formSchema = z.object({
@@ -33,10 +35,17 @@ const formSchema = z.object({
   password: z.string().min(1, "Password is required."),
 });
 
+const GoogleIcon = (props: React.SVGProps<SVGSVGElement>) => (
+    <svg role="img" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" {...props}>
+        <path d="M12.48 10.92v3.28h7.84c-.24 1.84-.85 3.18-1.73 4.1-1.02 1.02-2.62 1.62-4.55 1.62-3.83 0-6.95-3.12-6.95-6.95s3.12-6.95 6.95-6.95c2.21 0 3.63 1.02 4.47 1.84l2.5-2.5C18.16 3.53 15.65 2.4 12.48 2.4c-5.49 0-9.94 4.45-9.94 9.94s4.45 9.94 9.94 9.94c5.38 0 9.6-3.63 9.6-9.69 0-.61-.06-1.21-.17-1.8z" fill="currentColor"/>
+    </svg>
+);
+
 export function DriverLoginForm() {
   const [showPassword, setShowPassword] = useState(false);
   const { toast } = useToast();
   const router = useRouter();
+  const app = useFirebaseApp();
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -46,39 +55,27 @@ export function DriverLoginForm() {
     },
   });
 
-  // Robustly initialize driver data on component mount to ensure login can check against all drivers.
+  // This effect ensures the driver list is available in localStorage when the component mounts.
   useEffect(() => {
-    try {
-      const storedDrivers = localStorage.getItem('toto-admin-drivers');
-      if (!storedDrivers) {
-        // If no drivers are in storage, initialize storage with the default list.
-        localStorage.setItem('toto-admin-drivers', JSON.stringify(DUMMY_DRIVERS));
-      }
-    } catch (e) {
-      console.error("Failed to initialize driver storage, falling back to default.", e);
-      // In case of error, still ensure there's a list to check against.
+    if (!localStorage.getItem('toto-admin-drivers')) {
       localStorage.setItem('toto-admin-drivers', JSON.stringify(DUMMY_DRIVERS));
     }
-  }, []); // Empty dependency array ensures it runs once on mount.
+  }, []);
 
 
   function onSubmit(values: z.infer<typeof formSchema>) {
-    // 1. Get the current list of drivers from localStorage. This should now always exist.
     let drivers: typeof DUMMY_DRIVERS = [];
     try {
         const storedDrivers = localStorage.getItem('toto-admin-drivers');
         drivers = storedDrivers ? JSON.parse(storedDrivers) : [];
     } catch (e) {
         console.error("Could not parse drivers from localStorage, falling back to default.", e);
-        drivers = DUMMY_DRIVERS; // Fallback to defaults as a last resort
+        drivers = DUMMY_DRIVERS;
     }
     
-    // 2. Find the driver by email
     const driver = drivers.find((d: any) => d.email === values.email);
 
-    // 3. Check if driver exists and password matches
     if (driver && driver.password && values.password === driver.password) {
-      // 4. Save logged-in driver's data to localStorage for the dashboard
       localStorage.setItem('toto-driver', JSON.stringify(driver));
       
       toast({
@@ -94,6 +91,44 @@ export function DriverLoginForm() {
       });
     }
   }
+
+  const handleGoogleSignIn = async () => {
+    const auth = getAuth(app);
+    const provider = new GoogleAuthProvider();
+    try {
+        const result = await signInWithPopup(auth, provider);
+        const user = result.user;
+        
+        let drivers: typeof DUMMY_DRIVERS = [];
+        const storedDrivers = localStorage.getItem('toto-admin-drivers');
+        drivers = storedDrivers ? JSON.parse(storedDrivers) : [];
+
+        const driver = drivers.find((d: any) => d.email === user.email);
+
+        if (driver) {
+            localStorage.setItem('toto-driver', JSON.stringify(driver));
+            toast({
+                title: "Login Successful",
+                description: "Welcome back! Redirecting to your dashboard...",
+            });
+            router.push('/driver/dashboard');
+        } else {
+            toast({
+                variant: "destructive",
+                title: "Login Failed",
+                description: "No driver account is associated with this Google account. Please register first.",
+            });
+            await auth.signOut();
+        }
+    } catch (error) {
+        console.error("Google Sign-In Error:", error);
+        toast({
+            variant: "destructive",
+            title: "Google Sign-In Failed",
+            description: "Could not sign you in with Google. Please try again.",
+        });
+    }
+  };
 
   return (
     <Card>
@@ -161,6 +196,20 @@ export function DriverLoginForm() {
             </Button>
           </form>
         </Form>
+        <div className="relative my-6">
+            <div className="absolute inset-0 flex items-center">
+                <span className="w-full border-t" />
+            </div>
+            <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-card px-2 text-muted-foreground">
+                    Or continue with
+                </span>
+            </div>
+        </div>
+        <Button variant="outline" className="w-full" onClick={handleGoogleSignIn}>
+            <GoogleIcon className="mr-2 h-4 w-4" />
+            Sign in with Google
+        </Button>
       </CardContent>
     </Card>
   );
