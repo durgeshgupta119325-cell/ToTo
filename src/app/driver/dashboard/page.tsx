@@ -52,9 +52,9 @@ type Driver = {
 };
 
 const DUMMY_RIDE_DETAILS = [
-  { id: 1, customer: "Anjali Sharma", pickup: "Connaught Place", drop: "India Gate", date: "2023-11-20", time: "10:30 AM" },
-  { id: 2, customer: "Rahul V.", pickup: "Metro Station Sec-18", drop: "Cyber Hub", date: "2023-11-20", time: "11:15 AM" },
-  { id: 3, customer: "Sana Khan", pickup: "DLF Mall", drop: "Amity University", date: "2023-11-20", time: "12:45 PM" },
+  { id: 1, customer: "Anjali Sharma", pickup: "Connaught Place", drop: "India Gate", date: "2023-11-20", time: "10:30 AM", price: 75 },
+  { id: 2, customer: "Rahul V.", pickup: "Metro Station Sec-18", drop: "Cyber Hub", date: "2023-11-20", time: "11:15 AM", price: 150 },
+  { id: 3, customer: "Sana Khan", pickup: "DLF Mall", drop: "Amity University", date: "2023-11-20", time: "12:45 PM", price: 120 },
 ];
 
 export default function DriverDashboardPage() {
@@ -160,7 +160,7 @@ export default function DriverDashboardPage() {
                                 View Details
                             </Button>
                         </DialogTrigger>
-                        <DialogContent className="max-w-2xl">
+                        <DialogContent className="max-w-3xl">
                             <DialogHeader>
                                 <DialogTitle>Today's Ride Bookings</DialogTitle>
                                 <DialogDescription>Review your upcoming and completed rides for today.</DialogDescription>
@@ -174,6 +174,7 @@ export default function DriverDashboardPage() {
                                             <TableHead>Drop-off</TableHead>
                                             <TableHead>Date</TableHead>
                                             <TableHead>Time</TableHead>
+                                            <TableHead className="text-right">Price</TableHead>
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
@@ -184,6 +185,7 @@ export default function DriverDashboardPage() {
                                                 <TableCell>{ride.drop}</TableCell>
                                                 <TableCell>{ride.date}</TableCell>
                                                 <TableCell>{ride.time}</TableCell>
+                                                <TableCell className="text-right font-bold">₹{ride.price}</TableCell>
                                             </TableRow>
                                         ))}
                                     </TableBody>
