@@ -55,6 +55,15 @@ const DUMMY_RIDE_DETAILS = [
   { id: 1, customer: "Anjali Sharma", pickup: "Connaught Place", drop: "India Gate", date: "2023-11-20", time: "10:30 AM", price: 75 },
   { id: 2, customer: "Rahul V.", pickup: "Metro Station Sec-18", drop: "Cyber Hub", date: "2023-11-20", time: "11:15 AM", price: 150 },
   { id: 3, customer: "Sana Khan", pickup: "DLF Mall", drop: "Amity University", date: "2023-11-20", time: "12:45 PM", price: 120 },
+  { id: 4, customer: "Vikram Singh", pickup: "Terminal 3", drop: "Aerocity", date: "2023-11-20", time: "01:30 PM", price: 200 },
+  { id: 5, customer: "Priya Das", pickup: "Hauz Khas Village", drop: "Saket Metro", date: "2023-11-20", time: "02:15 PM", price: 90 },
+  { id: 6, customer: "Amit Patel", pickup: "Chandni Chowk", drop: "Red Fort", date: "2023-11-20", time: "03:00 PM", price: 60 },
+  { id: 7, customer: "Neha Goyal", pickup: "Select Citywalk", drop: "Malviya Nagar", date: "2023-11-20", time: "04:30 PM", price: 110 },
+  { id: 8, customer: "Karan Johar", pickup: "Lodhi Garden", drop: "Khan Market", date: "2023-11-20", time: "05:15 PM", price: 85 },
+  { id: 9, customer: "Sneha Kapur", pickup: "Rajouri Garden", drop: "Pacific Mall", date: "2023-11-20", time: "06:00 PM", price: 130 },
+  { id: 10, customer: "Rohan Mehra", pickup: "Janpath", drop: "Barakhamba Road", date: "2023-11-20", time: "07:30 PM", price: 70 },
+  { id: 11, customer: "Ishaan Khattar", pickup: "M Block Market", drop: "Greater Kailash", date: "2023-11-20", time: "08:15 PM", price: 105 },
+  { id: 12, customer: "Meera Nair", pickup: "Defense Colony", drop: "Lajpat Nagar", date: "2023-11-20", time: "09:00 PM", price: 95 },
 ];
 
 export default function DriverDashboardPage() {
@@ -89,7 +98,7 @@ export default function DriverDashboardPage() {
   };
 
   const dashboardStats = {
-    rides: 12,
+    rides: DUMMY_RIDE_DETAILS.length,
     earnings: 1540,
     rating: 4.8,
   };
@@ -160,12 +169,12 @@ export default function DriverDashboardPage() {
                                 View Details
                             </Button>
                         </DialogTrigger>
-                        <DialogContent className="max-w-3xl">
+                        <DialogContent className="max-w-4xl">
                             <DialogHeader>
                                 <DialogTitle>Today's Ride Bookings</DialogTitle>
-                                <DialogDescription>Review your upcoming and completed rides for today.</DialogDescription>
+                                <DialogDescription>Review all {dashboardStats.rides} rides for today.</DialogDescription>
                             </DialogHeader>
-                            <div className="mt-4">
+                            <div className="mt-4 max-h-[60vh] overflow-y-auto">
                                 <Table>
                                     <TableHeader>
                                         <TableRow>
