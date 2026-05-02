@@ -1,10 +1,11 @@
+
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
 import { Eye, EyeOff } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
@@ -34,7 +35,6 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { DUMMY_DRIVERS } from "@/lib/mock-data";
 
-// Schema for the registration form
 const formSchema = z
   .object({
     fullName: z.string().min(2, "Full name must be at least 2 characters."),
@@ -44,7 +44,6 @@ const formSchema = z
     vehicleType: z.enum(["erickshaw", "cab"], {
       required_error: "Please select a vehicle type.",
     }),
-    verificationId: z.any().optional(), // File upload is optional
     password: z.string().min(8, "Password must be at least 8 characters."),
     confirmPassword: z.string(),
   })
@@ -55,9 +54,16 @@ const formSchema = z
 
 export function DriverRegistrationForm() {
   const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const { toast } = useToast();
   const router = useRouter();
+
+  useEffect(() => {
+    // Ensure data exists before registration attempts
+    const stored = localStorage.getItem('toto-admin-drivers');
+    if (!stored) {
+      localStorage.setItem('toto-admin-drivers', JSON.stringify(DUMMY_DRIVERS));
+    }
+  }, []);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -72,71 +78,56 @@ export function DriverRegistrationForm() {
   });
 
   function onSubmit(values: z.infer<typeof formSchema>) {
-    // 1. Get the current list of drivers from localStorage
-    let drivers: (typeof DUMMY_DRIVERS);
+    let drivers = [];
     try {
       const storedDrivers = localStorage.getItem('toto-admin-drivers');
-      // If storage exists, use it. Otherwise, initialize with DUMMY_DRIVERS.
-      drivers = storedDrivers ? JSON.parse(storedDrivers) : DUMMY_DRIVERS;
+      drivers = storedDrivers ? JSON.parse(storedDrivers) : [...DUMMY_DRIVERS];
     } catch (e) {
-      // If parsing fails, fall back to DUMMY_DRIVERS as a safety measure.
-      console.error("Could not parse drivers from localStorage, falling back to default.", e);
-      drivers = DUMMY_DRIVERS;
+      drivers = [...DUMMY_DRIVERS];
     }
 
-    // 2. Check if a driver with the same email or mobile already exists
-    const driverExists = drivers.some(
-      (driver: any) => driver.email === values.email || driver.mobile === values.mobile
+    const exists = drivers.some(
+      (d: any) => d.email.toLowerCase() === values.email.toLowerCase() || d.mobile === values.mobile
     );
 
-    if (driverExists) {
+    if (exists) {
       toast({
         variant: "destructive",
         title: "Registration Failed",
-        description: "A driver with this email or mobile number already exists.",
+        description: "A driver with this email or mobile already exists.",
       });
       return;
     }
 
-    // 3. Create the new driver object
     const newDriver = {
       id: `DRV${Date.now().toString().slice(-6)}`,
       name: values.fullName,
-      gender: "Not specified",
       email: values.email,
       mobile: values.mobile,
-      address: "N/A",
-      city: "N/A",
-      state: "N/A",
-      pincode: "N/A",
       vehicleType: values.vehicleType === "erickshaw" ? "E-Rickshaw" : "Cab",
       vehicleNumber: values.vehicleNumber.toUpperCase(),
-      accountNumber: `...${Math.floor(1000 + Math.random() * 9000)}`, // Dummy account
       grossEarnings: 0,
-      photoUrl: `https://picsum.photos/seed/newdriver${drivers.length}/200/200`,
-      idProofUrl: `https://picsum.photos/seed/newid${drivers.length}/400/250`,
-      password: values.password, // Save the actual password
+      photoUrl: `https://picsum.photos/seed/${values.email}/200/200`,
+      idProofUrl: `https://picsum.photos/seed/id-${values.email}/400/250`,
+      password: values.password,
     };
 
-    // 4. Add the new driver to the list and save back to localStorage
     const updatedDrivers = [...drivers, newDriver];
     localStorage.setItem('toto-admin-drivers', JSON.stringify(updatedDrivers));
 
-    // 5. Show success and redirect
     toast({
       title: "Registration Successful",
-      description: "You have been registered. Redirecting to login...",
+      description: "Welcome to TOTO! You can now log in.",
     });
-    form.reset();
     router.push('/driver/login');
   }
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-2xl">Driver Registration</CardTitle>
+        <CardTitle className="text-2xl">Become a Partner</CardTitle>
         <CardDescription>
-          Fill out the form below to become a TOTO driver.
+          Register today to start earning with TOTO.
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -149,13 +140,13 @@ export function DriverRegistrationForm() {
                 <FormItem>
                   <FormLabel>Full Name</FormLabel>
                   <FormControl>
-                    <Input placeholder="John Doe" {...field} />
+                    <Input placeholder="E.g. Rajesh Kumar" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <div className="grid gap-4 sm:grid-cols-2">
               <FormField
                 control={form.control}
                 name="email"
@@ -163,7 +154,7 @@ export function DriverRegistrationForm() {
                   <FormItem>
                     <FormLabel>Email</FormLabel>
                     <FormControl>
-                      <Input placeholder="driver@example.com" {...field} />
+                      <Input placeholder="rajesh@example.com" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -174,7 +165,7 @@ export function DriverRegistrationForm() {
                 name="mobile"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Mobile Number</FormLabel>
+                    <FormLabel>Mobile</FormLabel>
                     <FormControl>
                       <Input placeholder="9876543210" {...field} />
                     </FormControl>
@@ -183,7 +174,7 @@ export function DriverRegistrationForm() {
                 )}
               />
             </div>
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <div className="grid gap-4 sm:grid-cols-2">
               <FormField
                 control={form.control}
                 name="vehicleNumber"
@@ -203,13 +194,10 @@ export function DriverRegistrationForm() {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Vehicle Type</FormLabel>
-                    <Select
-                      onValueChange={field.onChange}
-                      defaultValue={field.value}
-                    >
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
                       <FormControl>
                         <SelectTrigger>
-                          <SelectValue placeholder="Select vehicle type" />
+                          <SelectValue placeholder="Select type" />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
@@ -224,97 +212,43 @@ export function DriverRegistrationForm() {
             </div>
             <FormField
               control={form.control}
-              name="verificationId"
+              name="password"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Verification ID (Aadhaar/PAN) (Optional)</FormLabel>
+                  <FormLabel>New Password</FormLabel>
                   <FormControl>
-                    <Input
-                      type="file"
-                      accept=".jpg, .jpeg, .png, .pdf"
-                      onChange={(e) => field.onChange(e.target.files)}
-                    />
+                    <div className="relative">
+                      <Input type={showPassword ? "text" : "password"} {...field} />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="absolute right-1 top-1/2 h-7 w-7 -translate-y-1/2"
+                        onClick={() => setShowPassword(!showPassword)}
+                      >
+                        {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </Button>
+                    </div>
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-              <FormField
-                control={form.control}
-                name="password"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Password</FormLabel>
-                    <FormControl>
-                      <div className="relative">
-                        <Input
-                          type={showPassword ? "text" : "password"}
-                          placeholder="********"
-                          {...field}
-                        />
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          className="absolute right-1 top-1/2 h-7 w-7 -translate-y-1/2"
-                          onClick={() => setShowPassword(!showPassword)}
-                          aria-label={showPassword ? "Hide password" : "Show password"}
-                        >
-                          {showPassword ? (
-                            <EyeOff className="h-4 w-4" />
-                          ) : (
-                            <Eye className="h-4 w-4" />
-                          )}
-                        </Button>
-                      </div>
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="confirmPassword"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Confirm Password</FormLabel>
-                    <FormControl>
-                      <div className="relative">
-                        <Input
-                          type={showConfirmPassword ? "text" : "password"}
-                          placeholder="********"
-                          {...field}
-                        />
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          className="absolute right-1 top-1/2 h-7 w-7 -translate-y-1/2"
-                          onClick={() =>
-                            setShowConfirmPassword(!showConfirmPassword)
-                          }
-                          aria-label={showConfirmPassword ? "Hide password" : "Show password"}
-                        >
-                          {showConfirmPassword ? (
-                            <EyeOff className="h-4 w-4" />
-                          ) : (
-                            <Eye className="h-4 w-4" />
-                          )}
-                        </Button>
-                      </div>
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-            <Button
-              type="submit"
-              className="w-full"
-              disabled={form.formState.isSubmitting}
-            >
-              {form.formState.isSubmitting ? "Submitting..." : "Register"}
+             <FormField
+              control={form.control}
+              name="confirmPassword"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Confirm Password</FormLabel>
+                  <FormControl>
+                    <Input type="password" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <Button type="submit" className="w-full h-11" disabled={form.formState.isSubmitting}>
+              {form.formState.isSubmitting ? "Registering..." : "Complete Registration"}
             </Button>
           </form>
         </Form>

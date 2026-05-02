@@ -38,8 +38,7 @@ export default function BookRidePage() {
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (pickup && destination) {
-      // Simulate distance calculation
-      const randomDistance = parseFloat((Math.random() * (10 - 1) + 1).toFixed(1)); // 1.0 to 10.0 km
+      const randomDistance = parseFloat((Math.random() * (10 - 1) + 1).toFixed(1));
       setDistance(randomDistance);
 
       const now = new Date();
@@ -70,14 +69,14 @@ export default function BookRidePage() {
       setRideOptions(options);
       setStep('options');
       toast({
-          title: "Locations Set",
-          description: `Route calculated: ${randomDistance} km`,
+          title: "Route Calculated",
+          description: `Journey distance: ${randomDistance} km`,
       });
     } else {
       toast({
         variant: 'destructive',
-        title: 'Missing Information',
-        description: 'Please enter both pickup and destination locations.',
+        title: 'Input Required',
+        description: 'Please specify both your current location and destination.',
       });
     }
   };
@@ -85,8 +84,8 @@ export default function BookRidePage() {
   const handleSelectRide = (rideType: string) => {
     setStep('confirmed');
     toast({
-      title: 'Ride Booked!',
-      description: `Your ${rideType} is on the way.`,
+      title: 'Success!',
+      description: `Your ${rideType} booking is confirmed.`,
     });
   };
 
@@ -104,13 +103,10 @@ export default function BookRidePage() {
             <Icons.TotoLogo className="h-6 w-auto text-primary" />
           </Link>
           <nav className="flex items-center gap-2">
-            <Button variant="ghost" asChild className="hidden sm:inline-flex">
-                <Link href="/support">Support</Link>
-            </Button>
             <Button variant="outline" size="sm" asChild>
                 <Link href="/">
                     <ArrowLeft className="mr-2 h-4 w-4" />
-                    Home
+                    Exit
                 </Link>
             </Button>
           </nav>
@@ -120,11 +116,10 @@ export default function BookRidePage() {
       <main className="flex-1 overflow-hidden">
         <div className="grid h-[calc(100dvh-3.5rem)] w-full lg:grid-cols-[400px_1fr]">
           
-          {/* Booking Sidebar */}
           <div className="z-10 flex flex-col border-r bg-background shadow-xl overflow-y-auto">
             <div className="p-6 space-y-6">
                 <div className="space-y-1">
-                    <h1 className="text-2xl font-bold tracking-tight">Plan Your Journey</h1>
+                    <h1 className="text-2xl font-bold tracking-tight">Book Your Ride</h1>
                     <p className="text-sm text-muted-foreground">Select pickup and drop-off points to continue.</p>
                 </div>
 
@@ -135,8 +130,8 @@ export default function BookRidePage() {
                             <div className="relative">
                                 <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-primary" />
                                 <Input
-                                    placeholder="Enter pickup location..."
-                                    className="pl-9 h-12 bg-secondary/50 border-none focus-visible:ring-1 focus-visible:ring-primary"
+                                    placeholder="Set pickup location..."
+                                    className="pl-9 h-12 bg-secondary/50 border-none"
                                     value={pickup}
                                     onChange={(e) => setPickup(e.target.value)}
                                 />
@@ -147,20 +142,20 @@ export default function BookRidePage() {
                             <div className="relative">
                                 <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-destructive" />
                                 <Input
-                                    placeholder="Where are you going?"
-                                    className="pl-9 h-12 bg-secondary/50 border-none focus-visible:ring-1 focus-visible:ring-primary"
+                                    placeholder="Where to?"
+                                    className="pl-9 h-12 bg-secondary/50 border-none"
                                     value={destination}
                                     onChange={(e) => setDestination(e.target.value)}
                                 />
                             </div>
                         </div>
-                        <Button type="submit" size="lg" className="w-full shadow-lg h-12">
-                            Show Available Rides
+                        <Button type="submit" size="lg" className="w-full h-12">
+                            See Available Rides
                         </Button>
                         <div className="pt-4 p-3 bg-primary/5 rounded-lg border border-primary/10 flex items-start gap-3">
                             <Info className="h-5 w-5 text-primary shrink-0 mt-0.5" />
                             <p className="text-xs text-muted-foreground leading-relaxed">
-                                <strong>Service Range:</strong> TOTO currently operates within a 10km radius in active city centers.
+                                <strong>TOTO Cities:</strong> We're currently operational in select city centers.
                             </p>
                         </div>
                     </form>
@@ -169,7 +164,7 @@ export default function BookRidePage() {
                 {step === 'options' && (
                     <div className="space-y-4 animate-in slide-in-from-left-4 duration-300">
                         <div className="flex items-center justify-between mb-2">
-                            <h2 className="font-bold">Select Ride</h2>
+                            <h2 className="font-bold">Choose a Vehicle</h2>
                             <Badge variant="secondary">{distance} km</Badge>
                         </div>
                         <div className="space-y-3">
@@ -190,18 +185,17 @@ export default function BookRidePage() {
                                     </div>
                                     <div className="text-right">
                                         <p className="font-bold text-lg">₹{option.fare}</p>
-                                        <p className="text-[10px] text-muted-foreground">Incl. GST</p>
                                     </div>
                                 </button>
                             ))}
                         </div>
                         {isNight && (
                             <p className="text-[11px] text-primary font-medium bg-primary/5 p-2 rounded text-center">
-                                Night surcharge (21:00 - 06:00) is applied to these fares.
+                                Night surcharge active (21:00 - 06:00).
                             </p>
                         )}
                         <Button variant="ghost" size="sm" className="w-full text-muted-foreground" onClick={() => setStep('search')}>
-                            Edit Route
+                            Edit Locations
                         </Button>
                     </div>
                 )}
@@ -212,8 +206,8 @@ export default function BookRidePage() {
                             <Navigation className="h-10 w-10 text-green-600 animate-pulse" />
                         </div>
                         <div className="space-y-2">
-                            <h2 className="text-2xl font-bold">Ride Confirmed!</h2>
-                            <p className="text-sm text-muted-foreground">Your driver is currently 4 mins away.</p>
+                            <h2 className="text-2xl font-bold">Booking Confirmed!</h2>
+                            <p className="text-sm text-muted-foreground">Your driver will arrive shortly.</p>
                         </div>
                         <div className="rounded-xl border bg-muted/30 p-4 text-left space-y-3">
                             <div className="flex items-center gap-3">
@@ -225,15 +219,15 @@ export default function BookRidePage() {
                                 <p className="text-xs truncate font-medium text-muted-foreground">{destination}</p>
                             </div>
                         </div>
-                        <Button size="lg" className="w-full" onClick={handleNewBooking}>Track on Map</Button>
+                        <Button size="lg" className="w-full" onClick={handleNewBooking}>Track Live Status</Button>
                     </div>
                 )}
             </div>
 
             <div className="mt-auto p-6 border-t bg-muted/20">
                 <div className="flex items-center justify-between text-xs text-muted-foreground">
-                    <span>Active Cities</span>
-                    <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-green-500" /> Operational</span>
+                    <span>Active Hubs</span>
+                    <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-green-500" /> Live</span>
                 </div>
                 <div className="mt-2 flex flex-wrap gap-2">
                     {availableCities.map((city, idx) => (
@@ -243,14 +237,12 @@ export default function BookRidePage() {
             </div>
           </div>
 
-          {/* Interactive Map Section */}
           <div className="relative h-full w-full bg-secondary/30 overflow-hidden">
-            {/* Google Maps Simulated UI */}
             <div className="absolute top-4 left-4 right-4 z-20 flex items-center justify-between pointer-events-none">
                 <div className="pointer-events-auto flex items-center bg-background rounded-lg shadow-lg border p-1 pl-4 w-full max-w-sm">
                     <Search className="h-4 w-4 text-muted-foreground mr-2" />
                     <Input 
-                        placeholder="Search Google Maps" 
+                        placeholder="Search Maps" 
                         className="border-none focus-visible:ring-0 shadow-none h-8 text-sm px-0"
                         readOnly
                     />
@@ -261,7 +253,6 @@ export default function BookRidePage() {
                 </div>
             </div>
 
-            {/* Map Controls */}
             <div className="absolute right-4 bottom-24 z-20 flex flex-col gap-2">
                 <div className="flex flex-col bg-background rounded-lg shadow-lg border overflow-hidden">
                     <Button variant="ghost" size="icon" className="h-10 w-10 rounded-none border-b"><Plus className="h-4 w-4" /></Button>
@@ -272,11 +263,10 @@ export default function BookRidePage() {
                 </Button>
             </div>
 
-            {/* The Actual Map Content */}
             <div className="relative h-full w-full">
                 {mapImage ? (
                     <Image
-                        alt="Interactive Map"
+                        alt="Urban Map Interface"
                         src={mapImage.imageUrl}
                         fill
                         className="object-cover transition-opacity duration-700"
@@ -289,10 +279,8 @@ export default function BookRidePage() {
                     </div>
                 )}
                 
-                {/* Visual Overlays for Markers */}
                 {step !== 'search' && (
                     <div className="absolute inset-0">
-                        {/* Pickup Marker */}
                         <div className="absolute top-1/3 left-1/4 -translate-x-1/2 -translate-y-1/2 flex flex-col items-center animate-in fade-in duration-1000">
                             <div className="bg-background border-2 border-primary rounded-lg px-2 py-1 shadow-lg text-[10px] font-bold mb-1 whitespace-nowrap">
                                 Pickup Point
@@ -305,7 +293,6 @@ export default function BookRidePage() {
                             </div>
                         </div>
 
-                        {/* Destination Marker */}
                         <div className="absolute bottom-1/3 right-1/4 translate-x-1/2 translate-y-1/2 flex flex-col items-center animate-in fade-in duration-1000 delay-300">
                              <div className="bg-background border-2 border-destructive rounded-lg px-2 py-1 shadow-lg text-[10px] font-bold mb-1 whitespace-nowrap">
                                 Destination
@@ -318,47 +305,32 @@ export default function BookRidePage() {
                             </div>
                         </div>
 
-                        {/* Route Line Simulation */}
                         <svg className="absolute inset-0 h-full w-full pointer-events-none z-0">
                             <line 
                                 x1="25%" y1="33%" x2="75%" y2="66%" 
                                 stroke="currentColor" 
-                                strokeWidth="5" 
-                                strokeDasharray="12,12" 
+                                strokeWidth="4" 
+                                strokeDasharray="10,10" 
                                 className="text-primary/60 animate-pulse" 
                             />
                         </svg>
                     </div>
                 )}
-
-                {/* City Center Indicators */}
-                <div className="absolute inset-0 pointer-events-none">
-                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
-                         <div className="flex flex-col items-center opacity-30">
-                            <div className="h-12 w-12 border-2 border-dashed border-primary/40 rounded-full animate-spin duration-[10s]" />
-                            <p className="text-[10px] font-bold text-primary mt-2 uppercase tracking-widest">Active City Center</p>
-                         </div>
-                    </div>
-                </div>
             </div>
 
-            {/* Bottom Info Bar */}
             <div className="absolute bottom-4 left-4 z-20 hidden md:block">
                 <div className="bg-background/90 backdrop-blur-sm border rounded-lg px-4 py-2 shadow-lg flex items-center gap-6">
                     <div className="flex items-center gap-2">
                         <div className="h-3 w-3 rounded-full bg-primary" />
-                        <span className="text-xs font-medium">E-Rickshaw Hubs</span>
+                        <span className="text-xs font-medium">TOTO Hubs</span>
                     </div>
                     <div className="flex items-center gap-2">
                         <div className="h-3 w-3 rounded-full bg-green-500" />
-                        <span className="text-xs font-medium">Live Drivers</span>
+                        <span className="text-xs font-medium">Drivers Live</span>
                     </div>
-                    <div className="h-4 w-[1px] bg-border" />
-                    <span className="text-[10px] text-muted-foreground uppercase tracking-tighter">Powered by TOTO Maps Infrastructure</span>
                 </div>
             </div>
           </div>
-
         </div>
       </main>
     </div>

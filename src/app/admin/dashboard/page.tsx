@@ -98,79 +98,76 @@ export default function AdminDashboardPage() {
     lastReset: 0,
   });
   
-  // State to prevent localStorage overwrites on initial load
   const [dataLoaded, setDataLoaded] = useState(false);
 
-  // Load all state from localStorage on initial client render
   useEffect(() => {
-    try {
-      const storedDrivers = localStorage.getItem('toto-admin-drivers');
-      setDriverList(storedDrivers ? JSON.parse(storedDrivers) : DUMMY_DRIVERS);
-    } catch (e) {
-      console.error("Failed to parse drivers from localStorage", e);
+    // 1. Initialize Driver List
+    const storedDrivers = localStorage.getItem('toto-admin-drivers');
+    if (storedDrivers) {
+      setDriverList(JSON.parse(storedDrivers));
+    } else {
       setDriverList(DUMMY_DRIVERS);
+      localStorage.setItem('toto-admin-drivers', JSON.stringify(DUMMY_DRIVERS));
     }
     
-    try {
-      const storedAreas = localStorage.getItem('toto-admin-service-areas');
-      setServiceAreas(storedAreas ? JSON.parse(storedAreas) : initialServiceAreas);
-    } catch (e) {
-      console.error("Failed to parse service areas from localStorage", e);
+    // 2. Initialize Service Areas
+    const storedAreas = localStorage.getItem('toto-admin-service-areas');
+    if (storedAreas) {
+      setServiceAreas(JSON.parse(storedAreas));
+    } else {
       setServiceAreas(initialServiceAreas);
+      localStorage.setItem('toto-admin-service-areas', JSON.stringify(initialServiceAreas));
     }
     
-    try {
-      const storedRates = localStorage.getItem('toto-admin-rates');
-      setRates(storedRates ? JSON.parse(storedRates) : { erickshaw: DEFAULT_RATES.erickshaw, cab: DEFAULT_RATES.cab });
-    } catch (e) {
-      console.error("Failed to parse rates from localStorage", e);
-      setRates({ erickshaw: DEFAULT_RATES.erickshaw, cab: DEFAULT_RATES.cab });
+    // 3. Initialize Rates
+    const storedRates = localStorage.getItem('toto-admin-rates');
+    if (storedRates) {
+      setRates(JSON.parse(storedRates));
+    } else {
+      const initialRates = { erickshaw: DEFAULT_RATES.erickshaw, cab: DEFAULT_RATES.cab };
+      setRates(initialRates);
+      localStorage.setItem('toto-admin-rates', JSON.stringify(initialRates));
     }
     
-    try {
-      const storedCommission = localStorage.getItem('toto-admin-commission-rates');
-      setCommissionRates(storedCommission ? JSON.parse(storedCommission) : { day: 2, night: 3 });
-    } catch (e) {
-      console.error("Failed to parse commission rates from localStorage", e);
-      setCommissionRates({ day: 2, night: 3 });
+    // 4. Initialize Commissions
+    const storedCommission = localStorage.getItem('toto-admin-commission-rates');
+    if (storedCommission) {
+      setCommissionRates(JSON.parse(storedCommission));
+    } else {
+      const initialComm = { day: 2, night: 3 };
+      setCommissionRates(initialComm);
+      localStorage.setItem('toto-admin-commission-rates', JSON.stringify(initialComm));
     }
 
-    const getClientTodayStats = () => {
-      try {
-        const stored = localStorage.getItem('toto-admin-today-stats');
-        if (stored) {
-          const parsed = JSON.parse(stored);
-          const oneDay = 24 * 60 * 60 * 1000;
-          if (Date.now() - parsed.lastReset > oneDay) {
-            const newStats = {
-              rides: Math.floor(Math.random() * 50) + 10,
-              grossVolume: Math.floor(Math.random() * 15000) + 5000,
-              lastReset: Date.now(),
-            };
-            localStorage.setItem('toto-admin-today-stats', JSON.stringify(newStats));
-            return newStats;
-          }
-          return parsed;
-        }
-      } catch (e) {
-        console.error("Failed to parse today's stats from localStorage", e);
+    // 5. Initialize Today Stats
+    const storedToday = localStorage.getItem('toto-admin-today-stats');
+    if (storedToday) {
+      const parsed = JSON.parse(storedToday);
+      const oneDay = 24 * 60 * 60 * 1000;
+      if (Date.now() - parsed.lastReset > oneDay) {
+        const newStats = {
+          rides: Math.floor(Math.random() * 50) + 10,
+          grossVolume: Math.floor(Math.random() * 15000) + 5000,
+          lastReset: Date.now(),
+        };
+        localStorage.setItem('toto-admin-today-stats', JSON.stringify(newStats));
+        setTodayStats(newStats);
+      } else {
+        setTodayStats(parsed);
       }
-      
+    } else {
       const initialStats = {
         rides: Math.floor(Math.random() * 50) + 10,
         grossVolume: Math.floor(Math.random() * 15000) + 5000,
         lastReset: Date.now(),
       };
       localStorage.setItem('toto-admin-today-stats', JSON.stringify(initialStats));
-      return initialStats;
+      setTodayStats(initialStats);
     }
-    setTodayStats(getClientTodayStats());
 
-    // Signal that all data has been loaded from client-side storage
     setDataLoaded(true);
   }, []);
 
-  // Save state back to localStorage only after initial load and when data actually changes
   useEffect(() => {
     if (dataLoaded) {
       localStorage.setItem('toto-admin-drivers', JSON.stringify(driverList));
@@ -207,17 +204,6 @@ export default function AdminDashboardPage() {
   const [commissionInfo, setCommissionInfo] = useState<{rate: number; amount: number} | null>(null);
   const [todayCommissionInfo, setTodayCommissionInfo] = useState<{rate: number; amount: number} | null>(null);
 
-
-  useEffect(() => {
-      if (selectedDriver && !driverList.find(d => d.id === selectedDriver.id)) {
-          setSelectedDriver(driverList.length > 0 ? driverList[0] : null);
-      } else if (!selectedDriver && driverList.length > 0) {
-          setSelectedDriver(driverList[0]);
-      }
-  }, [driverList, selectedDriver]);
-
-  const maleCustomers = DUMMY_CUSTOMERS.filter(c => c.gender === 'Male').length;
-  const femaleCustomers = DUMMY_CUSTOMERS.filter(c => c.gender === 'Female').length;
 
   useEffect(() => {
     const now = new Date();
@@ -312,7 +298,6 @@ export default function AdminDashboardPage() {
   };
 
   const handleSaveRates = () => {
-    // In a real app, you'd save this to a database
     toast({
         title: 'Rates Saved',
         description: 'The per-kilometer rates have been updated.',
@@ -425,7 +410,6 @@ export default function AdminDashboardPage() {
               <TabsTrigger value="settings">Settings</TabsTrigger>
             </TabsList>
 
-            {/* Overview Tab */}
             <TabsContent value="overview">
                <div className="space-y-8">
                 <div>
@@ -522,7 +506,7 @@ export default function AdminDashboardPage() {
                     </CardHeader>
                     <CardContent>
                         <div className="text-2xl font-bold">
-                        {maleCustomers}
+                        {DUMMY_CUSTOMERS.filter(c => c.gender === 'Male').length}
                         </div>
                         <p className="text-xs text-muted-foreground">
                         Total male customers
@@ -538,7 +522,7 @@ export default function AdminDashboardPage() {
                     </CardHeader>
                     <CardContent>
                         <div className="text-2xl font-bold">
-                        {femaleCustomers}
+                        {DUMMY_CUSTOMERS.filter(c => c.gender === 'Female').length}
                         </div>
                         <p className="text-xs text-muted-foreground">
                         Total female customers
@@ -561,36 +545,10 @@ export default function AdminDashboardPage() {
                         </p>
                     </CardContent>
                     </Card>
-                    <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">
-                        Platform Commission
-                        </CardTitle>
-                        <Percent className="h-4 w-4 text-muted-foreground" />
-                    </CardHeader>
-                    <CardContent>
-                        {commissionInfo ? (
-                            <>
-                                <div className="text-2xl font-bold">
-                                    ₹{commissionInfo.amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                                </div>
-                                <p className="text-xs text-muted-foreground">
-                                    {commissionInfo.rate * 100}% of Gross Volume {commissionInfo.rate === commissionRates.night / 100 && '(Night Rate)'}
-                                </p>
-                            </>
-                        ) : (
-                            <>
-                                <div className="h-8 w-24 animate-pulse rounded-md bg-muted" />
-                                <div className="mt-1 h-4 w-32 animate-pulse rounded-md bg-muted" />
-                            </>
-                        )}
-                    </CardContent>
-                    </Card>
                 </div>
               </div>
             </TabsContent>
 
-            {/* Drivers Tab */}
             <TabsContent value="drivers">
               <Dialog>
                 <Card>
@@ -625,9 +583,7 @@ export default function AdminDashboardPage() {
                           <TableHead>Name</TableHead>
                           <TableHead>Email</TableHead>
                           <TableHead>Vehicle No.</TableHead>
-                          <TableHead>Account No.</TableHead>
                           <TableHead className="text-right">Gross Earnings</TableHead>
-                          <TableHead className="text-right">Net Payout</TableHead>
                           <TableHead>
                             <span className="sr-only">Actions</span>
                           </TableHead>
@@ -642,12 +598,8 @@ export default function AdminDashboardPage() {
                             <TableCell>{driver.name}</TableCell>
                             <TableCell>{driver.email}</TableCell>
                             <TableCell>{driver.vehicleNumber}</TableCell>
-                            <TableCell>{driver.accountNumber}</TableCell>
                             <TableCell className="text-right">
                               ₹{driver.grossEarnings.toLocaleString()}
-                            </TableCell>
-                            <TableCell className="text-right">
-                              ₹{(driver.grossEarnings * (1 - (commissionInfo?.rate || commissionRates.day / 100))).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                             </TableCell>
                             <TableCell>
                               <AlertDialog>
@@ -769,15 +721,6 @@ export default function AdminDashboardPage() {
                                 </p>
                                 <p>{selectedDriver.mobile}</p>
                               </div>
-                              <div>
-                                <p className="font-semibold text-muted-foreground">
-                                  Address
-                                </p>
-                                <p>
-                                  {selectedDriver.address}, {selectedDriver.city},{' '}
-                                  {selectedDriver.state} - {selectedDriver.pincode}
-                                </p>
-                              </div>
                             </CardContent>
                           </Card>
                         </div>
@@ -785,7 +728,7 @@ export default function AdminDashboardPage() {
                           <Card>
                             <CardHeader>
                               <CardTitle className="text-lg">
-                                Vehicle & Bank Details
+                                Vehicle Details
                               </CardTitle>
                             </CardHeader>
                             <CardContent className="space-y-4 text-sm">
@@ -802,12 +745,6 @@ export default function AdminDashboardPage() {
                                   </p>
                                   <p>{selectedDriver.vehicleNumber}</p>
                                 </div>
-                              </div>
-                              <div>
-                                <p className="font-semibold text-muted-foreground">
-                                  Bank Account No.
-                                </p>
-                                <p>{selectedDriver.accountNumber}</p>
                               </div>
                             </CardContent>
                           </Card>
@@ -831,29 +768,23 @@ export default function AdminDashboardPage() {
                         </div>
                       </div>
                     </>
-                  ) : (
-                    <DialogHeader>
-                      <DialogTitle>No Driver Selected</DialogTitle>
-                      <DialogDescription>Select a driver from the list to see their details.</DialogDescription>
-                    </DialogHeader>
-                  )}
+                  ) : null}
                 </DialogContent>
               </Dialog>
             </TabsContent>
 
-            {/* Customers Tab */}
             <TabsContent value="customers">
               <Dialog>
                 <Card>
                   <CardHeader>
                     <CardTitle>Customer Management</CardTitle>
                     <CardDescription>
-                      Search for customers by name or mobile number to view their details and ride history.
+                      Search for customers to view their details and ride history.
                     </CardDescription>
                     <div className="relative pt-4">
                         <Users className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground mt-2" />
                         <Input 
-                            placeholder="Search by name or mobile number..."
+                            placeholder="Search by name or mobile..."
                             value={customerSearch}
                             onChange={(e) => setCustomerSearch(e.target.value)}
                             className="pl-10 max-w-sm"
@@ -866,8 +797,7 @@ export default function AdminDashboardPage() {
                         <TableRow>
                           <TableHead>Customer ID</TableHead>
                           <TableHead>Name</TableHead>
-                          <TableHead>Email</TableHead>
-                          <TableHead>Mobile Number</TableHead>
+                          <TableHead>Mobile</TableHead>
                           <TableHead>
                             <span className="sr-only">Actions</span>
                           </TableHead>
@@ -880,7 +810,6 @@ export default function AdminDashboardPage() {
                               {customer.id}
                             </TableCell>
                             <TableCell>{customer.name}</TableCell>
-                            <TableCell>{customer.email}</TableCell>
                             <TableCell>{customer.mobile}</TableCell>
                             <TableCell>
                               <DropdownMenu>
@@ -919,9 +848,6 @@ export default function AdminDashboardPage() {
                     <DialogTitle>
                       Customer Details: {selectedCustomer.name}
                     </DialogTitle>
-                    <DialogDescription>
-                      View customer information and their complete ride history.
-                    </DialogDescription>
                   </DialogHeader>
                    <div className="grid gap-6">
                         <Card>
@@ -943,10 +869,6 @@ export default function AdminDashboardPage() {
                                 <p className="font-semibold text-muted-foreground">Email</p>
                                 <p>{selectedCustomer.email}</p>
                             </div>
-                            <div>
-                                <p className="font-semibold text-muted-foreground">Address</p>
-                                <p>{selectedCustomer.address}, {selectedCustomer.city}, {selectedCustomer.state} - {selectedCustomer.pincode}</p>
-                            </div>
                         </CardContent>
                         </Card>
 
@@ -955,7 +877,6 @@ export default function AdminDashboardPage() {
                         <Table>
                             <TableHeader>
                             <TableRow>
-                                <TableHead>Ride ID</TableHead>
                                 <TableHead>Date</TableHead>
                                 <TableHead>Pick up</TableHead>
                                 <TableHead>Drop off</TableHead>
@@ -965,7 +886,6 @@ export default function AdminDashboardPage() {
                             <TableBody>
                             {selectedCustomer.rides.map((ride) => (
                                 <TableRow key={ride.rideId}>
-                                <TableCell>{ride.rideId}</TableCell>
                                 <TableCell>{ride.date}</TableCell>
                                 <TableCell>{ride.from}</TableCell>
                                 <TableCell>{ride.to}</TableCell>
@@ -980,26 +900,24 @@ export default function AdminDashboardPage() {
               </Dialog>
             </TabsContent>
             
-            {/* Settings Tab */}
             <TabsContent value="settings">
               <div className="space-y-6">
                 <Card>
                   <CardHeader>
                     <CardTitle>Area Management</CardTitle>
                     <CardDescription>
-                      Manage the areas where your service is available. Add or remove locations and toggle their status.
+                      Manage the areas where your service is available.
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
                       <div className="mb-6 flex flex-col gap-4 rounded-md border p-4">
                           <div className="space-y-1">
                               <p className="text-sm font-medium">Add a new service area</p>
-                              <p className="text-sm text-muted-foreground">Select a state, district, and enter a city to add it to your operational areas.</p>
                           </div>
                           <div className="flex flex-wrap items-center gap-2">
                               <Select value={selectedState} onValueChange={handleStateChange}>
                                   <SelectTrigger className="w-full min-w-[180px] flex-1">
-                                      <SelectValue placeholder="Select a state" />
+                                      <SelectValue placeholder="Select state" />
                                   </SelectTrigger>
                                   <SelectContent>
                                       {states.map(state => (
@@ -1007,34 +925,20 @@ export default function AdminDashboardPage() {
                                       ))}
                                   </SelectContent>
                               </Select>
-                              <Select value={selectedDistrict} onValueChange={handleDistrictChange} disabled={!selectedState || districts.length === 0}>
-                                  <SelectTrigger className="w-full min-w-[180px] flex-1">
-                                      <SelectValue placeholder="Select a district" />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                      {districts.map(district => (
-                                          <SelectItem key={district} value={district}>{district}</SelectItem>
-                                      ))}
-                                  </SelectContent>
-                              </Select>
                               <Input
-                                  placeholder="Enter a city"
+                                  placeholder="Enter city"
                                   className="w-full min-w-[180px] flex-1"
                                   value={selectedCity}
                                   onChange={(e) => setSelectedCity(e.target.value)}
-                                  disabled={!selectedDistrict}
                               />
-                              <Button onClick={handleAddServiceArea} className="w-full sm:w-auto">Add</Button>
+                              <Button onClick={handleAddServiceArea}>Add</Button>
                           </div>
                       </div>
                     <Table>
                       <TableHeader>
                         <TableRow>
                           <TableHead>City</TableHead>
-                          <TableHead>District</TableHead>
-                          <TableHead>State</TableHead>
                           <TableHead>Status</TableHead>
-                          <TableHead>Availability</TableHead>
                           <TableHead className="text-right">Actions</TableHead>
                         </TableRow>
                       </TableHeader>
@@ -1042,65 +946,15 @@ export default function AdminDashboardPage() {
                         {serviceAreas.map((area) => (
                           <TableRow key={area.id}>
                             <TableCell className="font-medium">{area.city}</TableCell>
-                            <TableCell>{area.district}</TableCell>
-                            <TableCell>{area.state}</TableCell>
                             <TableCell>
                               <Badge variant={area.active ? 'default' : 'secondary'}>
                                 {area.active ? 'Active' : 'Inactive'}
                               </Badge>
                             </TableCell>
-                            <TableCell>
-                              <Switch
-                                checked={area.active}
-                                onCheckedChange={() => handleServiceAreaToggle(area.id)}
-                                aria-label={`Toggle service for ${area.city}`}
-                              />
-                            </TableCell>
                             <TableCell className="text-right">
-                              <AlertDialog>
-                                  <DropdownMenu>
-                                      <DropdownMenuTrigger asChild>
-                                      <Button
-                                          aria-haspopup="true"
-                                          size="icon"
-                                          variant="ghost"
-                                      >
-                                          <MoreHorizontal className="h-4 w-4" />
-                                          <span className="sr-only">Toggle menu</span>
-                                      </Button>
-                                      </DropdownMenuTrigger>
-                                      <DropdownMenuContent align="end">
-                                      <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                                      <AlertDialogTrigger asChild>
-                                          <DropdownMenuItem className="text-destructive focus:text-destructive focus:bg-destructive/10">
-                                          <Trash2 className="mr-2 h-4 w-4" />
-                                          Remove
-                                          </DropdownMenuItem>
-                                      </AlertDialogTrigger>
-                                      </DropdownMenuContent>
-                                  </DropdownMenu>
-                                  <AlertDialogContent>
-                                      <AlertDialogHeader>
-                                      <AlertDialogTitle>
-                                          Are you sure?
-                                      </AlertDialogTitle>
-                                      <AlertDialogDescription>
-                                          This will remove {area.city} from your list of service areas. You can add it back later if needed.
-                                      </AlertDialogDescription>
-                                      </AlertDialogHeader>
-                                      <AlertDialogFooter>
-                                      <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                      <AlertDialogAction
-                                          className="bg-destructive hover:bg-destructive/90"
-                                          onClick={() =>
-                                              handleRemoveServiceArea(area.id)
-                                          }
-                                      >
-                                          Remove
-                                      </AlertDialogAction>
-                                      </AlertDialogFooter>
-                                  </AlertDialogContent>
-                                  </AlertDialog>
+                              <Button variant="ghost" size="icon" onClick={() => handleRemoveServiceArea(area.id)}>
+                                <Trash2 className="h-4 w-4 text-destructive" />
+                              </Button>
                             </TableCell>
                           </TableRow>
                         ))}
@@ -1112,86 +966,29 @@ export default function AdminDashboardPage() {
                   <CardHeader>
                     <CardTitle>Rate Management</CardTitle>
                     <CardDescription>
-                      Set the per-kilometer rates for different vehicle types.
+                      Set the per-kilometer rates.
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-4">
-                    <div className="flex items-center justify-between rounded-md border p-4">
-                        <div>
-                            <Label htmlFor="erickshaw-rate" className="font-medium">E-Rickshaw Rate</Label>
-                            <p className="text-sm text-muted-foreground">Price per kilometer for e-rickshaws.</p>
-                        </div>
-                        <div className="relative">
-                            <span className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-muted-foreground">₹</span>
+                    <div className="grid gap-4 sm:grid-cols-2">
+                        <div className="space-y-2">
+                            <Label>E-Rickshaw Rate (₹/km)</Label>
                             <Input
-                                id="erickshaw-rate"
                                 type="number"
                                 value={rates.erickshaw}
                                 onChange={(e) => setRates({ ...rates, erickshaw: Number(e.target.value) || 0 })}
-                                className="w-32 pl-7"
                             />
                         </div>
-                    </div>
-                    <div className="flex items-center justify-between rounded-md border p-4">
-                        <div>
-                            <Label htmlFor="cab-rate" className="font-medium">Cab Rate</Label>
-                            <p className="text-sm text-muted-foreground">Price per kilometer for cabs.</p>
-                        </div>
-                        <div className="relative">
-                            <span className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-muted-foreground">₹</span>
+                        <div className="space-y-2">
+                            <Label>Cab Rate (₹/km)</Label>
                             <Input
-                                id="cab-rate"
                                 type="number"
                                 value={rates.cab}
                                 onChange={(e) => setRates({ ...rates, cab: Number(e.target.value) || 0 })}
-                                className="w-32 pl-7"
                             />
                         </div>
                     </div>
                     <Button onClick={handleSaveRates}>Save Rates</Button>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Commission Management</CardTitle>
-                    <CardDescription>
-                      Set the platform commission rates for day and night.
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="flex items-center justify-between rounded-md border p-4">
-                        <div>
-                            <Label htmlFor="day-commission" className="font-medium">Day Commission Rate</Label>
-                            <p className="text-sm text-muted-foreground">Commission from 6 AM to 9 PM.</p>
-                        </div>
-                        <div className="relative">
-                            <Input
-                                id="day-commission"
-                                type="number"
-                                value={commissionRates.day}
-                                onChange={(e) => setCommissionRates({ ...commissionRates, day: Number(e.target.value) || 0 })}
-                                className="w-32 pr-8"
-                            />
-                            <span className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3 text-muted-foreground">%</span>
-                        </div>
-                    </div>
-                    <div className="flex items-center justify-between rounded-md border p-4">
-                        <div>
-                            <Label htmlFor="night-commission" className="font-medium">Night Commission Rate</Label>
-                            <p className="text-sm text-muted-foreground">Commission from 9 PM to 6 AM.</p>
-                        </div>
-                        <div className="relative">
-                            <Input
-                                id="night-commission"
-                                type="number"
-                                value={commissionRates.night}
-                                onChange={(e) => setCommissionRates({ ...commissionRates, night: Number(e.target.value) || 0 })}
-                                className="w-32 pr-8"
-                            />
-                             <span className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3 text-muted-foreground">%</span>
-                        </div>
-                    </div>
-                    <Button onClick={handleSaveCommissionRates}>Save Commission Rates</Button>
                   </CardContent>
                 </Card>
               </div>

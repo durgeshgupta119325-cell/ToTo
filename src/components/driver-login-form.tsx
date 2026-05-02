@@ -1,3 +1,4 @@
+
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -29,7 +30,6 @@ import { useToast } from "@/hooks/use-toast";
 import { DUMMY_DRIVERS } from "@/lib/mock-data";
 import { useFirebaseApp } from "@/firebase";
 
-// Schema for the login form
 const formSchema = z.object({
   email: z.string().email("Please enter a valid email address."),
   password: z.string().min(1, "Password is required."),
@@ -55,9 +55,10 @@ export function DriverLoginForm() {
     },
   });
 
-  // This effect ensures the driver list is available in localStorage when the component mounts.
   useEffect(() => {
-    if (!localStorage.getItem('toto-admin-drivers')) {
+    // Ensure the data is initialized correctly
+    const storedDrivers = localStorage.getItem('toto-admin-drivers');
+    if (!storedDrivers) {
       localStorage.setItem('toto-admin-drivers', JSON.stringify(DUMMY_DRIVERS));
     }
   }, []);
@@ -67,27 +68,25 @@ export function DriverLoginForm() {
     let drivers: typeof DUMMY_DRIVERS = [];
     try {
         const storedDrivers = localStorage.getItem('toto-admin-drivers');
-        drivers = storedDrivers ? JSON.parse(storedDrivers) : [];
+        drivers = storedDrivers ? JSON.parse(storedDrivers) : DUMMY_DRIVERS;
     } catch (e) {
-        console.error("Could not parse drivers from localStorage, falling back to default.", e);
         drivers = DUMMY_DRIVERS;
     }
     
-    const driver = drivers.find((d: any) => d.email === values.email);
+    const driver = drivers.find((d: any) => d.email.toLowerCase() === values.email.toLowerCase());
 
     if (driver && driver.password && values.password === driver.password) {
       localStorage.setItem('toto-driver', JSON.stringify(driver));
-      
       toast({
         title: "Login Successful",
-        description: "Welcome back! Redirecting to your dashboard...",
+        description: `Welcome back, ${driver.name}!`,
       });
       router.push('/driver/dashboard');
     } else {
       toast({
         variant: "destructive",
         title: "Login Failed",
-        description: "Invalid email or password. Please check your credentials or register.",
+        description: "Invalid email or password. Please try again or register.",
       });
     }
   }
@@ -101,22 +100,22 @@ export function DriverLoginForm() {
         
         let drivers: typeof DUMMY_DRIVERS = [];
         const storedDrivers = localStorage.getItem('toto-admin-drivers');
-        drivers = storedDrivers ? JSON.parse(storedDrivers) : [];
+        drivers = storedDrivers ? JSON.parse(storedDrivers) : DUMMY_DRIVERS;
 
-        const driver = drivers.find((d: any) => d.email === user.email);
+        const driver = drivers.find((d: any) => d.email.toLowerCase() === user.email?.toLowerCase());
 
         if (driver) {
             localStorage.setItem('toto-driver', JSON.stringify(driver));
             toast({
                 title: "Login Successful",
-                description: "Welcome back! Redirecting to your dashboard...",
+                description: `Welcome back, ${driver.name}!`,
             });
             router.push('/driver/dashboard');
         } else {
             toast({
                 variant: "destructive",
                 title: "Login Failed",
-                description: "No driver account is associated with this Google account. Please register first.",
+                description: "No driver account found with this Google account. Please register first.",
             });
             await auth.signOut();
         }
@@ -124,8 +123,8 @@ export function DriverLoginForm() {
         console.error("Google Sign-In Error:", error);
         toast({
             variant: "destructive",
-            title: "Google Sign-In Failed",
-            description: "Could not sign you in with Google. Please try again.",
+            title: "Sign-In Error",
+            description: "Could not connect to Google. Please check your internet connection.",
         });
     }
   };
@@ -135,20 +134,20 @@ export function DriverLoginForm() {
       <CardHeader>
         <CardTitle className="text-2xl">Driver Login</CardTitle>
         <CardDescription>
-          Enter your email and password to access your dashboard.
+          Access your professional dashboard and earnings.
         </CardDescription>
       </CardHeader>
       <CardContent>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
             <FormField
               control={form.control}
               name="email"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Email</FormLabel>
+                  <FormLabel>Email Address</FormLabel>
                   <FormControl>
-                    <Input placeholder="driver@example.com" {...field} />
+                    <Input placeholder="name@example.com" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -164,7 +163,7 @@ export function DriverLoginForm() {
                     <div className="relative">
                       <Input
                         type={showPassword ? "text" : "password"}
-                        placeholder="********"
+                        placeholder="Enter your password"
                         {...field}
                       />
                       <Button
@@ -173,13 +172,8 @@ export function DriverLoginForm() {
                         size="icon"
                         className="absolute right-1 top-1/2 h-7 w-7 -translate-y-1/2"
                         onClick={() => setShowPassword(!showPassword)}
-                        aria-label={showPassword ? "Hide password" : "Show password"}
                       >
-                        {showPassword ? (
-                          <EyeOff className="h-4 w-4" />
-                        ) : (
-                          <Eye className="h-4 w-4" />
-                        )}
+                        {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                       </Button>
                     </div>
                   </FormControl>
@@ -189,10 +183,10 @@ export function DriverLoginForm() {
             />
             <Button
               type="submit"
-              className="w-full"
+              className="w-full h-11"
               disabled={form.formState.isSubmitting}
             >
-              {form.formState.isSubmitting ? "Logging in..." : "Log In"}
+              {form.formState.isSubmitting ? "Authenticating..." : "Log In"}
             </Button>
           </form>
         </Form>
@@ -202,13 +196,13 @@ export function DriverLoginForm() {
             </div>
             <div className="relative flex justify-center text-xs uppercase">
                 <span className="bg-card px-2 text-muted-foreground">
-                    Or continue with
+                    Or use Google
                 </span>
             </div>
         </div>
-        <Button variant="outline" className="w-full" onClick={handleGoogleSignIn}>
+        <Button variant="outline" className="w-full h-11" onClick={handleGoogleSignIn}>
             <GoogleIcon className="mr-2 h-4 w-4" />
-            Sign in with Google
+            Continue with Google
         </Button>
       </CardContent>
     </Card>
