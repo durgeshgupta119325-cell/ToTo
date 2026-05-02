@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useMemo } from 'react';
@@ -7,11 +8,12 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Icons } from '@/components/icons';
-import { ArrowLeft, MapPin, Car, Zap, Globe } from 'lucide-react';
+import { ArrowLeft, MapPin, Car, Zap, Globe, Plus, Minus, Navigation, Search, Info } from 'lucide-react';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { useToast } from '@/hooks/use-toast';
 import { BOOK_RIDE_SERVICE_AREAS, DEFAULT_RATES } from '@/lib/mock-data';
 import { Badge } from '@/components/ui/badge';
+import { cn } from '@/lib/utils';
 
 type RideOption = {
     type: string;
@@ -67,6 +69,10 @@ export default function BookRidePage() {
       ];
       setRideOptions(options);
       setStep('options');
+      toast({
+          title: "Locations Set",
+          description: `Route calculated: ${randomDistance} km`,
+      });
     } else {
       toast({
         variant: 'destructive',
@@ -91,14 +97,14 @@ export default function BookRidePage() {
   }
 
   return (
-    <div className="flex min-h-dvh flex-col">
+    <div className="flex min-h-dvh flex-col bg-background">
       <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="container flex h-14 items-center justify-between">
           <Link href="/" className="flex items-center space-x-2">
             <Icons.TotoLogo className="h-6 w-auto text-primary" />
           </Link>
           <nav className="flex items-center gap-2">
-            <Button variant="ghost" asChild>
+            <Button variant="ghost" asChild className="hidden sm:inline-flex">
                 <Link href="/support">Support</Link>
             </Button>
             <Button variant="outline" size="sm" asChild>
@@ -110,186 +116,249 @@ export default function BookRidePage() {
           </nav>
         </div>
       </header>
-      <main className="flex-1 bg-secondary py-8">
-        <div className="container px-4 md:px-6">
-          <div className="grid gap-8 lg:grid-cols-2 lg:items-start">
-            
-            {/* Left Side: Booking Flow */}
-            <div className="space-y-6 order-2 lg:order-1">
+      
+      <main className="flex-1 overflow-hidden">
+        <div className="grid h-[calc(100dvh-3.5rem)] w-full lg:grid-cols-[400px_1fr]">
+          
+          {/* Booking Sidebar */}
+          <div className="z-10 flex flex-col border-r bg-background shadow-xl overflow-y-auto">
+            <div className="p-6 space-y-6">
+                <div className="space-y-1">
+                    <h1 className="text-2xl font-bold tracking-tight">Plan Your Journey</h1>
+                    <p className="text-sm text-muted-foreground">Select pickup and drop-off points to continue.</p>
+                </div>
+
                 {step === 'search' && (
-                    <Card className="w-full">
-                    <CardHeader>
-                        <CardTitle>Book Your Ride</CardTitle>
-                        <CardDescription>Enter your pickup and drop-off locations. Service area is limited to a 10km range within active cities.</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <form onSubmit={handleSearch} className="space-y-4">
-                        <div className="relative">
-                            <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                            <Input
-                            placeholder="Pickup Location"
-                            className="pl-10"
-                            value={pickup}
-                            onChange={(e) => setPickup(e.target.value)}
-                            />
+                    <form onSubmit={handleSearch} className="space-y-4">
+                        <div className="space-y-2">
+                            <label className="text-xs font-semibold uppercase text-muted-foreground tracking-wider">Pickup</label>
+                            <div className="relative">
+                                <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-primary" />
+                                <Input
+                                    placeholder="Enter pickup location..."
+                                    className="pl-9 h-12 bg-secondary/50 border-none focus-visible:ring-1 focus-visible:ring-primary"
+                                    value={pickup}
+                                    onChange={(e) => setPickup(e.target.value)}
+                                />
+                            </div>
                         </div>
-                        <div className="relative">
-                            <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                            <Input
-                            placeholder="Destination"
-                            className="pl-10"
-                            value={destination}
-                            onChange={(e) => setDestination(e.target.value)}
-                            />
+                        <div className="space-y-2">
+                            <label className="text-xs font-semibold uppercase text-muted-foreground tracking-wider">Destination</label>
+                            <div className="relative">
+                                <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-destructive" />
+                                <Input
+                                    placeholder="Where are you going?"
+                                    className="pl-9 h-12 bg-secondary/50 border-none focus-visible:ring-1 focus-visible:ring-primary"
+                                    value={destination}
+                                    onChange={(e) => setDestination(e.target.value)}
+                                />
+                            </div>
                         </div>
-                        <Button type="submit" className="w-full">
-                            Find a Ride
+                        <Button type="submit" size="lg" className="w-full shadow-lg h-12">
+                            Show Available Rides
                         </Button>
-                        </form>
-                    </CardContent>
-                    </Card>
+                        <div className="pt-4 p-3 bg-primary/5 rounded-lg border border-primary/10 flex items-start gap-3">
+                            <Info className="h-5 w-5 text-primary shrink-0 mt-0.5" />
+                            <p className="text-xs text-muted-foreground leading-relaxed">
+                                <strong>Service Range:</strong> TOTO currently operates within a 10km radius in active city centers.
+                            </p>
+                        </div>
+                    </form>
                 )}
 
                 {step === 'options' && (
-                    <Card className="w-full">
-                        <CardHeader>
-                            <CardTitle>Select a Ride</CardTitle>
-                            <CardDescription>
-                            Your ride is approximately {distance} km. Choose a ride that suits you.
-                            {isNight && <span className="block pt-1 text-xs text-primary font-medium">Night surcharge (9pm - 6am) applied.</span>}
-                            </CardDescription>
-                        </CardHeader>
-                        <CardContent className="space-y-4">
-                            <div className="space-y-3">
-                                {rideOptions.map((option) => (
-                                    <button
-                                        key={option.type}
-                                        onClick={() => handleSelectRide(option.type)}
-                                        className="flex w-full items-center justify-between rounded-lg border bg-background p-4 text-left transition-colors hover:bg-accent group"
-                                    >
-                                        <div className="flex items-center gap-4">
-                                            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 group-hover:bg-primary/20 transition-colors">
-                                                <option.icon className="h-6 w-6 text-primary" />
-                                            </div>
-                                            <div>
-                                                <p className="font-bold">{option.type}</p>
-                                                <p className="text-sm text-muted-foreground">{option.description}</p>
-                                            </div>
+                    <div className="space-y-4 animate-in slide-in-from-left-4 duration-300">
+                        <div className="flex items-center justify-between mb-2">
+                            <h2 className="font-bold">Select Ride</h2>
+                            <Badge variant="secondary">{distance} km</Badge>
+                        </div>
+                        <div className="space-y-3">
+                            {rideOptions.map((option) => (
+                                <button
+                                    key={option.type}
+                                    onClick={() => handleSelectRide(option.type)}
+                                    className="flex w-full items-center justify-between rounded-xl border bg-card p-4 text-left transition-all hover:border-primary hover:shadow-md group"
+                                >
+                                    <div className="flex items-center gap-4">
+                                        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 group-hover:bg-primary/20 transition-colors">
+                                            <option.icon className="h-6 w-6 text-primary" />
                                         </div>
+                                        <div>
+                                            <p className="font-bold text-base">{option.type}</p>
+                                            <p className="text-xs text-muted-foreground">{option.description}</p>
+                                        </div>
+                                    </div>
+                                    <div className="text-right">
                                         <p className="font-bold text-lg">₹{option.fare}</p>
-                                    </button>
-                                ))}
-                            </div>
-                            <Button variant="outline" className="w-full" onClick={() => setStep('search')}>
-                                Change Locations
-                            </Button>
-                        </CardContent>
-                    </Card>
+                                        <p className="text-[10px] text-muted-foreground">Incl. GST</p>
+                                    </div>
+                                </button>
+                            ))}
+                        </div>
+                        {isNight && (
+                            <p className="text-[11px] text-primary font-medium bg-primary/5 p-2 rounded text-center">
+                                Night surcharge (21:00 - 06:00) is applied to these fares.
+                            </p>
+                        )}
+                        <Button variant="ghost" size="sm" className="w-full text-muted-foreground" onClick={() => setStep('search')}>
+                            Edit Route
+                        </Button>
+                    </div>
                 )}
                 
                 {step === 'confirmed' && (
-                    <Card className="w-full text-center">
-                        <CardHeader>
-                            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-green-100 mb-2">
-                                <Car className="h-8 w-8 text-green-600" />
+                    <div className="space-y-6 text-center animate-in zoom-in-95 duration-300">
+                        <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-green-100 shadow-inner">
+                            <Navigation className="h-10 w-10 text-green-600 animate-pulse" />
+                        </div>
+                        <div className="space-y-2">
+                            <h2 className="text-2xl font-bold">Ride Confirmed!</h2>
+                            <p className="text-sm text-muted-foreground">Your driver is currently 4 mins away.</p>
+                        </div>
+                        <div className="rounded-xl border bg-muted/30 p-4 text-left space-y-3">
+                            <div className="flex items-center gap-3">
+                                <div className="h-2 w-2 rounded-full bg-primary" />
+                                <p className="text-xs truncate font-medium text-muted-foreground">{pickup}</p>
                             </div>
-                            <CardTitle className="text-2xl">Ride Confirmed!</CardTitle>
-                            <CardDescription>Your driver is heading to your pickup location.</CardDescription>
-                        </CardHeader>
-                        <CardContent className="space-y-4">
-                            <div className="rounded-lg border bg-muted/50 p-4 text-left space-y-2">
-                                <div className="flex gap-2">
-                                    <Badge variant="outline" className="h-fit">From</Badge>
-                                    <p className="text-sm">{pickup}</p>
-                                </div>
-                                <div className="flex gap-2">
-                                    <Badge variant="outline" className="h-fit">To</Badge>
-                                    <p className="text-sm">{destination}</p>
-                                </div>
+                            <div className="flex items-center gap-3">
+                                <div className="h-2 w-2 rounded-full bg-destructive" />
+                                <p className="text-xs truncate font-medium text-muted-foreground">{destination}</p>
                             </div>
-                            <Button className="w-full" onClick={handleNewBooking}>Book Another Ride</Button>
-                        </CardContent>
-                    </Card>
+                        </div>
+                        <Button size="lg" className="w-full" onClick={handleNewBooking}>Track on Map</Button>
+                    </div>
                 )}
             </div>
 
-            {/* Right Side: Map and Info */}
-            <div className="space-y-6 order-1 lg:order-2">
-                <Card className="overflow-hidden">
-                    <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                            <Globe className="h-5 w-5 text-primary" />
-                            Service Area Map
-                        </CardTitle>
-                        <CardDescription>
-                            Currently available in: {availableCities.map(c => c.city).join(', ')}
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                        <div className="relative overflow-hidden rounded-xl border bg-muted aspect-video shadow-inner">
-                            {mapImage ? (
-                                <Image
-                                    alt="Service Map"
-                                    src={mapImage.imageUrl}
-                                    fill
-                                    className="object-cover"
-                                    data-ai-hint="city map"
-                                />
-                            ) : (
-                                <div className="flex h-full items-center justify-center text-muted-foreground">
-                                    Map Loading...
-                                </div>
-                            )}
-                            
-                            {/* Simulated Overlays for Pick and Drop */}
-                            {step !== 'search' && (
-                                <>
-                                    <div className="absolute top-1/4 left-1/3 p-2 bg-primary text-primary-foreground rounded-full animate-bounce shadow-lg z-10">
-                                        <MapPin className="h-4 w-4" />
-                                    </div>
-                                    <div className="absolute bottom-1/3 right-1/4 p-2 bg-destructive text-destructive-foreground rounded-full shadow-lg z-10">
-                                        <MapPin className="h-4 w-4" />
-                                    </div>
-                                    <svg className="absolute inset-0 h-full w-full pointer-events-none z-0">
-                                        <line x1="33%" y1="25%" x2="75%" y2="66%" stroke="currentColor" strokeWidth="4" strokeDasharray="8,8" className="text-primary animate-pulse" />
-                                    </svg>
-                                </>
-                            )}
+            <div className="mt-auto p-6 border-t bg-muted/20">
+                <div className="flex items-center justify-between text-xs text-muted-foreground">
+                    <span>Active Cities</span>
+                    <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-green-500" /> Operational</span>
+                </div>
+                <div className="mt-2 flex flex-wrap gap-2">
+                    {availableCities.map((city, idx) => (
+                        <Badge key={idx} variant="outline" className="bg-background">{city.city}</Badge>
+                    ))}
+                </div>
+            </div>
+          </div>
 
-                            <div className="absolute bottom-4 left-4 right-4 z-20">
-                                <div className="flex flex-wrap gap-2">
-                                    {availableCities.map((city, idx) => (
-                                        <Badge key={idx} variant="secondary" className="bg-background/90 backdrop-blur-sm border-primary/20">
-                                            {city.city}
-                                        </Badge>
-                                    ))}
-                                </div>
-                            </div>
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-4 text-sm p-2 bg-muted/30 rounded-lg">
-                            <div className="space-y-1">
-                                <p className="font-semibold">Service Range</p>
-                                <p className="text-muted-foreground">Max 10km per ride</p>
-                            </div>
-                            <div className="space-y-1 text-right">
-                                <p className="font-semibold">Support</p>
-                                <p className="text-muted-foreground">24/7 Assistance</p>
-                            </div>
-                        </div>
-                    </CardContent>
-                </Card>
-
-                <Card className="bg-primary/5 border-primary/10">
-                    <CardContent className="p-4">
-                        <p className="text-[10px] text-muted-foreground leading-tight">
-                            * The map visualization represents our current operational boundaries. Exact pickup and drop-off markers are simulated based on your input.
-                        </p>
-                    </CardContent>
-                </Card>
+          {/* Interactive Map Section */}
+          <div className="relative h-full w-full bg-secondary/30 overflow-hidden">
+            {/* Google Maps Simulated UI */}
+            <div className="absolute top-4 left-4 right-4 z-20 flex items-center justify-between pointer-events-none">
+                <div className="pointer-events-auto flex items-center bg-background rounded-lg shadow-lg border p-1 pl-4 w-full max-w-sm">
+                    <Search className="h-4 w-4 text-muted-foreground mr-2" />
+                    <Input 
+                        placeholder="Search Google Maps" 
+                        className="border-none focus-visible:ring-0 shadow-none h-8 text-sm px-0"
+                        readOnly
+                    />
+                    <div className="h-6 w-[1px] bg-border mx-2" />
+                    <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full">
+                        <Icons.TotoLogo className="h-4 w-4" />
+                    </Button>
+                </div>
             </div>
 
+            {/* Map Controls */}
+            <div className="absolute right-4 bottom-24 z-20 flex flex-col gap-2">
+                <div className="flex flex-col bg-background rounded-lg shadow-lg border overflow-hidden">
+                    <Button variant="ghost" size="icon" className="h-10 w-10 rounded-none border-b"><Plus className="h-4 w-4" /></Button>
+                    <Button variant="ghost" size="icon" className="h-10 w-10 rounded-none"><Minus className="h-4 w-4" /></Button>
+                </div>
+                <Button variant="secondary" size="icon" className="h-10 w-10 shadow-lg bg-background hover:bg-background/90">
+                    <Navigation className="h-4 w-4 text-primary" />
+                </Button>
+            </div>
+
+            {/* The Actual Map Content */}
+            <div className="relative h-full w-full">
+                {mapImage ? (
+                    <Image
+                        alt="Interactive Map"
+                        src={mapImage.imageUrl}
+                        fill
+                        className="object-cover transition-opacity duration-700"
+                        priority
+                        data-ai-hint="google maps city"
+                    />
+                ) : (
+                    <div className="flex h-full items-center justify-center bg-muted">
+                        <Icons.TotoLogo className="h-12 w-12 text-primary/20 animate-pulse" />
+                    </div>
+                )}
+                
+                {/* Visual Overlays for Markers */}
+                {step !== 'search' && (
+                    <div className="absolute inset-0">
+                        {/* Pickup Marker */}
+                        <div className="absolute top-1/3 left-1/4 -translate-x-1/2 -translate-y-1/2 flex flex-col items-center animate-in fade-in duration-1000">
+                            <div className="bg-background border-2 border-primary rounded-lg px-2 py-1 shadow-lg text-[10px] font-bold mb-1 whitespace-nowrap">
+                                Pickup Point
+                            </div>
+                            <div className="relative flex h-10 w-10 items-center justify-center">
+                                <div className="absolute h-full w-full rounded-full bg-primary opacity-20 animate-ping" />
+                                <div className="relative z-10 p-2 bg-primary text-primary-foreground rounded-full shadow-lg">
+                                    <MapPin className="h-5 w-5" />
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Destination Marker */}
+                        <div className="absolute bottom-1/3 right-1/4 translate-x-1/2 translate-y-1/2 flex flex-col items-center animate-in fade-in duration-1000 delay-300">
+                             <div className="bg-background border-2 border-destructive rounded-lg px-2 py-1 shadow-lg text-[10px] font-bold mb-1 whitespace-nowrap">
+                                Destination
+                            </div>
+                            <div className="relative flex h-10 w-10 items-center justify-center">
+                                <div className="absolute h-full w-full rounded-full bg-destructive opacity-20 animate-ping" />
+                                <div className="relative z-10 p-2 bg-destructive text-destructive-foreground rounded-full shadow-lg">
+                                    <MapPin className="h-5 w-5" />
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Route Line Simulation */}
+                        <svg className="absolute inset-0 h-full w-full pointer-events-none z-0">
+                            <line 
+                                x1="25%" y1="33%" x2="75%" y2="66%" 
+                                stroke="currentColor" 
+                                strokeWidth="5" 
+                                strokeDasharray="12,12" 
+                                className="text-primary/60 animate-pulse" 
+                            />
+                        </svg>
+                    </div>
+                )}
+
+                {/* City Center Indicators */}
+                <div className="absolute inset-0 pointer-events-none">
+                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
+                         <div className="flex flex-col items-center opacity-30">
+                            <div className="h-12 w-12 border-2 border-dashed border-primary/40 rounded-full animate-spin duration-[10s]" />
+                            <p className="text-[10px] font-bold text-primary mt-2 uppercase tracking-widest">Active City Center</p>
+                         </div>
+                    </div>
+                </div>
+            </div>
+
+            {/* Bottom Info Bar */}
+            <div className="absolute bottom-4 left-4 z-20 hidden md:block">
+                <div className="bg-background/90 backdrop-blur-sm border rounded-lg px-4 py-2 shadow-lg flex items-center gap-6">
+                    <div className="flex items-center gap-2">
+                        <div className="h-3 w-3 rounded-full bg-primary" />
+                        <span className="text-xs font-medium">E-Rickshaw Hubs</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <div className="h-3 w-3 rounded-full bg-green-500" />
+                        <span className="text-xs font-medium">Live Drivers</span>
+                    </div>
+                    <div className="h-4 w-[1px] bg-border" />
+                    <span className="text-[10px] text-muted-foreground uppercase tracking-tighter">Powered by TOTO Maps Infrastructure</span>
+                </div>
+            </div>
           </div>
+
         </div>
       </main>
     </div>

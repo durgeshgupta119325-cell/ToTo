@@ -8,9 +8,9 @@
     },
     {
       "id": "book-ride-map",
-      "description": "A map showing a route from pickup to destination",
-      "imageUrl": "https://picsum.photos/seed/toto-map/800/400",
-      "imageHint": "map route"
+      "description": "A high-fidelity Google Maps style city visualization",
+      "imageUrl": "https://picsum.photos/seed/urban-google-map/1200/800",
+      "imageHint": "urban map"
     },
     {
       "id": "driver-photo",
