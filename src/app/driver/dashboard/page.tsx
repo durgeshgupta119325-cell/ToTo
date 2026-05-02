@@ -10,9 +10,25 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 import { useToast } from '@/hooks/use-toast';
 import { Icons } from '@/components/icons';
-import { Car, IndianRupee, Star, Home } from 'lucide-react';
+import { Car, IndianRupee, Star, Home, Eye } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
@@ -34,6 +50,12 @@ type Driver = {
   photoUrl: string;
   idProofUrl: string;
 };
+
+const DUMMY_RIDE_DETAILS = [
+  { id: 1, customer: "Anjali Sharma", pickup: "Connaught Place", drop: "India Gate", date: "2023-11-20", time: "10:30 AM" },
+  { id: 2, customer: "Rahul V.", pickup: "Metro Station Sec-18", drop: "Cyber Hub", date: "2023-11-20", time: "11:15 AM" },
+  { id: 3, customer: "Sana Khan", pickup: "DLF Mall", drop: "Amity University", date: "2023-11-20", time: "12:45 PM" },
+];
 
 export default function DriverDashboardPage() {
   const { toast } = useToast();
@@ -66,7 +88,6 @@ export default function DriverDashboardPage() {
     });
   };
 
-  // Dummy data for dashboard stats
   const dashboardStats = {
     rides: 12,
     earnings: 1540,
@@ -80,7 +101,6 @@ export default function DriverDashboardPage() {
       </div>
     );
   }
-
 
   return (
     <div className="flex min-h-dvh flex-col bg-secondary">
@@ -126,10 +146,52 @@ export default function DriverDashboardPage() {
                 <Car className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{dashboardStats.rides}</div>
-                <p className="text-xs text-muted-foreground">
-                  +2 from yesterday
-                </p>
+                <div className="flex items-end justify-between">
+                    <div>
+                        <div className="text-2xl font-bold">{dashboardStats.rides}</div>
+                        <p className="text-xs text-muted-foreground">
+                        +2 from yesterday
+                        </p>
+                    </div>
+                    <Dialog>
+                        <DialogTrigger asChild>
+                            <Button variant="outline" size="sm">
+                                <Eye className="mr-2 h-4 w-4" />
+                                View Details
+                            </Button>
+                        </DialogTrigger>
+                        <DialogContent className="max-w-2xl">
+                            <DialogHeader>
+                                <DialogTitle>Today's Ride Bookings</DialogTitle>
+                                <DialogDescription>Review your upcoming and completed rides for today.</DialogDescription>
+                            </DialogHeader>
+                            <div className="mt-4">
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow>
+                                            <TableHead>Customer</TableHead>
+                                            <TableHead>Pickup</TableHead>
+                                            <TableHead>Drop-off</TableHead>
+                                            <TableHead>Date</TableHead>
+                                            <TableHead>Time</TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {DUMMY_RIDE_DETAILS.map((ride) => (
+                                            <TableRow key={ride.id}>
+                                                <TableCell className="font-medium">{ride.customer}</TableCell>
+                                                <TableCell>{ride.pickup}</TableCell>
+                                                <TableCell>{ride.drop}</TableCell>
+                                                <TableCell>{ride.date}</TableCell>
+                                                <TableCell>{ride.time}</TableCell>
+                                            </TableRow>
+                                        ))}
+                                    </TableBody>
+                                </Table>
+                            </div>
+                        </DialogContent>
+                    </Dialog>
+                </div>
               </CardContent>
             </Card>
             <Card>
