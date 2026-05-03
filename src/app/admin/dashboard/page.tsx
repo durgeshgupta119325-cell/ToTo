@@ -941,63 +941,6 @@ export default function AdminDashboardPage() {
               <div className="space-y-6">
                 <Card>
                   <CardHeader>
-                    <CardTitle>State Approval Management</CardTitle>
-                    <CardDescription>
-                      Approve or revoke state-level access for TOTO services.
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-6">
-                    <div className="flex flex-col gap-4 rounded-md border p-4 bg-muted/20">
-                        <div className="space-y-1">
-                            <p className="text-sm font-semibold flex items-center gap-2">
-                                <CheckCircle2 className="h-4 w-4 text-primary" />
-                                Approve a new State
-                            </p>
-                            <p className="text-xs text-muted-foreground">Select a state from the database to enable it on the platform.</p>
-                        </div>
-                        <div className="flex items-center gap-3">
-                            <Select onValueChange={handleApproveState}>
-                                <SelectTrigger className="w-full max-w-[280px] bg-background">
-                                    <SelectValue placeholder="Select state to approve..." />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {states.map(state => (
-                                        <SelectItem key={state} value={state} disabled={approvedStatesList.includes(state)}>
-                                            {state} {approvedStatesList.includes(state) && '(Approved)'}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                            <Button variant="secondary" className="px-8">Approve State</Button>
-                        </div>
-                    </div>
-
-                    <div className="space-y-3">
-                        <h3 className="text-sm font-bold uppercase tracking-wider text-muted-foreground">Currently Approved States</h3>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-                            {approvedStatesList.map((state) => (
-                                <div key={state} className="flex items-center justify-between rounded-lg border bg-background p-3 shadow-sm hover:shadow-md transition-shadow group">
-                                    <div className="flex items-center gap-3">
-                                        <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
-                                        <span className="font-medium text-sm">{state}</span>
-                                    </div>
-                                    <Button 
-                                        variant="ghost" 
-                                        size="icon" 
-                                        className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
-                                        onClick={() => handleRemoveApprovedState(state)}
-                                    >
-                                        <Trash2 className="h-4 w-4 text-destructive" />
-                                    </Button>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardHeader>
                     <CardTitle>Location & Hub Management</CardTitle>
                     <CardDescription>
                       Manage specific city hubs within your approved states.
