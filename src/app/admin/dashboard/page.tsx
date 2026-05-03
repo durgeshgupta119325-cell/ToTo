@@ -24,8 +24,10 @@ import {
   User,
   Send,
   Car,
+  MapPin,
+  CheckCircle2,
 } from 'lucide-react';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/tabs';
 import {
   Table,
   TableBody,
@@ -72,6 +74,7 @@ import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Separator } from '@/components/ui/separator';
 
 import { useState, useEffect } from 'react';
 import { DUMMY_DRIVERS, DUMMY_CUSTOMERS, DUMMY_LOCATIONS_DATA, ADMIN_DASHBOARD_STATS, DEFAULT_RATES } from '@/lib/mock-data';
@@ -90,6 +93,8 @@ export default function AdminDashboardPage() {
     { id: 4, city: 'Gurugram', district: 'Gurgaon', state: 'Haryana', active: true },
   ];
   const [serviceAreas, setServiceAreas] = useState<typeof initialServiceAreas>([]);
+  const [approvedStatesList, setApprovedStatesList] = useState<string[]>(['Maharashtra', 'Delhi', 'Haryana', 'Karnataka']);
+  
   const [rates, setRates] = useState({ erickshaw: 0, cab: 0 });
   const [commissionRates, setCommissionRates] = useState({ day: 0, night: 0 });
   const [todayStats, setTodayStats] = useState({
@@ -117,6 +122,14 @@ export default function AdminDashboardPage() {
     } else {
       setServiceAreas(initialServiceAreas);
       localStorage.setItem('toto-admin-service-areas', JSON.stringify(initialServiceAreas));
+    }
+
+    // 2b. Initialize Approved States
+    const storedStates = localStorage.getItem('toto-admin-approved-states');
+    if (storedStates) {
+        setApprovedStatesList(JSON.parse(storedStates));
+    } else {
+        localStorage.setItem('toto-admin-approved-states', JSON.stringify(approvedStatesList));
     }
     
     // 3. Initialize Rates
@@ -177,8 +190,9 @@ export default function AdminDashboardPage() {
   useEffect(() => {
     if (dataLoaded) {
       localStorage.setItem('toto-admin-service-areas', JSON.stringify(serviceAreas));
+      localStorage.setItem('toto-admin-approved-states', JSON.stringify(approvedStatesList));
     }
-  }, [serviceAreas, dataLoaded]);
+  }, [serviceAreas, approvedStatesList, dataLoaded]);
   
   useEffect(() => {
     if (dataLoaded) {
@@ -295,6 +309,30 @@ export default function AdminDashboardPage() {
               description: `${areaToRemove.city} has been removed from your service areas.`,
           });
       }
+  };
+
+  const handleApproveState = (state: string) => {
+      if (approvedStatesList.includes(state)) {
+          toast({
+              variant: 'destructive',
+              title: 'State Already Approved',
+              description: `${state} is already on the approved list.`,
+          });
+          return;
+      }
+      setApprovedStatesList([...approvedStatesList, state]);
+      toast({
+          title: 'State Approved',
+          description: `${state} has been approved for TOTO services.`,
+      });
+  };
+
+  const handleRemoveApprovedState = (state: string) => {
+      setApprovedStatesList(approvedStatesList.filter(s => s !== state));
+      toast({
+          title: 'State Approval Revoked',
+          description: `${state} is no longer an approved state.`,
+      });
   };
 
   const handleSaveRates = () => {
@@ -904,51 +942,132 @@ export default function AdminDashboardPage() {
               <div className="space-y-6">
                 <Card>
                   <CardHeader>
-                    <CardTitle>Area Management</CardTitle>
+                    <CardTitle>State Approval Management</CardTitle>
                     <CardDescription>
-                      Manage the areas where your service is available.
+                      Approve or revoke state-level access for TOTO services.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-6">
+                    <div className="flex flex-col gap-4 rounded-md border p-4 bg-muted/20">
+                        <div className="space-y-1">
+                            <p className="text-sm font-semibold flex items-center gap-2">
+                                <CheckCircle2 className="h-4 w-4 text-primary" />
+                                Approve a new State
+                            </p>
+                            <p className="text-xs text-muted-foreground">Select a state from the database to enable it on the platform.</p>
+                        </div>
+                        <div className="flex items-center gap-3">
+                            <Select onValueChange={handleApproveState}>
+                                <SelectTrigger className="w-full max-w-[280px] bg-background">
+                                    <SelectValue placeholder="Select state to approve..." />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {states.map(state => (
+                                        <SelectItem key={state} value={state} disabled={approvedStatesList.includes(state)}>
+                                            {state} {approvedStatesList.includes(state) && '(Approved)'}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                            <Button variant="secondary" className="px-8">Approve State</Button>
+                        </div>
+                    </div>
+
+                    <div className="space-y-3">
+                        <h3 className="text-sm font-bold uppercase tracking-wider text-muted-foreground">Currently Approved States</h3>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                            {approvedStatesList.map((state) => (
+                                <div key={state} className="flex items-center justify-between rounded-lg border bg-background p-3 shadow-sm hover:shadow-md transition-shadow group">
+                                    <div className="flex items-center gap-3">
+                                        <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
+                                        <span className="font-medium text-sm">{state}</span>
+                                    </div>
+                                    <Button 
+                                        variant="ghost" 
+                                        size="icon" 
+                                        className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
+                                        onClick={() => handleRemoveApprovedState(state)}
+                                    >
+                                        <Trash2 className="h-4 w-4 text-destructive" />
+                                    </Button>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Location & Hub Management</CardTitle>
+                    <CardDescription>
+                      Manage specific city hubs within your approved states.
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
-                      <div className="mb-6 flex flex-col gap-4 rounded-md border p-4">
+                      <div className="mb-6 flex flex-col gap-4 rounded-md border border-primary/20 p-4 bg-primary/5">
                           <div className="space-y-1">
-                              <p className="text-sm font-medium">Add a new service area</p>
+                              <p className="text-sm font-bold flex items-center gap-2">
+                                  <MapPin className="h-4 w-4 text-primary" />
+                                  Add a new city hub
+                              </p>
+                              <p className="text-xs text-muted-foreground">Define precise service areas by selecting from approved states.</p>
                           </div>
-                          <div className="flex flex-wrap items-center gap-2">
+                          <div className="grid grid-cols-1 md:grid-cols-4 gap-2">
                               <Select value={selectedState} onValueChange={handleStateChange}>
-                                  <SelectTrigger className="w-full min-w-[180px] flex-1">
-                                      <SelectValue placeholder="Select state" />
+                                  <SelectTrigger className="bg-background">
+                                      <SelectValue placeholder="State" />
                                   </SelectTrigger>
                                   <SelectContent>
-                                      {states.map(state => (
+                                      {approvedStatesList.sort().map(state => (
                                           <SelectItem key={state} value={state}>{state}</SelectItem>
                                       ))}
                                   </SelectContent>
                               </Select>
+                              <Select 
+                                value={selectedDistrict} 
+                                onValueChange={handleDistrictChange}
+                                disabled={!selectedState}
+                              >
+                                  <SelectTrigger className="bg-background">
+                                      <SelectValue placeholder="District" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                      {districts.map(district => (
+                                          <SelectItem key={district} value={district}>{district}</SelectItem>
+                                      ))}
+                                  </SelectContent>
+                              </Select>
                               <Input
-                                  placeholder="Enter city"
-                                  className="w-full min-w-[180px] flex-1"
+                                  placeholder="Enter City Name"
+                                  className="bg-background"
                                   value={selectedCity}
                                   onChange={(e) => setSelectedCity(e.target.value)}
+                                  disabled={!selectedDistrict}
                               />
-                              <Button onClick={handleAddServiceArea}>Add</Button>
+                              <Button onClick={handleAddServiceArea} disabled={!selectedCity}>Add Hub</Button>
                           </div>
                       </div>
+
                     <Table>
                       <TableHeader>
-                        <TableRow>
-                          <TableHead>City</TableHead>
+                        <TableRow className="bg-muted/30">
+                          <TableHead>City Hub</TableHead>
+                          <TableHead>District</TableHead>
+                          <TableHead>State</TableHead>
                           <TableHead>Status</TableHead>
                           <TableHead className="text-right">Actions</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
                         {serviceAreas.map((area) => (
-                          <TableRow key={area.id}>
-                            <TableCell className="font-medium">{area.city}</TableCell>
+                          <TableRow key={area.id} className="hover:bg-muted/10 transition-colors">
+                            <TableCell className="font-bold">{area.city}</TableCell>
+                            <TableCell className="text-sm text-muted-foreground">{area.district}</TableCell>
+                            <TableCell className="text-sm">{area.state}</TableCell>
                             <TableCell>
-                              <Badge variant={area.active ? 'default' : 'secondary'}>
-                                {area.active ? 'Active' : 'Inactive'}
+                              <Badge variant={area.active ? 'default' : 'secondary'} className="px-3">
+                                {area.active ? 'Live' : 'Hidden'}
                               </Badge>
                             </TableCell>
                             <TableCell className="text-right">
@@ -962,33 +1081,42 @@ export default function AdminDashboardPage() {
                     </Table>
                   </CardContent>
                 </Card>
+
                 <Card>
                   <CardHeader>
-                    <CardTitle>Rate Management</CardTitle>
+                    <CardTitle>Global Rate Controls</CardTitle>
                     <CardDescription>
-                      Set the per-kilometer rates.
+                      Configure the standard per-kilometer rates across the platform.
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-4">
-                    <div className="grid gap-4 sm:grid-cols-2">
-                        <div className="space-y-2">
-                            <Label>E-Rickshaw Rate (₹/km)</Label>
-                            <Input
-                                type="number"
-                                value={rates.erickshaw}
-                                onChange={(e) => setRates({ ...rates, erickshaw: Number(e.target.value) || 0 })}
-                            />
+                    <div className="grid gap-6 sm:grid-cols-2">
+                        <div className="space-y-3 p-4 border rounded-xl bg-muted/10">
+                            <Label className="text-xs font-bold uppercase tracking-tighter text-muted-foreground">E-Rickshaw Rate (₹/km)</Label>
+                            <div className="flex items-center gap-3">
+                                <IndianRupee className="h-5 w-5 text-primary" />
+                                <Input
+                                    type="number"
+                                    className="text-xl font-bold h-12"
+                                    value={rates.erickshaw}
+                                    onChange={(e) => setRates({ ...rates, erickshaw: Number(e.target.value) || 0 })}
+                                />
+                            </div>
                         </div>
-                        <div className="space-y-2">
-                            <Label>Cab Rate (₹/km)</Label>
-                            <Input
-                                type="number"
-                                value={rates.cab}
-                                onChange={(e) => setRates({ ...rates, cab: Number(e.target.value) || 0 })}
-                            />
+                        <div className="space-y-3 p-4 border rounded-xl bg-muted/10">
+                            <Label className="text-xs font-bold uppercase tracking-tighter text-muted-foreground">Standard Cab Rate (₹/km)</Label>
+                            <div className="flex items-center gap-3">
+                                <IndianRupee className="h-5 w-5 text-primary" />
+                                <Input
+                                    type="number"
+                                    className="text-xl font-bold h-12"
+                                    value={rates.cab}
+                                    onChange={(e) => setRates({ ...rates, cab: Number(e.target.value) || 0 })}
+                                />
+                            </div>
                         </div>
                     </div>
-                    <Button onClick={handleSaveRates}>Save Rates</Button>
+                    <Button onClick={handleSaveRates} size="lg" className="w-full md:w-auto px-12 h-12">Apply New Rates</Button>
                   </CardContent>
                 </Card>
               </div>
