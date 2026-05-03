@@ -162,7 +162,7 @@ export default function AdminDashboardPage() {
           grossVolume: Math.floor(Math.random() * 15000) + 5000,
           lastReset: Date.now(),
         };
-        localStorage.setItem('toto-admin-today-stats', JSON.stringify(newStats));
+        localStorage.setItem('today-stats', JSON.stringify(newStats));
         setTodayStats(newStats);
       } else {
         setTodayStats(parsed);
@@ -308,30 +308,6 @@ export default function AdminDashboardPage() {
               description: `${areaToRemove.city} has been removed from your service areas.`,
           });
       }
-  };
-
-  const handleApproveState = (state: string) => {
-      if (approvedStatesList.includes(state)) {
-          toast({
-              variant: 'destructive',
-              title: 'State Already Approved',
-              description: `${state} is already on the approved list.`,
-          });
-          return;
-      }
-      setApprovedStatesList([...approvedStatesList, state]);
-      toast({
-          title: 'State Approved',
-          description: `${state} has been approved for TOTO services.`,
-      });
-  };
-
-  const handleRemoveApprovedState = (state: string) => {
-      setApprovedStatesList(approvedStatesList.filter(s => s !== state));
-      toast({
-          title: 'State Approval Revoked',
-          description: `${state} is no longer an approved state.`,
-      });
   };
 
   const handleSaveRates = () => {
@@ -1059,6 +1035,46 @@ export default function AdminDashboardPage() {
                         </div>
                     </div>
                     <Button onClick={handleSaveRates} size="lg" className="w-full md:w-auto px-12 h-12">Apply New Rates</Button>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Commission Management</CardTitle>
+                    <CardDescription>
+                      Set percentage-based commission rates for different times of the day.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="grid gap-6 sm:grid-cols-2">
+                        <div className="space-y-3 p-4 border rounded-xl bg-muted/10">
+                            <Label className="text-xs font-bold uppercase tracking-tighter text-muted-foreground">Day Commission (%)</Label>
+                            <CardDescription className="text-[10px] mb-2">Applied between 06:00 AM - 09:00 PM</CardDescription>
+                            <div className="flex items-center gap-3">
+                                <Percent className="h-5 w-5 text-primary" />
+                                <Input
+                                    type="number"
+                                    className="text-xl font-bold h-12"
+                                    value={commissionRates.day}
+                                    onChange={(e) => setCommissionRates({ ...commissionRates, day: Number(e.target.value) || 0 })}
+                                />
+                            </div>
+                        </div>
+                        <div className="space-y-3 p-4 border rounded-xl bg-muted/10">
+                            <Label className="text-xs font-bold uppercase tracking-tighter text-muted-foreground">Night Commission (%)</Label>
+                            <CardDescription className="text-[10px] mb-2">Applied between 09:00 PM - 06:00 AM</CardDescription>
+                            <div className="flex items-center gap-3">
+                                <Percent className="h-5 w-5 text-primary" />
+                                <Input
+                                    type="number"
+                                    className="text-xl font-bold h-12"
+                                    value={commissionRates.night}
+                                    onChange={(e) => setCommissionRates({ ...commissionRates, night: Number(e.target.value) || 0 })}
+                                />
+                            </div>
+                        </div>
+                    </div>
+                    <Button onClick={handleSaveCommissionRates} size="lg" className="w-full md:w-auto px-12 h-12">Apply Commission Rates</Button>
                   </CardContent>
                 </Card>
               </div>
