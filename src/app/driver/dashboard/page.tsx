@@ -4,112 +4,138 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from '@/components/ui/dialog';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useToast } from '@/hooks/use-toast';
 import { Icons } from '@/components/icons';
-import { Car, IndianRupee, Star, Home, Eye } from 'lucide-react';
+import { Car, IndianRupee, Star, Home, Eye, MapPin, CheckCircle2, User, Timer, Navigation } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
+import { useFirestore, useUser } from '@/firebase';
+import { collection, query, where, onSnapshot, updateDoc, doc, limit } from 'firebase/firestore';
+import { errorEmitter } from '@/firebase/error-emitter';
+import { FirestorePermissionError } from '@/firebase/errors';
+import { Badge } from '@/components/ui/badge';
 
-type Driver = {
+type Ride = {
   id: string;
-  name: string;
-  gender: string;
-  email: string;
-  mobile: string;
-  address: string;
-  city: string;
-  state: string;
-  pincode: string;
-  vehicleType: string;
-  vehicleNumber: string;
-  accountNumber: string;
-  grossEarnings: number;
-  photoUrl: string;
-  idProofUrl: string;
+  customerId: string;
+  customerName: string;
+  pickup: string;
+  destination: string;
+  fare: number;
+  status: 'pending' | 'searching_all' | 'accepted' | 'arrived' | 'started';
+  otp: string;
+  type: string;
 };
-
-const DUMMY_RIDE_DETAILS = [
-  { id: 1, customer: "Anjali Sharma", pickup: "Connaught Place", drop: "India Gate", date: "2023-11-20", time: "10:30 AM", price: 75 },
-  { id: 2, customer: "Rahul V.", pickup: "Metro Station Sec-18", drop: "Cyber Hub", date: "2023-11-20", time: "11:15 AM", price: 150 },
-  { id: 3, customer: "Sana Khan", pickup: "DLF Mall", drop: "Amity University", date: "2023-11-20", time: "12:45 PM", price: 120 },
-  { id: 4, customer: "Vikram Singh", pickup: "Terminal 3", drop: "Aerocity", date: "2023-11-20", time: "01:30 PM", price: 200 },
-  { id: 5, customer: "Priya Das", pickup: "Hauz Khas Village", drop: "Saket Metro", date: "2023-11-20", time: "02:15 PM", price: 90 },
-  { id: 6, customer: "Amit Patel", pickup: "Chandni Chowk", drop: "Red Fort", date: "2023-11-20", time: "03:00 PM", price: 60 },
-  { id: 7, customer: "Neha Goyal", pickup: "Select Citywalk", drop: "Malviya Nagar", date: "2023-11-20", time: "04:30 PM", price: 110 },
-  { id: 8, customer: "Karan Johar", pickup: "Lodhi Garden", drop: "Khan Market", date: "2023-11-20", time: "05:15 PM", price: 85 },
-  { id: 9, customer: "Sneha Kapur", pickup: "Rajouri Garden", drop: "Pacific Mall", date: "2023-11-20", time: "06:00 PM", price: 130 },
-  { id: 10, customer: "Rohan Mehra", pickup: "Janpath", drop: "Barakhamba Road", date: "2023-11-20", time: "07:30 PM", price: 70 },
-  { id: 11, customer: "Ishaan Khattar", pickup: "M Block Market", drop: "Greater Kailash", date: "2023-11-20", time: "08:15 PM", price: 105 },
-  { id: 12, customer: "Meera Nair", pickup: "Defense Colony", drop: "Lajpat Nagar", date: "2023-11-20", time: "09:00 PM", price: 95 },
-];
 
 export default function DriverDashboardPage() {
   const { toast } = useToast();
   const router = useRouter();
+  const db = useFirestore();
+  const { user } = useUser();
+  
   const [isOnline, setIsOnline] = useState(true);
-  const [driver, setDriver] = useState<Driver | null>(null);
+  const [activeRide, setActiveRide] = useState<Ride | null>(null);
+  const [incomingRequest, setIncomingRequest] = useState<Ride | null>(null);
+  const [otpInput, setOtpInput] = useState('');
+  const [isVerifying, setIsVerifying] = useState(false);
 
+  // 1. Listen for Incoming Requests
   useEffect(() => {
-    const storedDriver = localStorage.getItem('toto-driver');
-    if (storedDriver) {
-      try {
-        setDriver(JSON.parse(storedDriver));
-      } catch (error) {
-        console.error("Failed to parse driver data from localStorage", error);
-        localStorage.removeItem('toto-driver');
-        router.push('/driver/login');
+    if (!isOnline || !user || activeRide) return;
+
+    const q = query(
+      collection(db, 'rides'),
+      where('status', 'in', ['pending', 'searching_all']),
+      limit(1)
+    );
+
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      if (!snapshot.empty) {
+        const ride = { id: snapshot.docs[0].id, ...snapshot.docs[0].data() } as Ride;
+        setIncomingRequest(ride);
+      } else {
+        setIncomingRequest(null);
       }
-    } else {
-      router.push('/driver/login');
-    }
-  }, [router]);
+    }, (err) => {
+        const permissionError = new FirestorePermissionError({
+          path: 'rides',
+          operation: 'list',
+        });
+        errorEmitter.emit('permission-error', permissionError);
+    });
+
+    return () => unsubscribe();
+  }, [isOnline, user, db, activeRide]);
+
+  // 2. Listen for Current Active Ride Updates
+  useEffect(() => {
+    if (!activeRide || !db) return;
+
+    const unsubscribe = onSnapshot(doc(db, 'rides', activeRide.id), (snapshot) => {
+        if (snapshot.exists()) {
+            setActiveRide({ id: snapshot.id, ...snapshot.data() } as Ride);
+        } else {
+            setActiveRide(null);
+        }
+    });
+
+    return () => unsubscribe();
+  }, [activeRide?.id, db]);
 
   const handleOnlineToggle = (online: boolean) => {
     setIsOnline(online);
     toast({
       title: `You are now ${online ? 'Online' : 'Offline'}`,
-      description: online
-        ? 'You will now receive new ride requests.'
-        : 'You will not receive ride requests until you go online.',
+      description: online ? 'Receiving new ride requests.' : 'Requests paused.',
     });
   };
 
-  const dashboardStats = {
-    rides: DUMMY_RIDE_DETAILS.length,
-    earnings: 1540,
-    rating: 4.8,
+  const handleAcceptRide = () => {
+    if (!incomingRequest || !user) return;
+
+    const rideRef = doc(db, 'rides', incomingRequest.id);
+    updateDoc(rideRef, {
+        status: 'accepted',
+        driverId: user.uid,
+        driverName: user.displayName || 'TOTO Driver',
+        acceptedAt: new Date().toISOString()
+    }).then(() => {
+        setActiveRide(incomingRequest);
+        setIncomingRequest(null);
+        toast({ title: "Ride Accepted", description: "Navigate to pickup location." });
+    }).catch(async (err) => {
+        const permissionError = new FirestorePermissionError({
+            path: `rides/${incomingRequest.id}`,
+            operation: 'update',
+        });
+        errorEmitter.emit('permission-error', permissionError);
+    });
   };
 
-  if (!driver) {
-    return (
-      <div className="flex min-h-dvh flex-col items-center justify-center bg-secondary">
-        <p>Loading your dashboard...</p>
-      </div>
-    );
-  }
+  const handleArrived = () => {
+    if (!activeRide) return;
+    updateDoc(doc(db, 'rides', activeRide.id), { status: 'arrived' });
+  };
+
+  const handleVerifyOtp = () => {
+    if (!activeRide || !otpInput) return;
+    
+    setIsVerifying(true);
+    if (otpInput === activeRide.otp) {
+        updateDoc(doc(db, 'rides', activeRide.id), { status: 'started' }).then(() => {
+            toast({ title: "OTP Verified", description: "Trip started. Drive safely!" });
+            setOtpInput('');
+        });
+    } else {
+        toast({ variant: "destructive", title: "Invalid OTP", description: "Please ask the customer for the correct code." });
+    }
+    setIsVerifying(false);
+  };
 
   return (
     <div className="flex min-h-dvh flex-col bg-secondary">
@@ -119,125 +145,220 @@ export default function DriverDashboardPage() {
             <Icons.TotoLogo className="h-6 w-auto text-primary" />
             <span className="font-bold">Driver Dashboard</span>
           </Link>
-          <Button variant="outline" size="sm" asChild>
-            <Link href="/">
-              <Home className="mr-2 h-4 w-4" />
-              Home
-            </Link>
-          </Button>
+          <div className="flex items-center gap-4">
+             <div className="flex items-center space-x-2 bg-muted px-3 py-1 rounded-full text-xs">
+                <span className={cn("h-2 w-2 rounded-full", isOnline ? "bg-green-500 animate-pulse" : "bg-red-500")} />
+                <span className="font-semibold">{isOnline ? 'Active' : 'Offline'}</span>
+                <Switch checked={isOnline} onCheckedChange={handleOnlineToggle} size="sm" />
+            </div>
+            <Button variant="ghost" size="sm" onClick={() => router.push('/')}><Home className="h-4 w-4" /></Button>
+          </div>
         </div>
       </header>
 
       <main className="flex-1 p-4 md:p-8">
-        <div className="mx-auto max-w-4xl space-y-8">
-           <div className="flex flex-wrap items-center justify-between gap-4">
-                <div>
-                    <h1 className="text-3xl font-bold tracking-tight">Welcome, {driver.name}!</h1>
-                    <p className="text-muted-foreground">A quick overview of your performance today.</p>
-                </div>
-                 <div className="flex items-center space-x-3 rounded-lg border bg-card p-3 shadow-sm">
-                    <Label htmlFor="online-status" className="font-medium text-card-foreground">
-                        {isOnline ? 'Online' : 'Offline'}
-                    </Label>
-                    <Switch
-                        id="online-status"
-                        checked={isOnline}
-                        onCheckedChange={handleOnlineToggle}
-                    />
-                </div>
-            </div>
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">
-                  Today's Rides
-                </CardTitle>
-                <Car className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="flex items-end justify-between">
-                    <div>
-                        <div className="text-2xl font-bold">{dashboardStats.rides}</div>
-                        <p className="text-xs text-muted-foreground">
-                        +2 from yesterday
-                        </p>
+        <div className="mx-auto max-w-4xl space-y-6">
+          
+          {/* Incoming Request Overlay */}
+          {incomingRequest && (
+            <Card className="border-4 border-primary shadow-2xl animate-in zoom-in-95">
+                <CardHeader className="bg-primary/5 pb-4">
+                    <div className="flex items-center justify-between">
+                        <Badge className="bg-primary text-black">New {incomingRequest.type} Request</Badge>
+                        <div className="flex items-center gap-1 text-xs font-bold text-primary">
+                            <Timer className="h-3 w-3" /> 60s
+                        </div>
                     </div>
-                    <Dialog>
-                        <DialogTrigger asChild>
-                            <Button variant="outline" size="sm">
-                                <Eye className="mr-2 h-4 w-4" />
-                                View Details
-                            </Button>
-                        </DialogTrigger>
-                        <DialogContent className="max-w-4xl">
-                            <DialogHeader>
-                                <DialogTitle>Today's Ride Bookings</DialogTitle>
-                                <DialogDescription>Review all {dashboardStats.rides} rides for today.</DialogDescription>
-                            </DialogHeader>
-                            <div className="mt-4 max-h-[60vh] overflow-y-auto">
-                                <Table>
-                                    <TableHeader>
-                                        <TableRow>
-                                            <TableHead>Customer</TableHead>
-                                            <TableHead>Pickup</TableHead>
-                                            <TableHead>Drop-off</TableHead>
-                                            <TableHead>Date</TableHead>
-                                            <TableHead>Time</TableHead>
-                                            <TableHead className="text-right">Price</TableHead>
-                                        </TableRow>
-                                    </TableHeader>
-                                    <TableBody>
-                                        {DUMMY_RIDE_DETAILS.map((ride) => (
-                                            <TableRow key={ride.id}>
-                                                <TableCell className="font-medium">{ride.customer}</TableCell>
-                                                <TableCell>{ride.pickup}</TableCell>
-                                                <TableCell>{ride.drop}</TableCell>
-                                                <TableCell>{ride.date}</TableCell>
-                                                <TableCell>{ride.time}</TableCell>
-                                                <TableCell className="text-right font-bold">₹{ride.price}</TableCell>
-                                            </TableRow>
-                                        ))}
-                                    </TableBody>
-                                </Table>
+                    <CardTitle className="text-2xl">Incoming Ride Request</CardTitle>
+                </CardHeader>
+                <CardContent className="pt-6">
+                    <div className="grid gap-6 md:grid-cols-2">
+                        <div className="space-y-4">
+                            <div className="space-y-1">
+                                <p className="text-[10px] font-bold uppercase text-muted-foreground">Pick-up Location</p>
+                                <p className="font-bold flex items-start gap-2">
+                                    <MapPin className="h-4 w-4 text-primary shrink-0" />
+                                    {incomingRequest.pickup}
+                                </p>
                             </div>
-                        </DialogContent>
-                    </Dialog>
+                            <div className="space-y-1">
+                                <p className="text-[10px] font-bold uppercase text-muted-foreground">Drop-off Location</p>
+                                <p className="font-bold flex items-start gap-2">
+                                    <MapPin className="h-4 w-4 text-destructive shrink-0" />
+                                    {incomingRequest.destination}
+                                </p>
+                            </div>
+                        </div>
+                        <div className="flex flex-col justify-center items-center p-6 bg-muted/20 rounded-xl border border-dashed">
+                            <p className="text-sm font-medium text-muted-foreground">Estimated Fare</p>
+                            <p className="text-4xl font-black text-primary">₹{incomingRequest.fare}</p>
+                        </div>
+                    </div>
+                    <div className="mt-8 flex gap-3">
+                        <Button variant="outline" className="flex-1 h-12" onClick={() => setIncomingRequest(null)}>Reject</Button>
+                        <Button className="flex-1 h-12 text-lg font-bold" onClick={handleAcceptRide}>Accept Ride</Button>
+                    </div>
+                </CardContent>
+            </Card>
+          )}
+
+          {/* Active Ride Control */}
+          {activeRide && (
+            <Card className="border-2 border-primary shadow-lg overflow-hidden">
+                <div className="bg-primary text-black px-6 py-2 flex items-center justify-between font-bold text-xs uppercase tracking-widest">
+                    <span>Active Ride: {activeRide.id}</span>
+                    <span>Status: {activeRide.status}</span>
                 </div>
-              </CardContent>
+                <CardContent className="p-6">
+                    <div className="grid gap-8 md:grid-cols-2">
+                        <div className="space-y-6">
+                            <div className="flex items-center gap-4">
+                                <div className="h-12 w-12 rounded-full bg-secondary flex items-center justify-center">
+                                    <User className="h-6 w-6 text-primary" />
+                                </div>
+                                <div>
+                                    <h3 className="font-bold text-lg">{activeRide.customerName}</h3>
+                                    <p className="text-xs text-muted-foreground">Contact: Verified Customer</p>
+                                </div>
+                            </div>
+                            <div className="space-y-4 pl-1 border-l-2 border-primary/20 ml-6">
+                                <div className="relative pl-6">
+                                    <div className="absolute left-[-5px] top-1 h-2 w-2 rounded-full bg-primary" />
+                                    <p className="text-xs text-muted-foreground uppercase font-bold">Pick-up</p>
+                                    <p className="text-sm font-semibold">{activeRide.pickup}</p>
+                                </div>
+                                <div className="relative pl-6">
+                                    <div className="absolute left-[-5px] top-1 h-2 w-2 rounded-full bg-destructive" />
+                                    <p className="text-xs text-muted-foreground uppercase font-bold">Drop-off</p>
+                                    <p className="text-sm font-semibold">{activeRide.destination}</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="space-y-6 flex flex-col justify-center">
+                            {activeRide.status === 'accepted' && (
+                                <Button size="lg" className="h-16 text-xl font-bold w-full" onClick={handleArrived}>
+                                    <Navigation className="mr-2 h-6 w-6" />
+                                    I Have Arrived
+                                </Button>
+                            )}
+
+                            {(activeRide.status === 'arrived') && (
+                                <div className="space-y-4 animate-in slide-in-from-bottom-2">
+                                    <div className="bg-yellow-50 border-2 border-yellow-200 p-4 rounded-xl text-center">
+                                        <p className="text-xs font-bold text-yellow-800 uppercase mb-2">Verification Required</p>
+                                        <p className="text-sm text-yellow-700">Enter the 4-digit code provided by the customer to start the trip.</p>
+                                    </div>
+                                    <div className="flex gap-2">
+                                        <Input 
+                                            placeholder="XXXX" 
+                                            className="h-16 text-center text-3xl font-black tracking-[0.5em] border-2" 
+                                            maxLength={4}
+                                            value={otpInput}
+                                            onChange={(e) => setOtpInput(e.target.value)}
+                                        />
+                                        <Button 
+                                            className="h-16 px-8 text-lg font-bold" 
+                                            disabled={otpInput.length !== 4 || isVerifying}
+                                            onClick={handleVerifyOtp}
+                                        >
+                                            Verify
+                                        </Button>
+                                    </div>
+                                </div>
+                            )}
+
+                            {activeRide.status === 'started' && (
+                                <div className="text-center space-y-4 py-8">
+                                    <div className="mx-auto h-20 w-20 rounded-full bg-green-100 flex items-center justify-center">
+                                        <CheckCircle2 className="h-12 w-12 text-green-600 animate-pulse" />
+                                    </div>
+                                    <div>
+                                        <h3 className="text-xl font-bold">Trip in Progress</h3>
+                                        <p className="text-sm text-muted-foreground">Navigate to {activeRide.destination}</p>
+                                    </div>
+                                    <Button variant="outline" className="w-full" onClick={() => setActiveRide(null)}>Complete Trip (Demo)</Button>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </CardContent>
             </Card>
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">
-                  Today's Earnings
-                </CardTitle>
-                <IndianRupee className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">₹{dashboardStats.earnings.toLocaleString()}</div>
-                <p className="text-xs text-muted-foreground">
-                  +5.2% from last week
-                </p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Your Rating</CardTitle>
-                 <Star className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold mb-1">{dashboardStats.rating}</div>
-                 <div className="flex items-center">
-                    {[...Array(5)].map((_, i) => {
-                        const ratingValue = i + 1;
-                        return (
-                             <Star key={i} className={`h-5 w-5 ${ratingValue <= dashboardStats.rating ? 'text-primary fill-primary' : 'text-muted-foreground/30'}`} />
-                        )
-                    })}
-                 </div>
-                 <p className="text-xs text-muted-foreground mt-2">Based on your last 50 rides</p>
-              </CardContent>
-            </Card>
-          </div>
+          )}
+
+          {/* Regular Dashboard Content */}
+          {!incomingRequest && !activeRide && (
+            <>
+                <div className="flex flex-wrap items-center justify-between gap-4">
+                    <div>
+                        <h1 className="text-3xl font-bold tracking-tight">Driver Hub</h1>
+                        <p className="text-muted-foreground">Status: {isOnline ? 'Online & Waiting' : 'Resting'}</p>
+                    </div>
+                </div>
+
+                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                    <Card>
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <CardTitle className="text-sm font-medium">Daily Earnings</CardTitle>
+                            <IndianRupee className="h-4 w-4 text-muted-foreground" />
+                        </CardHeader>
+                        <CardContent>
+                            <div className="text-2xl font-bold">₹1,540</div>
+                            <p className="text-xs text-muted-foreground">+₹240 since yesterday</p>
+                        </CardContent>
+                    </Card>
+                    <Card>
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <CardTitle className="text-sm font-medium">Trips Completed</CardTitle>
+                            <Car className="h-4 w-4 text-muted-foreground" />
+                        </CardHeader>
+                        <CardContent>
+                            <div className="text-2xl font-bold">12</div>
+                            <p className="text-xs text-muted-foreground">Target: 15 trips</p>
+                        </CardContent>
+                    </Card>
+                    <Card>
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <CardTitle className="text-sm font-medium">Star Rating</CardTitle>
+                            <Star className="h-4 w-4 text-primary fill-primary" />
+                        </CardHeader>
+                        <CardContent>
+                            <div className="text-2xl font-bold">4.8</div>
+                            <p className="text-xs text-muted-foreground">Top 10% of drivers</p>
+                        </CardContent>
+                    </Card>
+                </div>
+
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Recent Trip History</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>Customer</TableHead>
+                                    <TableHead>Route</TableHead>
+                                    <TableHead className="text-right">Earnings</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                <TableRow>
+                                    <TableCell className="font-medium">Anjali S.</TableCell>
+                                    <TableCell className="text-xs">CP → India Gate</TableCell>
+                                    <TableCell className="text-right font-bold">₹75</TableCell>
+                                </TableRow>
+                                <TableRow>
+                                    <TableCell className="font-medium">Rahul V.</TableCell>
+                                    <TableCell className="text-xs">Sec-18 → Cyber Hub</TableCell>
+                                    <TableCell className="text-right font-bold">₹150</TableCell>
+                                </TableRow>
+                            </TableBody>
+                        </Table>
+                    </CardContent>
+                </Card>
+            </>
+          )}
         </div>
       </main>
     </div>

@@ -20,6 +20,27 @@
         "name",
         "email"
       ]
+    },
+    "ride": {
+      "title": "Ride",
+      "description": "A ride booking record.",
+      "type": "object",
+      "properties": {
+        "customerId": { "type": "string" },
+        "customerName": { "type": "string" },
+        "driverId": { "type": "string" },
+        "driverName": { "type": "string" },
+        "pickup": { "type": "string" },
+        "destination": { "type": "string" },
+        "status": { 
+          "type": "string",
+          "enum": ["pending", "searching_all", "accepted", "arrived", "started", "completed", "cancelled"]
+        },
+        "fare": { "type": "number" },
+        "otp": { "type": "string" },
+        "timestamp": { "type": "string", "format": "date-time" },
+        "distance": { "type": "number" }
+      }
     }
   },
   "auth": {
@@ -33,6 +54,12 @@
         "$ref": "#/backend/entities/user"
       },
       "description": "Stores user profile information."
+    },
+    "/rides/{rideId}": {
+      "schema": {
+        "$ref": "#/backend/entities/ride"
+      },
+      "description": "Stores ride booking and status information."
     }
   }
 }
