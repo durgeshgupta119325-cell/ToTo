@@ -19,6 +19,7 @@ import { collection, query, where, onSnapshot, updateDoc, doc, limit } from 'fir
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 import { Badge } from '@/components/ui/badge';
+import { cn } from '@/lib/utils';
 
 type Ride = {
   id: string;
@@ -294,6 +295,54 @@ export default function DriverDashboardPage() {
                         <h1 className="text-3xl font-bold tracking-tight">Driver Hub</h1>
                         <p className="text-muted-foreground">Status: {isOnline ? 'Online & Waiting' : 'Resting'}</p>
                     </div>
+                    <Dialog>
+                        <DialogTrigger asChild>
+                            <Button variant="outline" size="sm">
+                                <Eye className="mr-2 h-4 w-4" />
+                                View Details
+                            </Button>
+                        </DialogTrigger>
+                        <DialogContent className="max-w-4xl">
+                            <DialogHeader>
+                                <DialogTitle>Today's Ride Bookings</DialogTitle>
+                                <DialogDescription>Complete list of ride requests and their details.</DialogDescription>
+                            </DialogHeader>
+                            <div className="mt-4">
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow>
+                                            <TableHead>Customer</TableHead>
+                                            <TableHead>Pick-up Location</TableHead>
+                                            <TableHead>Drop-off Location</TableHead>
+                                            <TableHead>Price</TableHead>
+                                            <TableHead className="text-right">Date & Time</TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {[...Array(12)].map((_, i) => (
+                                            <TableRow key={i}>
+                                                <TableCell className="font-medium">
+                                                    {["Anjali S.", "Rahul V.", "Priya K.", "Suresh M.", "Amit P.", "Sneha R.", "Vikram G.", "Neha T.", "Arun B.", "Kavita D.", "Rohan S.", "Deepak L."][i % 12]}
+                                                </TableCell>
+                                                <TableCell className="text-xs">
+                                                    {["Connaught Place", "Sector 18", "MG Road", "Cyber Hub", "Andheri West", "Bandra Terminus", "Marine Drive", "Juhu Beach", "Chandni Chowk", "Lajpat Nagar", "Indiranagar", "Koramangala"][i % 12]}
+                                                </TableCell>
+                                                <TableCell className="text-xs">
+                                                    {["India Gate", "Cyber Hub", "Indiranagar", "Ambience Mall", "Gateway of India", "Juhu Beach", "Worli Sea Link", "Colaba", "Red Fort", "Lotus Temple", "Whitefield", "HSR Layout"][i % 12]}
+                                                </TableCell>
+                                                <TableCell className="font-bold">
+                                                    ₹{[75, 150, 110, 220, 180, 95, 250, 130, 85, 120, 190, 140][i % 12]}
+                                                </TableCell>
+                                                <TableCell className="text-right text-xs text-muted-foreground whitespace-nowrap">
+                                                    Oct 27, 2023 - {Math.floor(Math.random() * 12) + 1}:{Math.floor(Math.random() * 60).toString().padStart(2, '0')} {Math.random() > 0.5 ? 'AM' : 'PM'}
+                                                </TableCell>
+                                            </TableRow>
+                                        ))}
+                                    </TableBody>
+                                </Table>
+                            </div>
+                        </DialogContent>
+                    </Dialog>
                 </div>
 
                 <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
