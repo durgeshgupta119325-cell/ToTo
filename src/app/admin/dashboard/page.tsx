@@ -1,3 +1,4 @@
+
 "use client";
 
 import Link from 'next/link';
@@ -71,7 +72,7 @@ import {
 } from "@/components/ui/select";
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
+import { Input } from '@/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 
@@ -92,7 +93,6 @@ export default function AdminDashboardPage() {
     { id: 4, city: 'Gurugram', district: 'Gurgaon', state: 'Haryana', active: true },
   ];
   const [serviceAreas, setServiceAreas] = useState<typeof initialServiceAreas>([]);
-  const [approvedStatesList, setApprovedStatesList] = useState<string[]>(['Maharashtra', 'Delhi', 'Haryana', 'Karnataka']);
   
   const [rates, setRates] = useState({ erickshaw: 0, cab: 0 });
   const [commissionRates, setCommissionRates] = useState({ day: 0, night: 0 });
@@ -121,14 +121,6 @@ export default function AdminDashboardPage() {
     } else {
       setServiceAreas(initialServiceAreas);
       localStorage.setItem('toto-admin-service-areas', JSON.stringify(initialServiceAreas));
-    }
-
-    // 2b. Initialize Approved States
-    const storedStates = localStorage.getItem('toto-admin-approved-states');
-    if (storedStates) {
-        setApprovedStatesList(JSON.parse(storedStates));
-    } else {
-        localStorage.setItem('toto-admin-approved-states', JSON.stringify(approvedStatesList));
     }
     
     // 3. Initialize Rates
@@ -189,9 +181,8 @@ export default function AdminDashboardPage() {
   useEffect(() => {
     if (dataLoaded) {
       localStorage.setItem('toto-admin-service-areas', JSON.stringify(serviceAreas));
-      localStorage.setItem('toto-admin-approved-states', JSON.stringify(approvedStatesList));
     }
-  }, [serviceAreas, approvedStatesList, dataLoaded]);
+  }, [serviceAreas, dataLoaded]);
   
   useEffect(() => {
     if (dataLoaded) {
@@ -937,7 +928,7 @@ export default function AdminDashboardPage() {
                                       <SelectValue placeholder="State" />
                                   </SelectTrigger>
                                   <SelectContent>
-                                      {approvedStatesList.sort().map(state => (
+                                      {states.map(state => (
                                           <SelectItem key={state} value={state}>{state}</SelectItem>
                                       ))}
                                   </SelectContent>

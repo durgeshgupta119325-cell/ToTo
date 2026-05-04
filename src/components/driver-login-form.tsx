@@ -7,7 +7,7 @@ import * as z from "zod";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Eye, EyeOff } from "lucide-react";
-import { getAuth, GoogleAuthProvider, signInWithPopup } from "firebase/auth";
+import { GoogleAuthProvider, signInWithPopup } from "firebase/auth";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -28,7 +28,7 @@ import {
 } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { DUMMY_DRIVERS } from "@/lib/mock-data";
-import { useFirebaseApp } from "@/firebase";
+import { useAuth } from "@/firebase";
 
 const formSchema = z.object({
   email: z.string().email("Please enter a valid email address."),
@@ -45,7 +45,7 @@ export function DriverLoginForm() {
   const [showPassword, setShowPassword] = useState(false);
   const { toast } = useToast();
   const router = useRouter();
-  const app = useFirebaseApp();
+  const auth = useAuth();
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -92,7 +92,6 @@ export function DriverLoginForm() {
   }
 
   const handleGoogleSignIn = async () => {
-    const auth = getAuth(app);
     const provider = new GoogleAuthProvider();
     try {
         const result = await signInWithPopup(auth, provider);
@@ -119,13 +118,23 @@ export function DriverLoginForm() {
             });
             await auth.signOut();
         }
-    } catch (error) {
+    } catch (error: any) {
         console.error("Google Sign-In Error:", error);
-        toast({
-            variant: "destructive",
-            title: "Sign-In Error",
-            description: "Could not connect to Google. Please check your internet connection.",
-        });
+        
+        if (error.code === 'auth/configuration-not-found') {
+            toast({
+                variant: "destructive",
+                title: "Configuration Missing",
+                description: "Google Sign-In is not enabled in your Firebase project. Please go to the Firebase Console and enable Google Authentication.",
+                duration: 6000,
+            });
+        } else {
+            toast({
+                variant: "destructive",
+                title: "Sign-In Error",
+                description: "Could not connect to Google. Please check your internet connection.",
+            });
+        }
     }
   };
 
