@@ -49,8 +49,8 @@ export function AdminLoginForm() {
   });
 
   function onSubmit(values: z.infer<typeof formSchema>) {
-    // Dummy admin login
-    if (values.email === "admin@toto.com" && values.password === "admin") {
+    // Dummy admin login with updated credentials
+    if (values.email === "totoadmin@gmail.com" && values.password === "admin") {
         toast({
           title: "Admin Login Successful",
           description: "Welcome back! Redirecting to the admin dashboard...",
@@ -83,7 +83,7 @@ export function AdminLoginForm() {
                 <FormItem>
                   <FormLabel>Email</FormLabel>
                   <FormControl>
-                    <Input {...field} />
+                    <Input {...field} placeholder="totoadmin@gmail.com" />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
