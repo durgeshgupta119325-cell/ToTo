@@ -1,4 +1,3 @@
-
 "use client";
 
 import Link from 'next/link';
@@ -45,7 +44,6 @@ export default function DriverDashboardPage() {
   const [otpInput, setOtpInput] = useState('');
   const [isVerifying, setIsVerifying] = useState(false);
 
-  // 1. Listen for Incoming Requests
   useEffect(() => {
     if (!isOnline || !user || activeRide) return;
 
@@ -73,7 +71,6 @@ export default function DriverDashboardPage() {
     return () => unsubscribe();
   }, [isOnline, user, db, activeRide]);
 
-  // 2. Listen for Current Active Ride Updates
   useEffect(() => {
     if (!activeRide || !db) return;
 
@@ -160,7 +157,6 @@ export default function DriverDashboardPage() {
       <main className="flex-1 p-4 md:p-8">
         <div className="mx-auto max-w-4xl space-y-6">
           
-          {/* Incoming Request Overlay */}
           {incomingRequest && (
             <Card className="border-4 border-primary shadow-2xl animate-in zoom-in-95">
                 <CardHeader className="bg-primary/5 pb-4">
@@ -203,7 +199,6 @@ export default function DriverDashboardPage() {
             </Card>
           )}
 
-          {/* Active Ride Control */}
           {activeRide && (
             <Card className="border-2 border-primary shadow-lg overflow-hidden">
                 <div className="bg-primary text-black px-6 py-2 flex items-center justify-between font-bold text-xs uppercase tracking-widest">
@@ -287,7 +282,6 @@ export default function DriverDashboardPage() {
             </Card>
           )}
 
-          {/* Regular Dashboard Content */}
           {!incomingRequest && !activeRide && (
             <>
                 <div className="flex flex-wrap items-center justify-between gap-4">

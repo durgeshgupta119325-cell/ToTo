@@ -1,4 +1,3 @@
-
 "use client";
 
 import Link from 'next/link';
@@ -105,7 +104,6 @@ export default function AdminDashboardPage() {
   const [dataLoaded, setDataLoaded] = useState(false);
 
   useEffect(() => {
-    // 1. Initialize Driver List
     const storedDrivers = localStorage.getItem('toto-admin-drivers');
     if (storedDrivers) {
       setDriverList(JSON.parse(storedDrivers));
@@ -114,7 +112,6 @@ export default function AdminDashboardPage() {
       localStorage.setItem('toto-admin-drivers', JSON.stringify(DUMMY_DRIVERS));
     }
     
-    // 2. Initialize Service Areas
     const storedAreas = localStorage.getItem('toto-admin-service-areas');
     if (storedAreas) {
       setServiceAreas(JSON.parse(storedAreas));
@@ -123,7 +120,6 @@ export default function AdminDashboardPage() {
       localStorage.setItem('toto-admin-service-areas', JSON.stringify(initialServiceAreas));
     }
     
-    // 3. Initialize Rates
     const storedRates = localStorage.getItem('toto-admin-rates');
     if (storedRates) {
       setRates(JSON.parse(storedRates));
@@ -133,7 +129,6 @@ export default function AdminDashboardPage() {
       localStorage.setItem('toto-admin-rates', JSON.stringify(initialRates));
     }
     
-    // 4. Initialize Commissions
     const storedCommission = localStorage.getItem('toto-admin-commission-rates');
     if (storedCommission) {
       setCommissionRates(JSON.parse(storedCommission));
@@ -143,7 +138,6 @@ export default function AdminDashboardPage() {
       localStorage.setItem('toto-admin-commission-rates', JSON.stringify(initialComm));
     }
 
-    // 5. Initialize Today Stats
     const storedToday = localStorage.getItem('toto-admin-today-stats');
     if (storedToday) {
       const parsed = JSON.parse(storedToday);
@@ -196,7 +190,6 @@ export default function AdminDashboardPage() {
     }
   }, [commissionRates, dataLoaded]);
 
-
   const [selectedDriver, setSelectedDriver] = useState<Driver | null>(null);
   const [selectedCustomer, setSelectedCustomer] = useState(DUMMY_CUSTOMERS[0]);
   const [customerSearch, setCustomerSearch] = useState('');
@@ -208,12 +201,10 @@ export default function AdminDashboardPage() {
   const [commissionInfo, setCommissionInfo] = useState<{rate: number; amount: number} | null>(null);
   const [todayCommissionInfo, setTodayCommissionInfo] = useState<{rate: number; amount: number} | null>(null);
 
-
   useEffect(() => {
     const now = new Date();
     const currentHour = now.getHours();
     const isNightTime = currentHour >= 21 || currentHour < 6;
-
     const rate = isNightTime ? commissionRates.night / 100 : commissionRates.day / 100;
     
     setCommissionInfo({

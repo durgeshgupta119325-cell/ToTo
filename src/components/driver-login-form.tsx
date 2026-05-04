@@ -1,4 +1,3 @@
-
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -6,7 +5,7 @@ import { useForm } from "react-hook-form";
 import * as z from "zod";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff, Loader2 } from "lucide-react";
 import { GoogleAuthProvider, signInWithPopup } from "firebase/auth";
 
 import { Button } from "@/components/ui/button";
@@ -43,6 +42,7 @@ const GoogleIcon = (props: React.SVGProps<SVGSVGElement>) => (
 
 export function DriverLoginForm() {
   const [showPassword, setShowPassword] = useState(false);
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const { toast } = useToast();
   const router = useRouter();
   const auth = useAuth();
@@ -56,13 +56,11 @@ export function DriverLoginForm() {
   });
 
   useEffect(() => {
-    // Ensure the data is initialized correctly
     const storedDrivers = localStorage.getItem('toto-admin-drivers');
     if (!storedDrivers) {
       localStorage.setItem('toto-admin-drivers', JSON.stringify(DUMMY_DRIVERS));
     }
   }, []);
-
 
   function onSubmit(values: z.infer<typeof formSchema>) {
     let drivers: typeof DUMMY_DRIVERS = [];
@@ -92,6 +90,7 @@ export function DriverLoginForm() {
   }
 
   const handleGoogleSignIn = async () => {
+    setIsGoogleLoading(true);
     const provider = new GoogleAuthProvider();
     try {
         const result = await signInWithPopup(auth, provider);
@@ -121,20 +120,22 @@ export function DriverLoginForm() {
     } catch (error: any) {
         console.error("Google Sign-In Error:", error);
         
-        if (error.code === 'auth/configuration-not-found') {
+        if (error.code === 'auth/configuration-not-found' || error.message.includes('configuration-not-found')) {
             toast({
                 variant: "destructive",
                 title: "Configuration Missing",
-                description: "Google Sign-In is not enabled in your Firebase project. Please go to the Firebase Console and enable Google Authentication.",
-                duration: 6000,
+                description: "Google Sign-In is not enabled. ACTION REQUIRED: Please go to the Firebase Console -> Authentication -> Sign-in method and enable Google.",
+                duration: 8000,
             });
         } else {
             toast({
                 variant: "destructive",
                 title: "Sign-In Error",
-                description: "Could not connect to Google. Please check your internet connection.",
+                description: error.message || "Could not connect to Google. Please try again.",
             });
         }
+    } finally {
+        setIsGoogleLoading(false);
     }
   };
 
@@ -209,9 +210,18 @@ export function DriverLoginForm() {
                 </span>
             </div>
         </div>
-        <Button variant="outline" className="w-full h-11" onClick={handleGoogleSignIn}>
-            <GoogleIcon className="mr-2 h-4 w-4" />
-            Continue with Google
+        <Button 
+          variant="outline" 
+          className="w-full h-11" 
+          onClick={handleGoogleSignIn}
+          disabled={isGoogleLoading}
+        >
+            {isGoogleLoading ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+                <GoogleIcon className="mr-2 h-4 w-4" />
+            )}
+            {isGoogleLoading ? "Connecting..." : "Continue with Google"}
         </Button>
       </CardContent>
     </Card>
