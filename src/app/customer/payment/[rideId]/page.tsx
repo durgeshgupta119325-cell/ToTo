@@ -1,0 +1,241 @@
+
+"use client";
+
+import { useState, useEffect, useMemo } from 'react';
+import { useParams, useRouter } from 'next/navigation';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Icons } from '@/components/icons';
+import { CheckCircle2, IndianRupee, CreditCard, Wallet, Banknote, Download, ArrowLeft, ArrowRight, Ticket, Loader2 } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
+import { useFirestore, useDocData } from '@/firebase';
+import { doc, updateDoc } from 'firebase/firestore';
+import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import { Separator } from '@/components/ui/separator';
+import { cn } from '@/lib/utils';
+
+export default function CustomerPaymentPage() {
+  const params = useParams();
+  const router = useRouter();
+  const { toast } = useToast();
+  const db = useFirestore();
+  const rideId = params.rideId as string;
+  
+  const rideRef = useMemo(() => rideId ? doc(db, 'rides', rideId) : null, [rideId, db]);
+  const { data: ride, loading } = useDocData(rideRef);
+
+  const [paymentMode, setPaymentMode] = useState<'UPI' | 'Card' | 'Cash' | 'Wallet' | null>(null);
+  const [coupon, setCoupon] = useState('');
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [isSuccess, setIsSuccess] = useState(false);
+
+  // Derived fare breakdown
+  const breakdown = useMemo(() => {
+    if (!ride) return null;
+    const base = Math.round(ride.fare * 0.7);
+    const dist = Math.round(ride.fare * 0.15);
+    const plat = 15;
+    const gst = Math.round(ride.fare * 0.05);
+    return { base, dist, plat, gst, total: ride.fare };
+  }, [ride]);
+
+  const handlePay = async () => {
+    if (!paymentMode) {
+      toast({ variant: 'destructive', title: 'Payment Method Required', description: 'Please select a payment method.' });
+      return;
+    }
+
+    setIsProcessing(true);
+    // Simulate payment delay
+    await new Promise(r => setTimeout(r, 2000));
+
+    const txnId = `TXN_${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
+    
+    if (rideRef) {
+      await updateDoc(rideRef, {
+        paymentStatus: 'success',
+        paymentMode: paymentMode,
+        transactionId: txnId,
+        status: 'completed'
+      });
+    }
+
+    setIsProcessing(false);
+    setIsSuccess(true);
+    toast({ title: 'Payment Successful', description: 'Your transaction has been confirmed.' });
+  };
+
+  if (loading) return <div className="flex min-h-screen items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
+  if (!ride) return <div className="p-8 text-center">Ride not found.</div>;
+
+  return (
+    <div className="flex min-h-screen flex-col bg-secondary/30 p-4 md:p-8">
+      <div className="mx-auto max-w-2xl w-full space-y-6">
+        <header className="flex items-center justify-between mb-4">
+          <Link href="/customer/dashboard">
+            <Button variant="ghost" size="sm"><ArrowLeft className="mr-2 h-4 w-4" /> Dashboard</Button>
+          </Link>
+          <Icons.TotoLogo className="h-8 w-auto text-primary" />
+        </header>
+
+        {!isSuccess ? (
+          <>
+            <div className="grid gap-6 md:grid-cols-1">
+              {/* Trip Details */}
+              <Card className="border-none shadow-sm overflow-hidden">
+                <div className="bg-primary/10 px-6 py-3 flex justify-between items-center border-b border-primary/20">
+                    <span className="text-xs font-bold uppercase tracking-widest text-primary-foreground/70">Trip Summary</span>
+                    <Badge variant="outline" className="bg-background border-primary/20">{ride.id}</Badge>
+                </div>
+                <CardContent className="p-6 space-y-4">
+                  <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <p className="text-muted-foreground">Driver</p>
+                      <p className="font-bold">{ride.driverName || 'TOTO Driver'}</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">Distance</p>
+                      <p className="font-bold">{ride.distance} km</p>
+                    </div>
+                  </div>
+                  <Separator />
+                  <div className="space-y-2">
+                    <div className="flex items-start gap-2 text-sm">
+                      <div className="h-2 w-2 rounded-full bg-primary mt-1.5" />
+                      <p className="truncate"><span className="text-muted-foreground mr-1">From:</span> {ride.pickup}</p>
+                    </div>
+                    <div className="flex items-start gap-2 text-sm">
+                      <div className="h-2 w-2 rounded-full bg-destructive mt-1.5" />
+                      <p className="truncate"><span className="text-muted-foreground mr-1">To:</span> {ride.destination}</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Fare Breakdown */}
+              <Card className="border-none shadow-sm">
+                <CardHeader>
+                  <CardTitle className="text-lg">Fare Breakdown</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Base Fare</span>
+                    <span>₹{breakdown?.base}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Distance Charge</span>
+                    <span>₹{breakdown?.dist}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Platform Fee</span>
+                    <span>₹{breakdown?.plat}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">GST (5%)</span>
+                    <span>₹{breakdown?.gst}</span>
+                  </div>
+                  <Separator />
+                  <div className="flex justify-between font-black text-xl">
+                    <span>Total Amount</span>
+                    <span className="text-primary">₹{breakdown?.total}</span>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Payment Methods */}
+              <Card className="border-none shadow-sm">
+                <CardHeader>
+                  <CardTitle className="text-lg">Select Payment Method</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-2 gap-3">
+                    {[
+                      { id: 'UPI', icon: Wallet, label: 'UPI' },
+                      { id: 'Card', icon: CreditCard, label: 'Card' },
+                      { id: 'Cash', icon: Banknote, label: 'Cash' },
+                      { id: 'Wallet', icon: Wallet, label: 'Wallet' }
+                    ].map((mode) => (
+                      <button
+                        key={mode.id}
+                        onClick={() => setPaymentMode(mode.id as any)}
+                        className={cn(
+                          "flex flex-col items-center justify-center p-4 rounded-xl border-2 transition-all gap-2",
+                          paymentMode === mode.id ? "border-primary bg-primary/5 shadow-inner" : "border-muted hover:border-primary/50"
+                        )}
+                      >
+                        <mode.icon className={cn("h-6 w-6", paymentMode === mode.id ? "text-primary" : "text-muted-foreground")} />
+                        <span className="text-xs font-bold">{mode.label}</span>
+                      </button>
+                    ))}
+                  </div>
+
+                  <div className="flex gap-2 mt-4">
+                    <div className="relative flex-1">
+                      <Ticket className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <Input 
+                        placeholder="Apply Coupon" 
+                        value={coupon} 
+                        onChange={(e) => setCoupon(e.target.value)}
+                        className="pl-10"
+                      />
+                    </div>
+                    <Button variant="secondary">Apply</Button>
+                  </div>
+
+                  <Button 
+                    className="w-full h-12 text-lg font-bold" 
+                    onClick={handlePay}
+                    disabled={isProcessing}
+                  >
+                    {isProcessing ? <Loader2 className="h-5 w-5 animate-spin" /> : `PAY ₹${breakdown?.total}`}
+                  </Button>
+                </CardContent>
+              </Card>
+            </div>
+          </>
+        ) : (
+          <div className="animate-in zoom-in-95 duration-500">
+            <Card className="border-none shadow-xl">
+              <CardContent className="p-12 text-center space-y-6">
+                <div className="mx-auto h-20 w-20 bg-green-100 rounded-full flex items-center justify-center">
+                  <CheckCircle2 className="h-12 w-12 text-green-600" />
+                </div>
+                <div className="space-y-2">
+                  <h2 className="text-3xl font-black">Success!</h2>
+                  <p className="text-muted-foreground">Thank you for riding with TOTO.</p>
+                </div>
+                
+                <div className="bg-muted/30 p-6 rounded-2xl border border-dashed border-muted-foreground/30 space-y-4">
+                  <div className="flex justify-between items-center text-sm">
+                    <span className="text-muted-foreground">Transaction ID</span>
+                    <span className="font-mono font-bold">{ride.transactionId}</span>
+                  </div>
+                  <div className="flex justify-between items-center text-sm">
+                    <span className="text-muted-foreground">Amount Paid</span>
+                    <span className="font-bold">₹{ride.fare}</span>
+                  </div>
+                  <div className="flex justify-between items-center text-sm">
+                    <span className="text-muted-foreground">Payment Mode</span>
+                    <Badge variant="secondary">{ride.paymentMode}</Badge>
+                  </div>
+                </div>
+
+                <div className="flex flex-col gap-3 pt-4">
+                  <Button variant="outline" className="h-12 border-primary/20 hover:bg-primary/5">
+                    <Download className="mr-2 h-4 w-4" /> Download Invoice
+                  </Button>
+                  <Button className="h-12" asChild>
+                    <Link href="/customer/dashboard">Back to Home <ArrowRight className="ml-2 h-4 w-4" /></Link>
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+import Link from 'next/link';

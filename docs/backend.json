@@ -23,7 +23,7 @@
     },
     "ride": {
       "title": "Ride",
-      "description": "A ride booking record.",
+      "description": "A ride booking record including detailed payment data.",
       "type": "object",
       "properties": {
         "customerId": { "type": "string" },
@@ -37,9 +37,18 @@
           "enum": ["pending", "searching_all", "accepted", "arrived", "started", "completed", "cancelled"]
         },
         "fare": { "type": "number" },
+        "baseFare": { "type": "number" },
+        "distanceCharge": { "type": "number" },
+        "platformFee": { "type": "number" },
+        "gst": { "type": "number" },
+        "paymentStatus": { "type": "string", "enum": ["pending", "success", "failed"] },
+        "paymentMode": { "type": "string", "enum": ["UPI", "Card", "Cash", "Wallet"] },
+        "transactionId": { "type": "string" },
         "otp": { "type": "string" },
         "timestamp": { "type": "string", "format": "date-time" },
-        "distance": { "type": "number" }
+        "distance": { "type": "number" },
+        "commissionAmount": { "type": "number" },
+        "netDriverEarnings": { "type": "number" }
       }
     }
   },

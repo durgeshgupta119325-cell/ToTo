@@ -4,11 +4,12 @@
 import { useState, useMemo, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Icons } from '@/components/icons';
-import { ArrowLeft, MapPin, Car, Zap, Globe, Plus, Minus, Navigation, Search, Info, Loader2, CheckCircle2 } from 'lucide-react';
+import { ArrowLeft, MapPin, Car, Zap, Globe, Plus, Minus, Navigation, Search, Info, Loader2, CheckCircle2, CreditCard } from 'lucide-react';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { useToast } from '@/hooks/use-toast';
 import { BOOK_RIDE_SERVICE_AREAS, DEFAULT_RATES } from '@/lib/mock-data';
@@ -28,10 +29,11 @@ type RideOption = {
 
 export default function BookRidePage() {
   const { toast } = useToast();
+  const router = useRouter();
   const db = useFirestore();
   const { user } = useUser();
   
-  const [step, setStep] = useState<'search' | 'options' | 'requesting' | 'confirmed' | 'arrived' | 'started'>('search');
+  const [step, setStep] = useState<'search' | 'options' | 'requesting' | 'confirmed' | 'arrived' | 'started' | 'completed'>('search');
   const [pickup, setPickup] = useState('');
   const [destination, setDestination] = useState('');
   const [distance, setDistance] = useState<number | null>(null);
@@ -55,6 +57,7 @@ export default function BookRidePage() {
         if (data.status === 'accepted') setStep('confirmed');
         if (data.status === 'arrived') setStep('arrived');
         if (data.status === 'started') setStep('started');
+        if (data.status === 'completed') setStep('completed');
       }
     }, async (err) => {
         const permissionError = new FirestorePermissionError({
@@ -112,6 +115,7 @@ export default function BookRidePage() {
         destination,
         fare: option.fare,
         status: 'pending',
+        paymentStatus: 'pending',
         otp,
         timestamp: serverTimestamp(),
         distance,
@@ -132,6 +136,12 @@ export default function BookRidePage() {
     setCurrentRideId(rideId);
     setCountdown(60);
     setStep('requesting');
+  };
+
+  const handleProceedToPayment = () => {
+    if (currentRideId) {
+        router.push(`/customer/payment/${currentRideId}`);
+    }
   };
 
   const handleNewBooking = () => {
@@ -267,38 +277,42 @@ export default function BookRidePage() {
                     </div>
                 )}
                 
-                {(step === 'confirmed' || step === 'arrived' || step === 'started') && currentRideData && (
+                {(step === 'confirmed' || step === 'arrived' || step === 'started' || step === 'completed') && currentRideData && (
                     <div className="space-y-6 animate-in zoom-in-95 duration-300">
                         <div className="flex flex-col items-center gap-3">
                             <div className={cn(
                                 "h-16 w-16 rounded-full flex items-center justify-center shadow-lg",
-                                step === 'started' ? "bg-green-100 text-green-600" : "bg-primary/10 text-primary"
+                                (step === 'started' || step === 'completed') ? "bg-green-100 text-green-600" : "bg-primary/10 text-primary"
                             )}>
-                                {step === 'started' ? <CheckCircle2 className="h-8 w-8" /> : <Car className="h-8 w-8 animate-bounce" />}
+                                {(step === 'started' || step === 'completed') ? <CheckCircle2 className="h-8 w-8" /> : <Car className="h-8 w-8 animate-bounce" />}
                             </div>
                             <div className="text-center">
                                 <h2 className="text-2xl font-bold">
                                     {step === 'confirmed' && "Driver on the way!"}
                                     {step === 'arrived' && "Driver has arrived!"}
                                     {step === 'started' && "Trip Started!"}
+                                    {step === 'completed' && "Arrived at Destination!"}
                                 </h2>
                                 <p className="text-sm text-muted-foreground">
                                     {step === 'confirmed' && `Driver ${currentRideData.driverName} is expected in 10 mins.`}
                                     {step === 'arrived' && "Please share the OTP below with your driver."}
                                     {step === 'started' && "Enjoy your TOTO ride!"}
+                                    {step === 'completed' && "Please complete the payment to end your trip."}
                                 </p>
                             </div>
                         </div>
 
-                        <Card className="border-2 border-primary/20 bg-primary/5">
-                            <CardContent className="pt-6 text-center space-y-2">
-                                <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Your Ride OTP</p>
-                                <div className="text-4xl font-black tracking-[0.5em] text-primary">
-                                    {currentRideData.otp}
-                                </div>
-                                <p className="text-[10px] text-muted-foreground">Share this only with your driver at pickup.</p>
-                            </CardContent>
-                        </Card>
+                        {step !== 'completed' && (
+                            <Card className="border-2 border-primary/20 bg-primary/5">
+                                <CardContent className="pt-6 text-center space-y-2">
+                                    <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Your Ride OTP</p>
+                                    <div className="text-4xl font-black tracking-[0.5em] text-primary">
+                                        {currentRideData.otp}
+                                    </div>
+                                    <p className="text-[10px] text-muted-foreground">Share this only with your driver at pickup.</p>
+                                </CardContent>
+                            </Card>
+                        )}
 
                         <div className="rounded-xl border bg-muted/30 p-4 text-sm space-y-3">
                             <div className="flex items-center justify-between pb-2 border-b">
@@ -311,7 +325,7 @@ export default function BookRidePage() {
                                         <p className="text-[10px] text-muted-foreground">★ 4.8 Rating</p>
                                     </div>
                                 </div>
-                                <Badge variant="outline" className="bg-background">₹{currentRideData.fare}</Badge>
+                                <Badge variant="outline" className="bg-background font-bold text-primary">₹{currentRideData.fare}</Badge>
                             </div>
                             <div className="space-y-2 pt-1">
                                 <div className="flex items-start gap-3">
@@ -325,8 +339,10 @@ export default function BookRidePage() {
                             </div>
                         </div>
 
-                        {step === 'started' ? (
-                            <Button size="lg" className="w-full" onClick={handleNewBooking}>Complete Trip</Button>
+                        {step === 'completed' ? (
+                            <Button size="lg" className="w-full h-14 text-lg font-bold" onClick={handleProceedToPayment}>
+                                <CreditCard className="mr-2 h-5 w-5" /> Proceed to Payment
+                            </Button>
                         ) : (
                             <div className="flex items-center gap-2">
                                 <Button variant="outline" className="flex-1">Help</Button>
@@ -417,7 +433,7 @@ export default function BookRidePage() {
                         </div>
 
                         {/* Driver Simulation Marker */}
-                        {(step === 'confirmed' || step === 'arrived') && (
+                        {(step === 'confirmed' || step === 'arrived' || step === 'started') && (
                             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 animate-in fade-in duration-500">
                                 <div className="flex flex-col items-center">
                                      <div className="bg-background border-2 border-green-500 rounded-lg px-2 py-1 shadow-lg text-[10px] font-bold mb-1 whitespace-nowrap">
