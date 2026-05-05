@@ -82,6 +82,7 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
+import { cn } from '@/lib/utils';
 
 import { useState, useEffect, useMemo } from 'react';
 import { DUMMY_DRIVERS, DUMMY_CUSTOMERS, DUMMY_LOCATIONS_DATA, ADMIN_DASHBOARD_STATS, DEFAULT_RATES, MOCK_PAYMENTS, MOCK_SETTLEMENTS } from '@/lib/mock-data';
