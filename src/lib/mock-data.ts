@@ -66,11 +66,42 @@ export const DUMMY_CUSTOMERS = [
 ];
 
 export const DUMMY_LOCATIONS_DATA = [
-    { state: 'Maharashtra', district: 'Mumbai City', city: 'Mumbai' },
-    { state: 'Delhi', district: 'New Delhi', city: 'New Delhi' },
-    { state: 'Karnataka', district: 'Bengaluru Urban', city: 'Bengaluru' },
-    { state: 'Uttar Pradesh', district: 'Lucknow', city: 'Lucknow' },
+    { state: 'Andhra Pradesh', district: 'Amaravati', city: 'Vijayawada' },
+    { state: 'Arunachal Pradesh', district: 'Itanagar', city: 'Itanagar' },
+    { state: 'Assam', district: 'Kamrup', city: 'Guwahati' },
+    { state: 'Bihar', district: 'Patna', city: 'Patna' },
+    { state: 'Chhattisgarh', district: 'Raipur', city: 'Raipur' },
+    { state: 'Goa', district: 'North Goa', city: 'Panaji' },
     { state: 'Gujarat', district: 'Ahmedabad', city: 'Ahmedabad' },
+    { state: 'Haryana', district: 'Gurugram', city: 'Gurugram' },
+    { state: 'Himachal Pradesh', district: 'Shimla', city: 'Shimla' },
+    { state: 'Jharkhand', district: 'Ranchi', city: 'Ranchi' },
+    { state: 'Karnataka', district: 'Bengaluru Urban', city: 'Bengaluru' },
+    { state: 'Kerala', district: 'Thiruvananthapuram', city: 'Thiruvananthapuram' },
+    { state: 'Madhya Pradesh', district: 'Bhopal', city: 'Bhopal' },
+    { state: 'Maharashtra', district: 'Mumbai City', city: 'Mumbai' },
+    { state: 'Manipur', district: 'Imphal West', city: 'Imphal' },
+    { state: 'Meghalaya', district: 'East Khasi Hills', city: 'Shillong' },
+    { state: 'Mizoram', district: 'Aizawl', city: 'Aizawl' },
+    { state: 'Nagaland', district: 'Kohima', city: 'Kohima' },
+    { state: 'Odisha', district: 'Khurda', city: 'Bhubaneswar' },
+    { state: 'Punjab', district: 'Ludhiana', city: 'Ludhiana' },
+    { state: 'Rajasthan', district: 'Jaipur', city: 'Jaipur' },
+    { state: 'Sikkim', district: 'Gangtok', city: 'Gangtok' },
+    { state: 'Tamil Nadu', district: 'Chennai', city: 'Chennai' },
+    { state: 'Telangana', district: 'Hyderabad', city: 'Hyderabad' },
+    { state: 'Tripura', district: 'West Tripura', city: 'Agartala' },
+    { state: 'Uttar Pradesh', district: 'Lucknow', city: 'Lucknow' },
+    { state: 'Uttarakhand', district: 'Dehradun', city: 'Dehradun' },
+    { state: 'West Bengal', district: 'Kolkata', city: 'Kolkata' },
+    { state: 'Andaman and Nicobar Islands', district: 'South Andaman', city: 'Port Blair' },
+    { state: 'Chandigarh', district: 'Chandigarh', city: 'Chandigarh' },
+    { state: 'Dadra and Nagar Haveli and Daman and Diu', district: 'Daman', city: 'Daman' },
+    { state: 'Delhi', district: 'New Delhi', city: 'New Delhi' },
+    { state: 'Jammu and Kashmir', district: 'Srinagar', city: 'Srinagar' },
+    { state: 'Ladakh', district: 'Leh', city: 'Leh' },
+    { state: 'Lakshadweep', district: 'Kavaratti', city: 'Kavaratti' },
+    { state: 'Puducherry', district: 'Puducherry', city: 'Puducherry' },
 ];
 
 export const ADMIN_DASHBOARD_STATS = {
@@ -88,6 +119,22 @@ export const SUPPORT_FAQS = [
   {
     question: 'How do I book a ride?',
     answer: 'Go to the "Book a Ride" page, enter your pickup and destination locations, and choose your preferred vehicle type.',
+  },
+  {
+    question: 'What types of vehicles are available?',
+    answer: 'TOTO offers E-Rickshaws for short distances and standard Cabs for longer, more comfortable journeys.',
+  },
+  {
+    question: 'How is the fare calculated?',
+    answer: 'Fares are calculated based on the distance between your pickup and destination. Rates vary by vehicle type.',
+  },
+  {
+    question: 'Can I cancel a ride?',
+    answer: 'Yes, you can cancel a ride before the driver accepts or if the driver is delayed.',
+  },
+  {
+    question: 'How can I become a driver?',
+    answer: 'Navigate to the "Become a Driver" section on the home page and complete the registration process.',
   },
 ];
 

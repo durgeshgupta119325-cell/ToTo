@@ -139,7 +139,9 @@ export default function AdminDashboardPage() {
   const isNight = currentHour >= 21 || currentHour < 6;
   const activeCommission = isNight ? nightCommission : dayCommission;
 
-  const states = Array.from(new Set(DUMMY_LOCATIONS_DATA.map(l => l.state)));
+  const states = useMemo(() => {
+    return Array.from(new Set(DUMMY_LOCATIONS_DATA.map(l => l.state))).sort();
+  }, []);
 
   return (
     <div className="flex min-h-dvh flex-col bg-secondary/20">
@@ -423,7 +425,7 @@ export default function AdminDashboardPage() {
                         <DialogTrigger asChild>
                             <Button size="sm"><Plus className="mr-2 h-4 w-4" /> Add New Hub</Button>
                         </DialogTrigger>
-                        <DialogContent>
+                        <DialogContent className="max-h-[90dvh] overflow-y-auto">
                             <DialogHeader>
                                 <DialogTitle>Register New Service Area</DialogTitle>
                                 <DialogDescription>Define a new city hub and its operational radius.</DialogDescription>
@@ -433,7 +435,7 @@ export default function AdminDashboardPage() {
                                     <Label>Select State</Label>
                                     <Select value={newHub.state} onValueChange={v => setNewHub({...newHub, state: v})}>
                                         <SelectTrigger><SelectValue placeholder="Select State" /></SelectTrigger>
-                                        <SelectContent>
+                                        <SelectContent className="max-h-[300px]">
                                             {states.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
                                         </SelectContent>
                                     </Select>
