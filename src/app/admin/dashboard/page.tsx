@@ -36,7 +36,8 @@ import {
   LayoutDashboard,
   Globe,
   Settings,
-  Clock
+  Clock,
+  Navigation
 } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
@@ -77,7 +78,7 @@ import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
 
 import { useState, useEffect, useMemo } from 'react';
-import { DUMMY_DRIVERS, DUMMY_CUSTOMERS, BOOK_RIDE_SERVICE_AREAS, ADMIN_DASHBOARD_STATS, DEFAULT_RATES, MOCK_PAYMENTS, MOCK_SETTLEMENTS } from '@/lib/mock-data';
+import { DUMMY_DRIVERS, DUMMY_CUSTOMERS, BOOK_RIDE_SERVICE_AREAS, ADMIN_DASHBOARD_STATS, DEFAULT_RATES, MOCK_PAYMENTS, MOCK_SETTLEMENTS, DUMMY_LOCATIONS_DATA } from '@/lib/mock-data';
 
 export default function AdminDashboardPage() {
   const router = useRouter();
@@ -87,6 +88,9 @@ export default function AdminDashboardPage() {
   const [paymentFilter, setPaymentFilter] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
   
+  // Area Management State
+  const [newHub, setNewHub] = useState({ state: '', city: '', range: '10' });
+
   // Commission States
   const [dayCommission, setDayCommission] = useState(15);
   const [nightCommission, setNightCommission] = useState(25);
@@ -121,9 +125,21 @@ export default function AdminDashboardPage() {
     setManualEntry({ rideId: '', customer: '', driver: '', amount: '', mode: 'UPI', status: 'success' });
   };
 
+  const handleAddHub = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newHub.state || !newHub.city) {
+      toast({ variant: 'destructive', title: 'Error', description: 'Please fill in all fields.' });
+      return;
+    }
+    toast({ title: 'Service Area Added', description: `${newHub.city}, ${newHub.state} is now registered with a ${newHub.range}km range.` });
+    setNewHub({ state: '', city: '', range: '10' });
+  };
+
   const currentHour = new Date().getHours();
   const isNight = currentHour >= 21 || currentHour < 6;
   const activeCommission = isNight ? nightCommission : dayCommission;
+
+  const states = Array.from(new Set(DUMMY_LOCATIONS_DATA.map(l => l.state)));
 
   return (
     <div className="flex min-h-dvh flex-col bg-secondary/20">
@@ -150,7 +166,7 @@ export default function AdminDashboardPage() {
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
             <div>
               <h1 className="text-3xl font-black tracking-tighter">Command Center</h1>
-              <p className="text-sm text-muted-foreground">Manage users, cities, and platform revenue.</p>
+              <p className="text-sm text-muted-foreground">Manage users, city hubs, and platform revenue.</p>
             </div>
           </div>
 
@@ -398,16 +414,54 @@ export default function AdminDashboardPage() {
             </TabsContent>
 
             <TabsContent value="hubs" className="space-y-6">
+                <div className="flex items-center justify-between">
+                    <div>
+                        <h2 className="text-xl font-bold">Service Area Management</h2>
+                        <p className="text-sm text-muted-foreground">Define cities and operational range.</p>
+                    </div>
+                    <Dialog>
+                        <DialogTrigger asChild>
+                            <Button size="sm"><Plus className="mr-2 h-4 w-4" /> Add New Hub</Button>
+                        </DialogTrigger>
+                        <DialogContent>
+                            <DialogHeader>
+                                <DialogTitle>Register New Service Area</DialogTitle>
+                                <DialogDescription>Define a new city hub and its operational radius.</DialogDescription>
+                            </DialogHeader>
+                            <form onSubmit={handleAddHub} className="space-y-4 pt-4">
+                                <div className="space-y-2">
+                                    <Label>Select State</Label>
+                                    <Select value={newHub.state} onValueChange={v => setNewHub({...newHub, state: v})}>
+                                        <SelectTrigger><SelectValue placeholder="Select State" /></SelectTrigger>
+                                        <SelectContent>
+                                            {states.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                                <div className="space-y-2">
+                                    <Label>City Name</Label>
+                                    <Input value={newHub.city} onChange={e => setNewHub({...newHub, city: e.target.value})} placeholder="E.g. Lucknow" />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label>Service Radius (Range in KM)</Label>
+                                    <div className="flex items-center gap-2">
+                                        <Input type="number" value={newHub.range} onChange={e => setNewHub({...newHub, range: e.target.value})} placeholder="10" />
+                                        <span className="text-sm font-bold text-muted-foreground">KM</span>
+                                    </div>
+                                </div>
+                                <Button type="submit" className="w-full">Register Hub</Button>
+                            </form>
+                        </DialogContent>
+                    </Dialog>
+                </div>
+
                 <Card className="border-none shadow-sm">
-                    <CardHeader>
-                        <CardTitle>Active City Hubs</CardTitle>
-                        <CardDescription>Serviceable areas where TOTO is operational.</CardDescription>
-                    </CardHeader>
                     <Table>
                         <TableHeader>
                             <TableRow>
                                 <TableHead>City</TableHead>
                                 <TableHead>State</TableHead>
+                                <TableHead>Range (Radius)</TableHead>
                                 <TableHead>Status</TableHead>
                                 <TableHead className="text-right">Actions</TableHead>
                             </TableRow>
@@ -415,10 +469,18 @@ export default function AdminDashboardPage() {
                         <TableBody>
                             {BOOK_RIDE_SERVICE_AREAS.map((area, idx) => (
                                 <TableRow key={idx}>
-                                    <TableCell className="font-bold">{area.city}</TableCell>
+                                    <TableCell className="font-bold flex items-center gap-2">
+                                        <MapPin className="h-4 w-4 text-primary" />
+                                        {area.city}
+                                    </TableCell>
                                     <TableCell>{area.state}</TableCell>
                                     <TableCell>
-                                        <Badge variant={area.active ? 'default' : 'secondary'}>
+                                        <Badge variant="secondary" className="font-mono">
+                                            <Navigation className="mr-1 h-3 w-3" /> {area.range || 10} km
+                                        </Badge>
+                                    </TableCell>
+                                    <TableCell>
+                                        <Badge variant={area.active ? 'default' : 'secondary'} className={cn(area.active && 'bg-green-500')}>
                                             {area.active ? 'Operational' : 'Paused'}
                                         </Badge>
                                     </TableCell>

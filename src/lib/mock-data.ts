@@ -69,6 +69,8 @@ export const DUMMY_LOCATIONS_DATA = [
     { state: 'Maharashtra', district: 'Mumbai City', city: 'Mumbai' },
     { state: 'Delhi', district: 'New Delhi', city: 'New Delhi' },
     { state: 'Karnataka', district: 'Bengaluru Urban', city: 'Bengaluru' },
+    { state: 'Uttar Pradesh', district: 'Lucknow', city: 'Lucknow' },
+    { state: 'Gujarat', district: 'Ahmedabad', city: 'Ahmedabad' },
 ];
 
 export const ADMIN_DASHBOARD_STATS = {
@@ -77,8 +79,9 @@ export const ADMIN_DASHBOARD_STATS = {
 };
 
 export const BOOK_RIDE_SERVICE_AREAS = [
-    { city: 'Mumbai', state: 'Maharashtra', active: true },
-    { city: 'Delhi', state: 'Delhi', active: true },
+    { city: 'Mumbai', state: 'Maharashtra', range: 25, active: true },
+    { city: 'Delhi', state: 'Delhi', range: 30, active: true },
+    { city: 'Lucknow', state: 'Uttar Pradesh', range: 15, active: false },
 ];
 
 export const SUPPORT_FAQS = [
