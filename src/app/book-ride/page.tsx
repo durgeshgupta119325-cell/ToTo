@@ -20,7 +20,7 @@ import { BOOK_RIDE_SERVICE_AREAS, DEFAULT_RATES } from '@/lib/mock-data';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { useFirestore, useUser } from '@/firebase';
-import { collection, doc, setDoc, onSnapshot, updateDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, doc, setDoc, onSnapshot, updateDoc, serverTimestamp, deleteDoc } from 'firebase/firestore';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
@@ -50,12 +50,11 @@ export default function BookRidePage() {
   const [currentRideId, setCurrentRideId] = useState<string | null>(null);
   const [currentRideData, setCurrentRideData] = useState<any>(null);
   const [countdown, setCountdown] = useState(60);
-  const [etaTimer, setEtaTimer] = useState(300); // 5 mins in seconds
+  const [etaTimer, setEtaTimer] = useState(300);
 
   const mapImage = useMemo(() => PlaceHolderImages.find((img) => img.id === 'book-ride-map'), []);
   const availableCities = BOOK_RIDE_SERVICE_AREAS.filter(area => area.active);
 
-  // Vehicle Options Factory
   const rideOptions: RideOption[] = useMemo(() => {
     if (!distance) return [];
     return [
@@ -66,7 +65,6 @@ export default function BookRidePage() {
     ];
   }, [distance]);
 
-  // Listen to ride updates
   useEffect(() => {
     if (!currentRideId) return;
 
@@ -75,8 +73,12 @@ export default function BookRidePage() {
         const data = snapshot.data();
         setCurrentRideData(data);
         if (data.status === 'accepted') setStep('confirmed');
+        if (data.status === 'started') {
+            toast({ title: "Trip Started!", description: "You are on your way." });
+            // For demo, we might want to navigate or show a different view
+        }
       }
-    }, async (err) => {
+    }, (err) => {
         const permissionError = new FirestorePermissionError({
           path: `rides/${currentRideId}`,
           operation: 'get',
@@ -85,9 +87,8 @@ export default function BookRidePage() {
     });
 
     return () => unsubscribe();
-  }, [currentRideId, db]);
+  }, [currentRideId, db, toast]);
 
-  // Handle finding driver countdown
   useEffect(() => {
     let timer: NodeJS.Timeout;
     if (step === 'requesting' && countdown > 0) {
@@ -99,15 +100,6 @@ export default function BookRidePage() {
     }
     return () => clearTimeout(timer);
   }, [step, countdown, currentRideId, db]);
-
-  // ETA Timer for confirmed ride
-  useEffect(() => {
-    let timer: NodeJS.Timeout;
-    if (step === 'confirmed' && etaTimer > 0) {
-      timer = setTimeout(() => setEtaTimer(etaTimer - 1), 1000);
-    }
-    return () => clearTimeout(timer);
-  }, [step, etaTimer]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -123,6 +115,7 @@ export default function BookRidePage() {
   const handleOpenConfirm = (option: RideOption) => {
     if (!user) {
         toast({ title: "Login Required", description: "Please log in to book." });
+        router.push('/customer/login');
         return;
     }
     setSelectedOption(option);
@@ -144,11 +137,10 @@ export default function BookRidePage() {
         status: 'pending',
         paymentStatus: 'pending',
         otp,
+        otpUsed: false,
         timestamp: serverTimestamp(),
         distance,
         type: selectedOption.type,
-        driverName: "Ramesh",
-        vehicleDetails: "KA-01-AB-1234, White Sedan"
     };
 
     setDoc(doc(db, 'rides', rideId), rideData)
@@ -167,15 +159,19 @@ export default function BookRidePage() {
     setStep('requesting');
   };
 
+  const handleCancelRide = () => {
+    if (currentRideId) {
+        deleteDoc(doc(db, 'rides', currentRideId));
+        setCurrentRideId(null);
+        setCurrentRideData(null);
+        setStep('search');
+        toast({ title: "Ride Cancelled", description: "Your booking has been removed." });
+    }
+  };
+
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
     toast({ title: "Copied!", description: "OTP copied to clipboard." });
-  };
-
-  const formatTime = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
   return (
@@ -308,7 +304,7 @@ export default function BookRidePage() {
                         <div className="flex items-center justify-center gap-2">
                             <Badge variant="outline" className="text-xs">{countdown}s remaining</Badge>
                         </div>
-                        <Button variant="ghost" className="text-destructive font-bold" onClick={() => setStep('options')}>
+                        <Button variant="ghost" className="text-destructive font-bold" onClick={handleCancelRide}>
                             Cancel Request
                         </Button>
                     </div>
@@ -321,7 +317,9 @@ export default function BookRidePage() {
                                 <CheckCircle2 className="h-7 w-7 text-green-600" />
                             </div>
                             <h2 className="text-2xl font-black">Ride Booked Successfully</h2>
-                            <p className="text-sm text-muted-foreground">Your driver is arriving in {Math.ceil(etaTimer / 60)} mins.</p>
+                            <p className="text-sm text-muted-foreground">
+                                {currentRideData.status === 'started' ? 'Trip in progress' : 'Driver is arriving shortly'}
+                            </p>
                         </div>
 
                         <Card className="border-4 border-primary/30 bg-primary/5 shadow-inner overflow-hidden relative">
@@ -331,15 +329,19 @@ export default function BookRidePage() {
                             <CardContent className="pt-8 pb-10 text-center space-y-4">
                                 <p className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground">Start Trip Code</p>
                                 <div className="flex items-center justify-center gap-4">
-                                    <div className="text-6xl font-black tracking-[0.2em] text-primary">
+                                    <div className={cn("text-6xl font-black tracking-[0.2em]", currentRideData.status === 'started' ? "text-muted-foreground line-through opacity-50" : "text-primary")}>
                                         {currentRideData.otp}
                                     </div>
-                                    <Button size="icon" variant="secondary" className="rounded-full h-10 w-10" onClick={() => copyToClipboard(currentRideData.otp)}>
-                                        <Copy className="h-4 w-4" />
-                                    </Button>
+                                    {currentRideData.status !== 'started' && (
+                                        <Button size="icon" variant="secondary" className="rounded-full h-10 w-10" onClick={() => copyToClipboard(currentRideData.otp)}>
+                                            <Copy className="h-4 w-4" />
+                                        </Button>
+                                    )}
                                 </div>
                                 <div className="space-y-1">
-                                    <p className="text-xs font-bold text-foreground">Share this code with your driver</p>
+                                    <p className="text-xs font-bold text-foreground">
+                                        {currentRideData.status === 'started' ? 'Code Verified' : 'Share this code with your driver'}
+                                    </p>
                                     <p className="text-[10px] text-muted-foreground italic">Valid until trip starts • Code expires in 10 mins</p>
                                 </div>
                             </CardContent>
@@ -349,27 +351,16 @@ export default function BookRidePage() {
                             <div className="flex items-center justify-between">
                                 <div className="flex items-center gap-3">
                                     <div className="h-10 w-10 rounded-full bg-background border-2 border-primary flex items-center justify-center font-black">
-                                        R
+                                        {currentRideData.driverName?.[0] || 'D'}
                                     </div>
                                     <div>
-                                        <p className="font-black text-sm">{currentRideData.driverName}</p>
+                                        <p className="font-black text-sm">{currentRideData.driverName || 'Ramesh'}</p>
                                         <p className="text-[10px] text-muted-foreground">★ 4.9 • 2.5k Trips</p>
                                     </div>
                                 </div>
                                 <div className="text-right">
                                     <p className="text-xs font-bold">{currentRideData.type}</p>
-                                    <p className="text-[10px] font-mono text-muted-foreground">KA-01-AB-1234</p>
-                                </div>
-                            </div>
-                            <Separator className="opacity-50" />
-                            <div className="space-y-2">
-                                <div className="flex items-start gap-3">
-                                    <MapPin className="h-4 w-4 text-primary shrink-0 mt-0.5" />
-                                    <p className="text-[10px] text-muted-foreground truncate font-medium">{currentRideData.pickup}</p>
-                                </div>
-                                <div className="flex items-start gap-3">
-                                    <MapPin className="h-4 w-4 text-destructive shrink-0 mt-0.5" />
-                                    <p className="text-[10px] text-muted-foreground truncate font-medium">{currentRideData.destination}</p>
+                                    <p className="text-[10px] font-mono text-muted-foreground">{currentRideData.vehicleDetails || 'KA-01-AB-1234'}</p>
                                 </div>
                             </div>
                         </div>
@@ -379,16 +370,11 @@ export default function BookRidePage() {
                                 <Button variant="outline" className="flex-1 font-bold h-12">Message</Button>
                                 <Button variant="outline" className="flex-1 font-bold h-12">Call</Button>
                             </div>
-                            <Button 
-                                variant="ghost" 
-                                className="text-destructive font-black text-xs h-10" 
-                                onClick={() => {
-                                    toast({ title: "Ride Cancelled", description: "Your booking has been removed." });
-                                    setStep('search');
-                                }}
-                            >
-                                Cancel My Ride
-                            </Button>
+                            {currentRideData.status !== 'started' && (
+                                <Button variant="ghost" className="text-destructive font-black text-xs h-10" onClick={handleCancelRide}>
+                                    Cancel My Ride
+                                </Button>
+                            )}
                         </div>
                     </div>
                 )}
@@ -419,19 +405,9 @@ export default function BookRidePage() {
                 </div>
             </div>
 
-            <div className="absolute right-6 bottom-12 z-20 flex flex-col gap-3">
-                <div className="flex flex-col bg-background rounded-2xl shadow-xl border overflow-hidden">
-                    <Button variant="ghost" size="icon" className="h-12 w-12 rounded-none border-b hover:bg-secondary"><Plus className="h-5 w-5" /></Button>
-                    <Button variant="ghost" size="icon" className="h-12 w-12 rounded-none hover:bg-secondary"><Minus className="h-5 w-5" /></Button>
-                </div>
-                <Button variant="secondary" size="icon" className="h-12 w-12 shadow-2xl bg-background hover:bg-primary hover:text-white transition-all transform active:scale-95">
-                    <Navigation className="h-5 w-5" />
-                </Button>
-            </div>
-
             {mapImage ? (
                 <Image
-                    alt="Urban Map Interface"
+                    alt="Urban Map"
                     src={mapImage.imageUrl}
                     fill
                     className="object-cover transition-opacity duration-1000"
@@ -443,48 +419,9 @@ export default function BookRidePage() {
                     <Loader2 className="h-10 w-10 text-primary animate-spin" />
                 </div>
             )}
-            
-            {step !== 'search' && (
-                <div className="absolute inset-0 pointer-events-none">
-                    {/* Visual Markers */}
-                    <div className="absolute top-1/3 left-1/4 -translate-x-1/2 -translate-y-1/2 flex flex-col items-center animate-in fade-in zoom-in-50">
-                        <div className="bg-background border-2 border-primary rounded-xl px-3 py-1 shadow-2xl text-[9px] font-black uppercase mb-1">Pickup</div>
-                        <div className="relative flex h-12 w-12 items-center justify-center">
-                            <div className="absolute h-full w-full rounded-full bg-primary opacity-20 animate-ping" />
-                            <div className="relative z-10 p-3 bg-primary text-primary-foreground rounded-2xl shadow-xl">
-                                <MapPin className="h-5 w-5" />
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="absolute bottom-1/3 right-1/4 translate-x-1/2 translate-y-1/2 flex flex-col items-center animate-in fade-in zoom-in-50 delay-200">
-                         <div className="bg-background border-2 border-destructive rounded-xl px-3 py-1 shadow-2xl text-[9px] font-black uppercase mb-1">Drop</div>
-                        <div className="relative flex h-12 w-12 items-center justify-center">
-                            <div className="absolute h-full w-full rounded-full bg-destructive opacity-20 animate-ping" />
-                            <div className="relative z-10 p-3 bg-destructive text-destructive-foreground rounded-2xl shadow-xl">
-                                <MapPin className="h-5 w-5" />
-                            </div>
-                        </div>
-                    </div>
-
-                    {step === 'confirmed' && (
-                        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 animate-in slide-in-from-top-4">
-                            <div className="flex flex-col items-center">
-                                 <div className="bg-background border-2 border-green-500 rounded-xl px-3 py-1 shadow-2xl text-[9px] font-black uppercase mb-1">
-                                    Driver: Ramesh
-                                </div>
-                                <div className="p-4 bg-green-500 text-white rounded-2xl shadow-2xl animate-bounce">
-                                    <Car className="h-7 w-7" />
-                                </div>
-                            </div>
-                        </div>
-                    )}
-                </div>
-            )}
           </div>
         </div>
 
-        {/* Confirmation Modal */}
         <Dialog open={isConfirmModalOpen} onOpenChange={setIsConfirmModalOpen}>
             <DialogContent className="sm:max-w-[400px] p-0 overflow-hidden border-none shadow-2xl">
                 <div className="bg-primary/10 p-6 border-b border-primary/20">
@@ -501,11 +438,9 @@ export default function BookRidePage() {
                             </div>
                             <div className="flex-1">
                                 <p className="text-sm font-black">{selectedOption?.type} Ride</p>
-                                <p className="text-[10px] text-muted-foreground">Standard 4-seater • AC</p>
+                                <p className="text-[10px] text-muted-foreground">Estimated ₹{selectedOption?.fare}</p>
                             </div>
-                            <p className="text-lg font-black text-primary">₹{selectedOption?.fare}</p>
                         </div>
-                        
                         <div className="space-y-3 pl-2">
                              <div className="flex items-start gap-3">
                                 <div className="h-2 w-2 rounded-full bg-primary mt-1.5" />
@@ -521,17 +456,6 @@ export default function BookRidePage() {
                                     <p className="text-xs font-semibold">{destination}</p>
                                 </div>
                             </div>
-                        </div>
-                    </div>
-
-                    <div className="space-y-3">
-                        <p className="text-[10px] font-black uppercase text-muted-foreground">Payment Method</p>
-                        <div className="flex items-center justify-between p-3 border rounded-xl hover:border-primary cursor-pointer transition-colors group">
-                            <div className="flex items-center gap-3">
-                                <CreditCard className="h-4 w-4 text-muted-foreground group-hover:text-primary" />
-                                <span className="text-xs font-bold">UPI / Cash / Card</span>
-                            </div>
-                            <ChevronRight className="h-4 w-4 text-muted-foreground" />
                         </div>
                     </div>
                 </div>
