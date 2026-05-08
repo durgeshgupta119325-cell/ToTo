@@ -84,7 +84,7 @@ export default function AdminDashboardPage() {
   const [newHub, setNewHub] = useState({ state: '', city: '', range: '10' });
 
   // Live monitor query
-  const liveRidesQuery = useMemo(() => query(collection(db, 'rides'), orderBy('timestamp', 'desc'), limit(10)), [db]);
+  const liveRidesQuery = useMemo(() => query(collection(db, 'rides'), orderBy('timestamp', 'desc'), limit(15)), [db]);
   const { data: liveRides } = useCollectionData(liveRidesQuery);
 
   const stats = useMemo(() => {
@@ -142,7 +142,7 @@ export default function AdminDashboardPage() {
                     </Card>
                     <Card className="border-none shadow-sm">
                         <CardHeader className="pb-2">
-                            <CardTitle className="text-xs font-bold text-muted-foreground uppercase">Revenue</CardTitle>
+                            <CardTitle className="text-xs font-bold text-muted-foreground uppercase">Revenue (Recent)</CardTitle>
                         </CardHeader>
                         <CardContent>
                             <div className="text-3xl font-black text-primary">₹{stats.grossVolume.toLocaleString()}</div>
@@ -172,7 +172,7 @@ export default function AdminDashboardPage() {
                                     <TableHead>Driver</TableHead>
                                     <TableHead>Code (OTP)</TableHead>
                                     <TableHead>Status</TableHead>
-                                    <TableHead className="text-right">OTP Used</TableHead>
+                                    <TableHead className="text-right">Activity</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
@@ -183,15 +183,34 @@ export default function AdminDashboardPage() {
                                         <TableCell>{ride.driverName || 'Searching...'}</TableCell>
                                         <TableCell className="font-black text-primary">{ride.otp}</TableCell>
                                         <TableCell>
-                                            <Badge variant={ride.status === 'completed' ? 'default' : 'outline'} className={cn(ride.status === 'completed' && 'bg-green-500 hover:bg-green-600')}>
+                                            <Badge 
+                                                variant={ride.status === 'completed' ? 'default' : 'outline'} 
+                                                className={cn(
+                                                    ride.status === 'completed' && 'bg-green-500 hover:bg-green-600',
+                                                    ride.status === 'started' && 'bg-blue-500 hover:bg-blue-600 text-white border-none'
+                                                )}
+                                            >
                                                 {ride.status.toUpperCase()}
                                             </Badge>
                                         </TableCell>
                                         <TableCell className="text-right">
-                                            {ride.otpUsed ? <CheckCircle2 className="h-4 w-4 text-green-500 inline" /> : <Clock className="h-4 w-4 text-muted-foreground inline" />}
+                                            {ride.otpUsed ? (
+                                                <Badge variant="secondary" className="bg-green-100 text-green-700 border-none">Verified</Badge>
+                                            ) : (
+                                                <div className="flex items-center justify-end gap-1 text-[10px] text-muted-foreground">
+                                                    <Clock className="h-3 w-3" /> Waiting
+                                                </div>
+                                            )}
                                         </TableCell>
                                     </TableRow>
                                 ))}
+                                {(!liveRides || liveRides.length === 0) && (
+                                    <TableRow>
+                                        <TableCell colSpan={6} className="text-center py-10 text-muted-foreground">
+                                            No active ride activity detected.
+                                        </TableCell>
+                                    </TableRow>
+                                )}
                             </TableBody>
                         </Table>
                     </CardContent>
@@ -200,7 +219,10 @@ export default function AdminDashboardPage() {
 
             <TabsContent value="hubs" className="space-y-6">
                 <div className="flex items-center justify-between">
-                    <h2 className="text-xl font-bold">Service Area Management</h2>
+                    <div>
+                        <h2 className="text-xl font-bold">Service Area Management</h2>
+                        <p className="text-xs text-muted-foreground">Control operational range and city visibility.</p>
+                    </div>
                     <Dialog>
                         <DialogTrigger asChild>
                             <Button size="sm"><Plus className="mr-2 h-4 w-4" /> Add Hub</Button>
@@ -221,18 +243,21 @@ export default function AdminDashboardPage() {
                                 </div>
                                 <div className="space-y-2">
                                     <Label>City</Label>
-                                    <Input placeholder="City Name" onChange={e => setNewHub({...newHub, city: e.target.value})} />
+                                    <Input placeholder="City Name" value={newHub.city} onChange={e => setNewHub({...newHub, city: e.target.value})} />
                                 </div>
                                 <div className="space-y-2">
                                     <Label>Range (KM)</Label>
-                                    <Input type="number" placeholder="25" onChange={e => setNewHub({...newHub, range: e.target.value})} />
+                                    <Input type="number" placeholder="25" value={newHub.range} onChange={e => setNewHub({...newHub, range: e.target.value})} />
                                 </div>
-                                <Button className="w-full" onClick={() => toast({ title: "Hub Registered" })}>Register Hub</Button>
+                                <Button className="w-full" onClick={() => {
+                                    toast({ title: "Hub Registered", description: `${newHub.city} is now operational.` });
+                                    setNewHub({ state: '', city: '', range: '10' });
+                                }}>Register Hub</Button>
                             </form>
                         </DialogContent>
                     </Dialog>
                 </div>
-                <Card className="border-none shadow-sm">
+                <Card className="border-none shadow-sm overflow-hidden">
                     <Table>
                         <TableHeader>
                             <TableRow>
@@ -249,7 +274,9 @@ export default function AdminDashboardPage() {
                                     <TableCell>{area.state}</TableCell>
                                     <TableCell>{area.range} km</TableCell>
                                     <TableCell className="text-right">
-                                        <Badge variant={area.active ? 'default' : 'secondary'}>{area.active ? 'Active' : 'Offline'}</Badge>
+                                        <Badge variant={area.active ? 'default' : 'secondary'}>
+                                            {area.active ? 'Active' : 'Offline'}
+                                        </Badge>
                                     </TableCell>
                                 </TableRow>
                             ))}
@@ -259,7 +286,7 @@ export default function AdminDashboardPage() {
             </TabsContent>
 
             <TabsContent value="drivers" className="space-y-6">
-                <Card className="border-none shadow-sm">
+                <Card className="border-none shadow-sm overflow-hidden">
                     <Table>
                         <TableHeader>
                             <TableRow>
@@ -274,8 +301,8 @@ export default function AdminDashboardPage() {
                                 <TableRow key={d.id}>
                                     <TableCell className="font-bold">{d.name}</TableCell>
                                     <TableCell>{d.mobile}</TableCell>
-                                    <TableCell>{d.vehicleType}</TableCell>
-                                    <TableCell className="text-right font-black">₹{d.grossEarnings}</TableCell>
+                                    <TableCell>{d.vehicleType} ({d.vehicleNumber})</TableCell>
+                                    <TableCell className="text-right font-black">₹{d.grossEarnings.toLocaleString()}</TableCell>
                                 </TableRow>
                             ))}
                         </TableBody>
@@ -288,11 +315,16 @@ export default function AdminDashboardPage() {
                     <Card className="border-none shadow-sm">
                         <CardHeader>
                             <CardTitle>Fare Settings</CardTitle>
+                            <CardDescription>Base platform rates for different vehicle classes.</CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-4">
                             <div className="space-y-2">
                                 <Label>Standard Rate (₹/km)</Label>
                                 <Input defaultValue="15" type="number" />
+                            </div>
+                            <div className="space-y-2">
+                                <Label>Base Fare (Min. Charge)</Label>
+                                <Input defaultValue="50" type="number" />
                             </div>
                             <Button className="w-full">Update Rates</Button>
                         </CardContent>
@@ -300,11 +332,16 @@ export default function AdminDashboardPage() {
                     <Card className="border-none shadow-sm">
                         <CardHeader>
                             <CardTitle>Commission Rules</CardTitle>
+                            <CardDescription>Platform cut from driver earnings.</CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-4">
                             <div className="space-y-2">
                                 <Label>Platform Cut (%)</Label>
                                 <Input defaultValue="20" type="number" />
+                            </div>
+                            <div className="space-y-2">
+                                <Label>Night Surge Multiplier</Label>
+                                <Input defaultValue="1.5" step="0.1" type="number" />
                             </div>
                             <Button variant="secondary" className="w-full">Apply Rules</Button>
                         </CardContent>
