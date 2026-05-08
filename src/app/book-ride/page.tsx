@@ -50,7 +50,6 @@ export default function BookRidePage() {
   const [currentRideId, setCurrentRideId] = useState<string | null>(null);
   const [currentRideData, setCurrentRideData] = useState<any>(null);
   const [countdown, setCountdown] = useState(60);
-  const [etaTimer, setEtaTimer] = useState(300);
 
   const mapImage = useMemo(() => PlaceHolderImages.find((img) => img.id === 'book-ride-map'), []);
   const availableCities = BOOK_RIDE_SERVICE_AREAS.filter(area => area.active);
@@ -72,11 +71,6 @@ export default function BookRidePage() {
       if (snapshot.exists()) {
         const data = snapshot.data();
         setCurrentRideData(data);
-        if (data.status === 'accepted') setStep('confirmed');
-        if (data.status === 'started') {
-            toast({ title: "Trip Started!", description: "You are on your way." });
-            // For demo, we might want to navigate or show a different view
-        }
       }
     }, (err) => {
         const permissionError = new FirestorePermissionError({
@@ -87,19 +81,7 @@ export default function BookRidePage() {
     });
 
     return () => unsubscribe();
-  }, [currentRideId, db, toast]);
-
-  useEffect(() => {
-    let timer: NodeJS.Timeout;
-    if (step === 'requesting' && countdown > 0) {
-      timer = setTimeout(() => setCountdown(countdown - 1), 1000);
-    } else if (step === 'requesting' && countdown === 0) {
-      if (currentRideId) {
-        updateDoc(doc(db, 'rides', currentRideId), { status: 'searching_all' });
-      }
-    }
-    return () => clearTimeout(timer);
-  }, [step, countdown, currentRideId, db]);
+  }, [currentRideId, db]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -143,6 +125,7 @@ export default function BookRidePage() {
         type: selectedOption.type,
     };
 
+    // Save to Firestore
     setDoc(doc(db, 'rides', rideId), rideData)
         .catch(async (err) => {
             const permissionError = new FirestorePermissionError({
@@ -153,10 +136,31 @@ export default function BookRidePage() {
             errorEmitter.emit('permission-error', permissionError);
         });
 
+    // Update local history for dashboard
+    const storedCustomerRaw = localStorage.getItem('toto-customer');
+    if (storedCustomerRaw) {
+        try {
+            const storedCustomer = JSON.parse(storedCustomerRaw);
+            const newRideForHistory = {
+                rideId: rideId,
+                from: pickup,
+                to: destination,
+                date: new Date().toLocaleDateString(),
+                fare: `₹${selectedOption.fare}`,
+                status: 'Booked'
+            };
+            storedCustomer.rides = [newRideForHistory, ...(storedCustomer.rides || [])];
+            localStorage.setItem('toto-customer', JSON.stringify(storedCustomer));
+        } catch (e) {
+            console.error("Failed to update history", e);
+        }
+    }
+
     setIsConfirmModalOpen(false);
     setCurrentRideId(rideId);
-    setCountdown(60);
-    setStep('requesting');
+    setCurrentRideData(rideData); // Immediate local state for UI
+    setStep('confirmed'); // Show code immediately as requested
+    toast({ title: "Ride Confirmed!", description: "Share the code with your driver." });
   };
 
   const handleCancelRide = () => {
@@ -283,30 +287,6 @@ export default function BookRidePage() {
                                 </button>
                             ))}
                         </div>
-                    </div>
-                )}
-
-                {step === 'requesting' && (
-                    <div className="space-y-8 py-12 text-center animate-in fade-in zoom-in-95 duration-500">
-                        <div className="relative mx-auto h-32 w-32">
-                            <div className="absolute inset-0 rounded-full border-4 border-primary/20" />
-                            <div className="absolute inset-0 rounded-full border-4 border-primary border-t-transparent animate-spin" />
-                            <div className="absolute inset-0 flex items-center justify-center">
-                                <Smartphone className="h-10 w-10 text-primary animate-pulse" />
-                            </div>
-                        </div>
-                        <div className="space-y-2">
-                            <h2 className="text-2xl font-black">Connecting you...</h2>
-                            <p className="text-sm text-muted-foreground max-w-[200px] mx-auto">
-                                We're finding the best driver for your {selectedOption?.type} ride.
-                            </p>
-                        </div>
-                        <div className="flex items-center justify-center gap-2">
-                            <Badge variant="outline" className="text-xs">{countdown}s remaining</Badge>
-                        </div>
-                        <Button variant="ghost" className="text-destructive font-bold" onClick={handleCancelRide}>
-                            Cancel Request
-                        </Button>
                     </div>
                 )}
 
