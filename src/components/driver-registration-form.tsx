@@ -1,4 +1,3 @@
-
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -39,11 +38,12 @@ const formSchema = z
   .object({
     fullName: z.string().min(2, "Full name must be at least 2 characters."),
     email: z.string().email("Please enter a valid email address."),
-    mobile: z.string().regex(/^\d{10}$/, "Please enter a valid 10-digit mobile number."),
+    phone: z.string().regex(/^\+?91\d{10}$|^\d{10}$/, "Please enter a valid mobile number."),
     vehicleNumber: z.string().min(4, "Vehicle number must be at least 4 characters."),
-    vehicleType: z.enum(["erickshaw", "cab"], {
+    vehicleType: z.enum(["e-rickshaw", "cab"], {
       required_error: "Please select a vehicle type.",
     }),
+    city: z.string().min(2, "City is required."),
     password: z.string().min(8, "Password must be at least 8 characters."),
     confirmPassword: z.string(),
   })
@@ -57,27 +57,49 @@ export function DriverRegistrationForm() {
   const { toast } = useToast();
   const router = useRouter();
 
-  useEffect(() => {
-    // Ensure data exists before registration attempts
-    const stored = localStorage.getItem('toto-admin-drivers');
-    if (!stored) {
-      localStorage.setItem('toto-admin-drivers', JSON.stringify(DUMMY_DRIVERS));
-    }
-  }, []);
-
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       fullName: "",
       email: "",
-      mobile: "",
+      phone: "",
       vehicleNumber: "",
+      city: "Patna",
       password: "",
       confirmPassword: "",
     },
   });
 
   function onSubmit(values: z.infer<typeof formSchema>) {
+    const driverId = `DRV_${Date.now()}`;
+    
+    const newDriver = {
+      driverId: driverId,
+      name: values.fullName,
+      phone: values.phone.startsWith('+91') ? values.phone : `+91${values.phone}`,
+      email: values.email,
+      vehicleNumber: values.vehicleNumber.toUpperCase(),
+      vehicleType: values.vehicleType,
+      isOnline: false,
+      isAvailable: false,
+      currentLat: 0,
+      currentLng: 0,
+      rating: 5.0,
+      totalTrips: 0,
+      city: values.city,
+      documents: {
+        dl: "",
+        rc: "",
+        insurance: ""
+      },
+      fleetId: null,
+      kycVerified: false,
+      createdAt: new Date().toISOString(),
+      grossEarnings: 0,
+      password: values.password
+    };
+
+    // Store in local memory for demo purposes as well
     let drivers = [];
     try {
       const storedDrivers = localStorage.getItem('toto-admin-drivers');
@@ -86,38 +108,12 @@ export function DriverRegistrationForm() {
       drivers = [...DUMMY_DRIVERS];
     }
 
-    const exists = drivers.some(
-      (d: any) => d.email.toLowerCase() === values.email.toLowerCase() || d.mobile === values.mobile
-    );
-
-    if (exists) {
-      toast({
-        variant: "destructive",
-        title: "Registration Failed",
-        description: "A driver with this email or mobile already exists.",
-      });
-      return;
-    }
-
-    const newDriver = {
-      id: `DRV${Date.now().toString().slice(-6)}`,
-      name: values.fullName,
-      email: values.email,
-      mobile: values.mobile,
-      vehicleType: values.vehicleType === "erickshaw" ? "E-Rickshaw" : "Cab",
-      vehicleNumber: values.vehicleNumber.toUpperCase(),
-      grossEarnings: 0,
-      photoUrl: `https://picsum.photos/seed/${values.email}/200/200`,
-      idProofUrl: `https://picsum.photos/seed/id-${values.email}/400/250`,
-      password: values.password,
-    };
-
     const updatedDrivers = [...drivers, newDriver];
     localStorage.setItem('toto-admin-drivers', JSON.stringify(updatedDrivers));
 
     toast({
       title: "Registration Successful",
-      description: "Welcome to TOTO! You can now log in.",
+      description: "Welcome to the partner network! You can now log in.",
     });
     router.push('/driver/login');
   }
@@ -125,9 +121,9 @@ export function DriverRegistrationForm() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-2xl">Become a Partner</CardTitle>
+        <CardTitle className="text-2xl">Partner Registration</CardTitle>
         <CardDescription>
-          Register today to start earning with TOTO.
+          Register your vehicle to start earning with the network.
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -140,7 +136,7 @@ export function DriverRegistrationForm() {
                 <FormItem>
                   <FormLabel>Full Name</FormLabel>
                   <FormControl>
-                    <Input placeholder="E.g. Rajesh Kumar" {...field} />
+                    <Input placeholder="E.g. Suresh Yadav" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -154,7 +150,7 @@ export function DriverRegistrationForm() {
                   <FormItem>
                     <FormLabel>Email</FormLabel>
                     <FormControl>
-                      <Input placeholder="rajesh@example.com" {...field} />
+                      <Input placeholder="suresh@example.com" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -162,12 +158,12 @@ export function DriverRegistrationForm() {
               />
               <FormField
                 control={form.control}
-                name="mobile"
+                name="phone"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Mobile</FormLabel>
+                    <FormLabel>Phone</FormLabel>
                     <FormControl>
-                      <Input placeholder="9876543210" {...field} />
+                      <Input placeholder="+919876543211" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -182,7 +178,7 @@ export function DriverRegistrationForm() {
                   <FormItem>
                     <FormLabel>Vehicle Number</FormLabel>
                     <FormControl>
-                      <Input placeholder="MH12AB1234" {...field} />
+                      <Input placeholder="BR01AB1234" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -201,7 +197,7 @@ export function DriverRegistrationForm() {
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="erickshaw">E-Rickshaw</SelectItem>
+                        <SelectItem value="e-rickshaw">E-Rickshaw</SelectItem>
                         <SelectItem value="cab">Cab</SelectItem>
                       </SelectContent>
                     </Select>
@@ -212,10 +208,23 @@ export function DriverRegistrationForm() {
             </div>
             <FormField
               control={form.control}
+              name="city"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Operating City</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Patna" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
               name="password"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>New Password</FormLabel>
+                  <FormLabel>Password</FormLabel>
                   <FormControl>
                     <div className="relative">
                       <Input type={showPassword ? "text" : "password"} {...field} />

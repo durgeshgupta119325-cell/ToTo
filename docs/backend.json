@@ -17,6 +17,37 @@
       },
       "required": ["uid", "name", "email", "role"]
     },
+    "driver": {
+      "title": "Driver",
+      "description": "A partner driver profile with vehicle and status details.",
+      "type": "object",
+      "properties": {
+        "driverId": { "type": "string" },
+        "name": { "type": "string" },
+        "phone": { "type": "string" },
+        "vehicleNumber": { "type": "string" },
+        "vehicleType": { "type": "string", "enum": ["e-rickshaw", "cab"] },
+        "isOnline": { "type": "boolean" },
+        "isAvailable": { "type": "boolean" },
+        "currentLat": { "type": "number" },
+        "currentLng": { "type": "number" },
+        "rating": { "type": "number" },
+        "totalTrips": { "type": "number" },
+        "city": { "type": "string" },
+        "documents": {
+          "type": "object",
+          "properties": {
+            "dl": { "type": "string" },
+            "rc": { "type": "string" },
+            "insurance": { "type": "string" }
+          }
+        },
+        "fleetId": { "type": "string", "nullable": true },
+        "kycVerified": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["driverId", "name", "phone", "vehicleNumber", "vehicleType"]
+    },
     "ride": {
       "title": "Ride",
       "description": "A ride booking record.",
@@ -62,6 +93,10 @@
     "/users/{userId}": {
       "schema": { "$ref": "#/backend/entities/user" },
       "description": "User profile data."
+    },
+    "/drivers/{driverId}": {
+      "schema": { "$ref": "#/backend/entities/driver" },
+      "description": "Driver profile and status data."
     },
     "/rides/{rideId}": {
       "schema": { "$ref": "#/backend/entities/ride" },

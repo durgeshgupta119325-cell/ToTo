@@ -16,32 +16,18 @@ import {
   LogOut,
   Users,
   IndianRupee,
-  MoreHorizontal,
-  Trash2,
-  Percent,
-  User,
-  Send,
   Car,
-  MapPin,
-  CheckCircle2,
-  CreditCard,
-  Search,
-  Filter,
-  Download,
-  Plus,
-  FileText,
-  BadgeCheck,
-  AlertCircle,
-  LayoutDashboard,
   Globe,
-  Settings,
-  Clock,
-  Navigation,
+  Plus,
   Activity,
-  History,
-  ShieldAlert,
+  LayoutDashboard,
+  Settings,
   ShieldCheck,
-  Smartphone
+  ShieldAlert,
+  Clock,
+  Star,
+  BadgeCheck,
+  MapPin
 } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
@@ -70,7 +56,6 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
@@ -84,7 +69,6 @@ export default function AdminDashboardPage() {
   const db = useFirestore();
   const { toast } = useToast();
 
-  const [activeTab, setActiveTab] = useState('overview');
   const [newHub, setNewHub] = useState({ state: '', city: '', range: '10' });
 
   const liveRidesQuery = useMemo(() => query(collection(db, 'rides'), orderBy('createdAt', 'desc'), limit(20)), [db]);
@@ -107,7 +91,7 @@ export default function AdminDashboardPage() {
     router.push('/admin/login');
   };
 
-  const states = useMemo(() => Array.from(new Set(DUMMY_LOCATIONS_DATA.map(l => l.state))).sort(), []);
+  const allStates = useMemo(() => Array.from(new Set(DUMMY_LOCATIONS_DATA.map(l => l.state))).sort(), []);
 
   return (
     <div className="flex min-h-dvh flex-col bg-secondary/20">
@@ -144,8 +128,8 @@ export default function AdminDashboardPage() {
             <TabsList className="bg-background border h-11 w-full justify-start overflow-x-auto p-1 shadow-inner">
               <TabsTrigger value="overview" className="gap-2"><LayoutDashboard className="h-4 w-4" /> Operations</TabsTrigger>
               <TabsTrigger value="hubs" className="gap-2"><Globe className="h-4 w-4" /> Geography</TabsTrigger>
-              <TabsTrigger value="drivers" className="gap-2"><Car className="h-4 w-4" /> Fleet</TabsTrigger>
-              <TabsTrigger value="customers" className="gap-2"><Users className="h-4 w-4" /> Users</TabsTrigger>
+              <TabsTrigger value="drivers" className="gap-2"><Car className="h-4 w-4" /> Partners</TabsTrigger>
+              <TabsTrigger value="customers" className="gap-2"><Users className="h-4 w-4" /> Riders</TabsTrigger>
               <TabsTrigger value="settings" className="gap-2"><Settings className="h-4 w-4" /> Protocol</TabsTrigger>
             </TabsList>
 
@@ -169,7 +153,7 @@ export default function AdminDashboardPage() {
                     </Card>
                     <Card className="border-none shadow-sm">
                         <CardHeader className="pb-2">
-                            <CardTitle className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Total Partners</CardTitle>
+                            <CardTitle className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Total Fleet</CardTitle>
                         </CardHeader>
                         <CardContent>
                             <div className="text-3xl font-black">{DUMMY_DRIVERS.length}</div>
@@ -179,17 +163,17 @@ export default function AdminDashboardPage() {
 
                 <Card className="border-none shadow-sm">
                     <CardHeader>
-                        <CardTitle className="flex items-center gap-2"><Activity className="h-5 w-5 text-primary" /> Live Transaction Stream</CardTitle>
-                        <CardDescription>Real-time verification of trip handshake codes.</CardDescription>
+                        <CardTitle className="flex items-center gap-2"><Activity className="h-5 w-5 text-primary" /> Live Handshake Stream</CardTitle>
+                        <CardDescription>Real-time verification of trip handshake codes across the city.</CardDescription>
                     </CardHeader>
                     <CardContent>
                         <Table>
                             <TableHeader>
                                 <TableRow>
                                     <TableHead>Ride ID</TableHead>
-                                    <TableHead>Participant (Rider)</TableHead>
-                                    <TableHead>Participant (Driver)</TableHead>
-                                    <TableHead>Handshake Code</TableHead>
+                                    <TableHead>Rider</TableHead>
+                                    <TableHead>Partner</TableHead>
+                                    <TableHead>OTP</TableHead>
                                     <TableHead>Status</TableHead>
                                     <TableHead className="text-right">Audit</TableHead>
                                 </TableRow>
@@ -199,7 +183,7 @@ export default function AdminDashboardPage() {
                                     <TableRow key={ride.id} className="group transition-colors">
                                         <TableCell className="font-bold text-xs font-mono">{ride.id}</TableCell>
                                         <TableCell className="text-xs">{ride.customerName}</TableCell>
-                                        <TableCell className="text-xs">{ride.driverName || <span className="text-muted-foreground italic">Pending...</span>}</TableCell>
+                                        <TableCell className="text-xs">{ride.driverName || <span className="text-muted-foreground italic">Searching...</span>}</TableCell>
                                         <TableCell className="font-black text-primary tracking-widest">{ride.otp}</TableCell>
                                         <TableCell>
                                             <Badge 
@@ -232,17 +216,17 @@ export default function AdminDashboardPage() {
             <TabsContent value="hubs" className="space-y-6">
                 <div className="flex items-center justify-between">
                     <div>
-                        <h2 className="text-xl font-bold">Geographic Distribution</h2>
-                        <p className="text-xs text-muted-foreground font-medium">Operational service ranges and active hubs.</p>
+                        <h2 className="text-xl font-bold">Geographic Nodes</h2>
+                        <p className="text-xs text-muted-foreground font-medium">Urban operational sectors and service ranges.</p>
                     </div>
                     <Dialog>
                         <DialogTrigger asChild>
-                            <Button size="sm" className="font-bold"><Plus className="mr-2 h-4 w-4" /> Add Hub</Button>
+                            <Button size="sm" className="font-bold"><Plus className="mr-2 h-4 w-4" /> Add Node</Button>
                         </DialogTrigger>
                         <DialogContent>
                             <DialogHeader>
-                                <DialogTitle>New Hub Registration</DialogTitle>
-                                <DialogDescription>Register a new urban operational sector.</DialogDescription>
+                                <DialogTitle>Register Hub</DialogTitle>
+                                <DialogDescription>Define a new operational sector for the network.</DialogDescription>
                             </DialogHeader>
                             <form className="space-y-4 pt-4" onSubmit={(e) => e.preventDefault()}>
                                 <div className="space-y-2">
@@ -250,20 +234,20 @@ export default function AdminDashboardPage() {
                                     <Select onValueChange={v => setNewHub({...newHub, state: v})}>
                                         <SelectTrigger><SelectValue placeholder="Select State" /></SelectTrigger>
                                         <SelectContent className="max-h-[300px]">
-                                            {states.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                                            {allStates.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
                                         </SelectContent>
                                     </Select>
                                 </div>
                                 <div className="space-y-2">
                                     <Label>City</Label>
-                                    <Input placeholder="E.g. Lucknow" value={newHub.city} onChange={e => setNewHub({...newHub, city: e.target.value})} />
+                                    <Input placeholder="E.g. Patna" value={newHub.city} onChange={e => setNewHub({...newHub, city: e.target.value})} />
                                 </div>
                                 <div className="space-y-2">
-                                    <Label>Operational Radius (KM)</Label>
-                                    <Input type="number" placeholder="25" value={newHub.range} onChange={e => setNewHub({...newHub, range: e.target.value})} />
+                                    <Label>Radius (KM)</Label>
+                                    <Input type="number" value={newHub.range} onChange={e => setNewHub({...newHub, range: e.target.value})} />
                                 </div>
                                 <Button className="w-full h-12 font-bold" onClick={() => {
-                                    toast({ title: "Hub Online", description: `${newHub.city} sector activated.` });
+                                    toast({ title: "Node Online", description: `${newHub.city} sector activated.` });
                                     setNewHub({ state: '', city: '', range: '10' });
                                 }}>Activate Node</Button>
                             </form>
@@ -277,7 +261,7 @@ export default function AdminDashboardPage() {
                                 <TableHead>Urban Sector</TableHead>
                                 <TableHead>Territory</TableHead>
                                 <TableHead>Radius</TableHead>
-                                <TableHead className="text-right">Protocol Status</TableHead>
+                                <TableHead className="text-right">Status</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -288,7 +272,7 @@ export default function AdminDashboardPage() {
                                     <TableCell>{area.range} KM</TableCell>
                                     <TableCell className="text-right">
                                         <Badge variant={area.active ? 'default' : 'secondary'} className={cn(area.active && "bg-green-500")}>
-                                            {area.active ? 'Operational' : 'Paused'}
+                                            {area.active ? 'Active' : 'Offline'}
                                         </Badge>
                                     </TableCell>
                                 </TableRow>
@@ -302,7 +286,7 @@ export default function AdminDashboardPage() {
                 <div className="flex items-center justify-between">
                     <div>
                         <h2 className="text-xl font-bold">Partner Fleet</h2>
-                        <p className="text-xs text-muted-foreground font-medium">Management of driver credentials and assets.</p>
+                        <p className="text-xs text-muted-foreground font-medium">Audit logs for partner credentials and assets.</p>
                     </div>
                 </div>
                 <Card className="border-none shadow-sm overflow-hidden">
@@ -310,31 +294,46 @@ export default function AdminDashboardPage() {
                         <TableHeader>
                             <TableRow>
                                 <TableHead>Partner</TableHead>
-                                <TableHead>Security Contact</TableHead>
-                                <TableHead>Asset Class</TableHead>
-                                <TableHead className="text-right">Total Payouts</TableHead>
+                                <TableHead>Vehicle (ID/Type)</TableHead>
+                                <TableHead>Hub</TableHead>
+                                <TableHead>Performance</TableHead>
+                                <TableHead className="text-right">KYC Status</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
                             {DUMMY_DRIVERS.map(d => (
-                                <TableRow key={d.uid}>
+                                <TableRow key={d.driverId}>
                                     <TableCell>
                                         <div className="flex items-center gap-3">
                                             <Avatar className="h-8 w-8 border">
-                                                <AvatarImage src={d.profilePic} />
                                                 <AvatarFallback>{d.name[0]}</AvatarFallback>
                                             </Avatar>
-                                            <span className="font-bold text-sm">{d.name}</span>
+                                            <div className="text-xs">
+                                                <p className="font-bold">{d.name}</p>
+                                                <p className="text-muted-foreground font-mono">{d.phone}</p>
+                                            </div>
                                         </div>
                                     </TableCell>
-                                    <TableCell className="text-xs font-mono">{d.phone}</TableCell>
                                     <TableCell>
                                         <div className="text-xs">
                                             <p className="font-bold text-primary uppercase">{d.vehicleType}</p>
                                             <p className="text-muted-foreground font-mono uppercase">{d.vehicleNumber}</p>
                                         </div>
                                     </TableCell>
-                                    <TableCell className="text-right font-black text-primary">₹{d.grossEarnings.toLocaleString()}</TableCell>
+                                    <TableCell className="text-xs font-medium">{d.city}</TableCell>
+                                    <TableCell>
+                                        <div className="flex items-center gap-4 text-xs">
+                                            <span className="flex items-center gap-1 font-bold"><Star className="h-3 w-3 text-yellow-500 fill-yellow-500" /> {d.rating}</span>
+                                            <span className="text-muted-foreground">{d.totalTrips} Trips</span>
+                                        </div>
+                                    </TableCell>
+                                    <TableCell className="text-right">
+                                        {d.kycVerified ? (
+                                            <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 text-[10px] uppercase font-bold">Verified</Badge>
+                                        ) : (
+                                            <Badge variant="outline" className="bg-orange-50 text-orange-700 border-orange-200 text-[10px] uppercase font-bold">Pending</Badge>
+                                        )}
+                                    </TableCell>
                                 </TableRow>
                             ))}
                         </TableBody>
@@ -345,19 +344,19 @@ export default function AdminDashboardPage() {
             <TabsContent value="customers" className="space-y-6">
                 <div className="flex items-center justify-between">
                     <div>
-                        <h2 className="text-xl font-bold">User Directory</h2>
-                        <p className="text-xs text-muted-foreground font-medium">Verified customer profiles and account status.</p>
+                        <h2 className="text-xl font-bold">Rider Directory</h2>
+                        <p className="text-xs text-muted-foreground font-medium">Verified customer accounts and risk status.</p>
                     </div>
                 </div>
                 <Card className="border-none shadow-sm overflow-hidden">
                     <Table>
                         <TableHeader>
                             <TableRow>
-                                <TableHead>User Profile</TableHead>
-                                <TableHead>Contact (Phone/Email)</TableHead>
+                                <TableHead>Rider</TableHead>
+                                <TableHead>Contact</TableHead>
                                 <TableHead>Primary Hub</TableHead>
                                 <TableHead>Joined</TableHead>
-                                <TableHead className="text-right">Risk Status</TableHead>
+                                <TableHead className="text-right">Risk Protocol</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -365,23 +364,15 @@ export default function AdminDashboardPage() {
                                 <TableRow key={c.uid}>
                                     <TableCell>
                                         <div className="flex items-center gap-3">
-                                            <Avatar className="h-8 w-8 border-2 border-primary/20">
+                                            <Avatar className="h-8 w-8 border">
                                                 <AvatarImage src={c.profilePic} />
-                                                <AvatarFallback className="bg-primary/5">{c.name[0]}</AvatarFallback>
+                                                <AvatarFallback>{c.name[0]}</AvatarFallback>
                                             </Avatar>
-                                            <div>
-                                                <p className="font-bold text-sm">{c.name}</p>
-                                                <p className="text-[9px] font-mono text-muted-foreground">{c.uid}</p>
-                                            </div>
+                                            <span className="font-bold text-sm">{c.name}</span>
                                         </div>
                                     </TableCell>
-                                    <TableCell>
-                                        <div className="text-[10px] space-y-1">
-                                            <p className="font-bold">{c.phone}</p>
-                                            <p className="text-muted-foreground italic">{c.email}</p>
-                                        </div>
-                                    </TableCell>
-                                    <TableCell className="text-xs font-medium">{c.city}, {c.state}</TableCell>
+                                    <TableCell className="text-xs font-mono">{c.phone}</TableCell>
+                                    <TableCell className="text-xs font-medium">{c.city}</TableCell>
                                     <TableCell className="text-[10px] text-muted-foreground">{new Date(c.createdAt).toLocaleDateString()}</TableCell>
                                     <TableCell className="text-right">
                                         {c.isBlocked ? (
@@ -402,33 +393,25 @@ export default function AdminDashboardPage() {
                     <Card className="border-none shadow-sm">
                         <CardHeader>
                             <CardTitle>Monetary Policy</CardTitle>
-                            <CardDescription>Global pricing adjustments for mobility nodes.</CardDescription>
+                            <CardDescription>Global pricing adjustments for urban mobility nodes.</CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-4">
                             <div className="space-y-2">
-                                <Label>Standard Fare Class (₹/KM)</Label>
+                                <Label>Standard Fare (₹/KM)</Label>
                                 <Input defaultValue="15" type="number" />
-                            </div>
-                            <div className="space-y-2">
-                                <Label>Platform Base Charge</Label>
-                                <Input defaultValue="50" type="number" />
                             </div>
                             <Button className="w-full h-11 font-bold shadow-lg shadow-primary/10">Synchronize Rates</Button>
                         </CardContent>
                     </Card>
                     <Card className="border-none shadow-sm">
                         <CardHeader>
-                            <CardTitle>Commission Engine</CardTitle>
-                            <CardDescription>Service fees derived from partner earnings.</CardDescription>
+                            <CardTitle>Protocol Fee</CardTitle>
+                            <CardDescription>Service commission derived from partner earnings.</CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-4">
                             <div className="space-y-2">
-                                <Label>Global Protocol Fee (%)</Label>
+                                <Label>Global Commission (%)</Label>
                                 <Input defaultValue="20" type="number" />
-                            </div >
-                            <div className="space-y-2">
-                                <Label>Surge Threshold (Multiplier)</Label>
-                                <Input defaultValue="1.5" step="0.1" type="number" />
                             </div>
                             <Button variant="secondary" className="w-full h-11 font-bold">Apply Logic</Button>
                         </CardContent>
