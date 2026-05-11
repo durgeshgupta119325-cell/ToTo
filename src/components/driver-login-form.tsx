@@ -1,3 +1,4 @@
+
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -6,7 +7,7 @@ import * as z from "zod";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Eye, EyeOff, Loader2 } from "lucide-react";
-import { GoogleAuthProvider, signInWithPopup } from "firebase/auth";
+import { GoogleAuthProvider, signInWithPopup, signInWithEmailAndPassword } from "firebase/auth";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -55,37 +56,44 @@ export function DriverLoginForm() {
     },
   });
 
-  useEffect(() => {
-    const storedDrivers = localStorage.getItem('toto-admin-drivers');
-    if (!storedDrivers) {
-      localStorage.setItem('toto-admin-drivers', JSON.stringify(DUMMY_DRIVERS));
-    }
-  }, []);
-
-  function onSubmit(values: z.infer<typeof formSchema>) {
-    let drivers: typeof DUMMY_DRIVERS = [];
+  async function onSubmit(values: z.infer<typeof formSchema>) {
     try {
-        const storedDrivers = localStorage.getItem('toto-admin-drivers');
-        drivers = storedDrivers ? JSON.parse(storedDrivers) : DUMMY_DRIVERS;
-    } catch (e) {
-        drivers = DUMMY_DRIVERS;
-    }
-    
-    const driver = drivers.find((d: any) => d.email.toLowerCase() === values.email.toLowerCase());
-
-    if (driver && driver.password && values.password === driver.password) {
-      localStorage.setItem('toto-driver', JSON.stringify(driver));
-      toast({
-        title: "Login Successful",
-        description: `Welcome back, ${driver.name}!`,
-      });
+      // First try real Firebase Auth if credentials exist there
+      await signInWithEmailAndPassword(auth, values.email, values.password);
+      toast({ title: "Login Successful" });
       router.push('/driver/dashboard');
-    } else {
-      toast({
-        variant: "destructive",
-        title: "Login Failed",
-        description: "Invalid email or password. Please try again or register.",
-      });
+    } catch (firebaseError: any) {
+      // Fallback to legacy dummy check for prototyping
+      let drivers: typeof DUMMY_DRIVERS = [];
+      try {
+          const storedDrivers = localStorage.getItem('toto-admin-drivers');
+          drivers = storedDrivers ? JSON.parse(storedDrivers) : DUMMY_DRIVERS;
+      } catch (e) {
+          drivers = DUMMY_DRIVERS;
+      }
+      
+      const driver = drivers.find((d: any) => d.email.toLowerCase() === values.email.toLowerCase());
+
+      if (driver && driver.password && values.password === driver.password) {
+        localStorage.setItem('toto-driver', JSON.stringify(driver));
+        toast({
+          title: "Login Successful",
+          description: `Welcome back, ${driver.name}!`,
+        });
+        router.push('/driver/dashboard');
+      } else {
+        let message = firebaseError.message;
+        if (firebaseError.code === 'auth/configuration-not-found') {
+          message = "Email/Password sign-in is not enabled in Firebase Console. Prototyping fallback failed for these credentials.";
+        }
+        
+        toast({
+          variant: "destructive",
+          title: "Login Failed",
+          description: message,
+          duration: 8000,
+        });
+      }
     }
   }
 
@@ -120,20 +128,17 @@ export function DriverLoginForm() {
     } catch (error: any) {
         console.error("Google Sign-In Error:", error);
         
+        let message = error.message;
         if (error.code === 'auth/configuration-not-found' || error.message.includes('configuration-not-found')) {
-            toast({
-                variant: "destructive",
-                title: "Configuration Missing",
-                description: "Google Sign-In is not enabled. ACTION REQUIRED: Please go to the Firebase Console -> Authentication -> Sign-in method and enable Google.",
-                duration: 8000,
-            });
-        } else {
-            toast({
-                variant: "destructive",
-                title: "Sign-In Error",
-                description: error.message || "Could not connect to Google. Please try again.",
-            });
+            message = "Google Sign-In is not enabled. Please go to the Firebase Console -> Authentication -> Sign-in method and enable Google.";
         }
+
+        toast({
+            variant: "destructive",
+            title: "Sign-In Error",
+            description: message,
+            duration: 8000,
+        });
     } finally {
         setIsGoogleLoading(false);
     }

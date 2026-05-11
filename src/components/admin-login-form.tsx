@@ -1,3 +1,4 @@
+
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -6,8 +7,9 @@ import * as z from "zod";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Eye, EyeOff, Loader2 } from "lucide-react";
-import { signInWithEmailAndPassword } from "firebase/auth";
-import { useAuth } from "@/firebase";
+import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from "firebase/auth";
+import { doc, setDoc } from "firebase/firestore";
+import { useAuth, useFirestore } from "@/firebase";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -32,17 +34,19 @@ const formSchema = z.object({
   email: z.string().email({
     message: "Please enter a valid email address.",
   }),
-  password: z.string().min(1, {
-    message: "Password is required.",
+  password: z.string().min(6, {
+    message: "Password must be at least 6 characters.",
   }),
 });
 
 export function AdminLoginForm() {
+  const [isSignUp, setIsSignUp] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
   const router = useRouter();
   const auth = useAuth();
+  const db = useFirestore();
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -55,17 +59,51 @@ export function AdminLoginForm() {
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsLoading(true);
     try {
-      await signInWithEmailAndPassword(auth, values.email, values.password);
-      toast({
-        title: "Admin Login Successful",
-        description: "Welcome to the Command Console.",
-      });
+      if (isSignUp) {
+        // Register Admin
+        const userCredential = await createUserWithEmailAndPassword(auth, values.email, values.password);
+        const user = userCredential.user;
+        
+        // Set admin role in Firestore
+        await setDoc(doc(db, "users", user.uid), {
+          uid: user.uid,
+          name: "System Admin",
+          email: user.email,
+          role: "admin",
+          createdAt: new Date().toISOString(),
+          isBlocked: false,
+        });
+
+        toast({
+          title: "Admin Account Created",
+          description: "You are now registered as an administrator.",
+        });
+      } else {
+        // Login Admin
+        await signInWithEmailAndPassword(auth, values.email, values.password);
+        toast({
+          title: "Admin Login Successful",
+          description: "Welcome to the Command Console.",
+        });
+      }
       router.push('/admin/dashboard');
     } catch (error: any) {
+      console.error("Auth Error:", error);
+      let message = error.message;
+      
+      if (error.code === 'auth/configuration-not-found') {
+        message = "Email/Password sign-in is not enabled in Firebase Console. Please go to Authentication -> Sign-in method and enable it.";
+      } else if (error.code === 'auth/user-not-found') {
+        message = "No account found with this email. Try switching to Sign Up mode.";
+      } else if (error.code === 'auth/wrong-password') {
+        message = "Incorrect password. Please try again.";
+      }
+
       toast({
         variant: "destructive",
-        title: "Login Failed",
-        description: error.message || "Invalid credentials.",
+        title: isSignUp ? "Registration Failed" : "Login Failed",
+        description: message,
+        duration: 8000,
       });
     } finally {
       setIsLoading(false);
@@ -75,9 +113,11 @@ export function AdminLoginForm() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-2xl">Admin Login</CardTitle>
+        <CardTitle className="text-2xl">{isSignUp ? "Register Admin" : "Admin Login"}</CardTitle>
         <CardDescription>
-          Access the secure system command console.
+          {isSignUp 
+            ? "Create a new administrator account for the system." 
+            : "Access the secure system command console."}
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -129,20 +169,30 @@ export function AdminLoginForm() {
                 </FormItem>
               )}
             />
-            <Button
-              type="submit"
-              className="w-full h-11"
-              disabled={isLoading}
-            >
-              {isLoading ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Authenticating...
-                </>
-              ) : (
-                "Log In to Console"
-              )}
-            </Button>
+            <div className="space-y-4">
+              <Button
+                type="submit"
+                className="w-full h-11 font-bold"
+                disabled={isLoading}
+              >
+                {isLoading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    {isSignUp ? "Creating Account..." : "Authenticating..."}
+                  </>
+                ) : (
+                  isSignUp ? "Create Admin Account" : "Log In to Console"
+                )}
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                className="w-full text-xs"
+                onClick={() => setIsSignUp(!isSignUp)}
+              >
+                {isSignUp ? "Already have an account? Login" : "Need to register? Switch to Sign Up"}
+              </Button>
+            </div>
           </form>
         </Form>
       </CardContent>
