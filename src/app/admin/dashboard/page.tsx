@@ -33,7 +33,7 @@ import {
   Plus,
   Trash2
 } from 'lucide-react';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/tabs';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Table,
   TableBody,
@@ -53,6 +53,8 @@ import { useFirestore, useCollectionData, useUser, useAuth, useDocData, useMemoF
 import { collection, query, orderBy, limit, doc, setDoc, addDoc, updateDoc, deleteDoc } from 'firebase/firestore';
 import { DUMMY_DRIVERS, DUMMY_CUSTOMERS } from '@/lib/mock-data';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogTrigger } from '@/components/ui/dialog';
+import { errorEmitter } from '@/firebase/error-emitter';
+import { FirestorePermissionError } from '@/firebase/errors';
 
 export default function AdminDashboardPage() {
   const router = useRouter();
@@ -160,17 +162,39 @@ export default function AdminDashboardPage() {
             setNewHub({ city: '', state: '', range: 10 });
         })
         .catch(async (err) => {
-            console.error(err);
+            const permissionError = new FirestorePermissionError({
+                path: 'service_areas',
+                operation: 'create',
+                requestResourceData: hubData
+            });
+            errorEmitter.emit('permission-error', permissionError);
         });
   };
 
   const toggleHubStatus = (id: string, currentStatus: boolean) => {
-    updateDoc(doc(db, 'service_areas', id), { active: !currentStatus });
+    updateDoc(doc(db, 'service_areas', id), { active: !currentStatus })
+        .catch(async (err) => {
+            const permissionError = new FirestorePermissionError({
+                path: `service_areas/${id}`,
+                operation: 'update',
+                requestResourceData: { active: !currentStatus }
+            });
+            errorEmitter.emit('permission-error', permissionError);
+        });
   };
 
   const deleteHub = (id: string) => {
-    deleteDoc(doc(db, 'service_areas', id));
-    toast({ title: 'Hub Removed' });
+    deleteDoc(doc(db, 'service_areas', id))
+        .then(() => {
+            toast({ title: 'Hub Removed' });
+        })
+        .catch(async (err) => {
+            const permissionError = new FirestorePermissionError({
+                path: `service_areas/${id}`,
+                operation: 'delete'
+            });
+            errorEmitter.emit('permission-error', permissionError);
+        });
   };
 
   if (authLoading || userLoading) {
@@ -178,7 +202,7 @@ export default function AdminDashboardPage() {
       <div className="flex h-screen items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-4">
           <Loader2 className="h-10 w-10 animate-spin text-primary" />
-          <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground animate-pulse">Authenticating Command...</p>
+          <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground animate-pulse">Authenticating Command Console...</p>
         </div>
       </div>
     );
