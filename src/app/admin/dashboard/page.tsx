@@ -1,3 +1,4 @@
+
 "use client";
 
 import Link from 'next/link';
@@ -15,7 +16,6 @@ import { Icons } from '@/components/icons';
 import {
   LogOut,
   Users,
-  IndianRupee,
   Car,
   Globe,
   Plus,
@@ -26,8 +26,7 @@ import {
   ShieldAlert,
   Clock,
   Star,
-  BadgeCheck,
-  MapPin
+  BadgeCheck
 } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
@@ -180,8 +179,8 @@ export default function AdminDashboardPage() {
                             </TableHeader>
                             <TableBody>
                                 {liveRides?.map((ride: any) => (
-                                    <TableRow key={ride.id} className="group transition-colors">
-                                        <TableCell className="font-bold text-xs font-mono">{ride.id}</TableCell>
+                                    <TableRow key={ride.rideId} className="group transition-colors">
+                                        <TableCell className="font-bold text-xs font-mono">{ride.rideId}</TableCell>
                                         <TableCell className="text-xs">{ride.customerName}</TableCell>
                                         <TableCell className="text-xs">{ride.driverName || <span className="text-muted-foreground italic">Searching...</span>}</TableCell>
                                         <TableCell className="font-black text-primary tracking-widest">{ride.otp}</TableCell>
@@ -192,7 +191,7 @@ export default function AdminDashboardPage() {
                                                     "text-[10px] uppercase font-bold",
                                                     ride.status === 'completed' && 'bg-green-100 text-green-700',
                                                     ride.status === 'started' && 'bg-blue-100 text-blue-700',
-                                                    ride.status === 'pending' && 'bg-orange-100 text-orange-700'
+                                                    ride.status === 'requested' && 'bg-orange-100 text-orange-700'
                                                 )}
                                             >
                                                 {ride.status}

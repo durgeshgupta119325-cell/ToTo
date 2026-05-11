@@ -1,16 +1,16 @@
+
 "use client";
 
+import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useToast } from '@/hooks/use-toast';
 import { Icons } from '@/components/icons';
-import { Car, IndianRupee, Star, Home, MapPin, CheckCircle2, User, Wallet, LayoutDashboard, Clock, Power } from 'lucide-react';
-import { useState, useEffect, useMemo } from 'react';
+import { Star, Home, CheckCircle2, Wallet, LayoutDashboard, Clock } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
-import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { useFirestore, useUser, useCollectionData } from '@/firebase';
 import { collection, query, where, onSnapshot, updateDoc, doc, limit, orderBy } from 'firebase/firestore';
@@ -19,16 +19,16 @@ import { cn } from '@/lib/utils';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 type Ride = {
-  id: string;
+  rideId: string;
   customerId: string;
   customerName: string;
-  pickup: string;
-  destination: string;
+  pickup: { address: string; lat: number; lng: number };
+  dropoff: { address: string; lat: number; lng: number };
   fare: number;
-  status: 'pending' | 'searching_all' | 'accepted' | 'arrived' | 'started' | 'completed';
+  status: 'requested' | 'accepted' | 'started' | 'completed' | 'cancelled';
   otp: string;
-  type: string;
-  createdAt: any;
+  vehicleType: string;
+  createdAt: string;
 };
 
 export default function DriverDashboardPage() {
@@ -38,7 +38,6 @@ export default function DriverDashboardPage() {
   const { user } = useUser();
   
   const [isOnline, setIsOnline] = useState(true);
-  const [isAvailable, setIsAvailable] = useState(true);
   const [activeRide, setActiveRide] = useState<Ride | null>(null);
   const [incomingRequest, setIncomingRequest] = useState<Ride | null>(null);
   const [otpInput, setOtpInput] = useState('');
@@ -69,14 +68,14 @@ export default function DriverDashboardPage() {
 
     const q = query(
       collection(db, 'rides'),
-      where('status', 'in', ['pending', 'searching_all']),
+      where('status', '==', 'requested'),
       limit(1)
     );
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
       if (!snapshot.empty) {
-        const ride = { id: snapshot.docs[0].id, ...snapshot.docs[0].data() } as Ride;
-        setIncomingRequest(ride);
+        const rideData = snapshot.docs[0].data();
+        setIncomingRequest({ id: snapshot.docs[0].id, ...rideData } as any);
       } else {
         setIncomingRequest(null);
       }
@@ -88,20 +87,19 @@ export default function DriverDashboardPage() {
   useEffect(() => {
     if (!activeRide || !db) return;
 
-    const unsubscribe = onSnapshot(doc(db, 'rides', activeRide.id), (snapshot) => {
+    const unsubscribe = onSnapshot(doc(db, 'rides', activeRide.rideId), (snapshot) => {
         if (snapshot.exists()) {
-            setActiveRide({ id: snapshot.id, ...snapshot.data() } as Ride);
+            setActiveRide({ ...snapshot.data() } as Ride);
         } else {
             setActiveRide(null);
         }
     });
 
     return () => unsubscribe();
-  }, [activeRide?.id, db]);
+  }, [activeRide?.rideId, db]);
 
   const handleOnlineToggle = (online: boolean) => {
     setIsOnline(online);
-    setIsAvailable(online);
     if (user) {
         updateDoc(doc(db, 'drivers', user.uid), { isOnline: online, isAvailable: online });
     }
@@ -111,23 +109,23 @@ export default function DriverDashboardPage() {
   const handleAcceptRide = () => {
     if (!incomingRequest || !user) return;
 
-    const rideRef = doc(db, 'rides', incomingRequest.id);
+    const rideRef = doc(db, 'rides', incomingRequest.rideId);
     updateDoc(rideRef, {
         status: 'accepted',
         driverId: user.uid,
-        driverName: user.displayName || 'Suresh Yadav',
-        vehicleDetails: "BR-01-AB-1234, E-Rickshaw"
+        driverName: user.displayName || 'Partner',
+        vehicleDetails: "BR-01-AB-1234"
     }).then(() => {
         setActiveRide(incomingRequest);
         setIncomingRequest(null);
-        setIsAvailable(false);
         updateDoc(doc(db, 'drivers', user.uid), { isAvailable: false });
     });
   };
 
   const handleArrived = () => {
     if (!activeRide) return;
-    updateDoc(doc(db, 'rides', activeRide.id), { status: 'arrived' });
+    // We map arrived to 'accepted' status update in standard lifecycle or keep current
+    toast({ title: "Arrived", description: "Request OTP from customer." });
   };
 
   const handleVerifyOtp = () => {
@@ -135,10 +133,10 @@ export default function DriverDashboardPage() {
     
     setIsVerifying(true);
     if (otpInput === activeRide.otp) {
-        updateDoc(doc(db, 'rides', activeRide.id), { 
+        updateDoc(doc(db, 'rides', activeRide.rideId), { 
             status: 'started',
             otpUsed: true,
-            verifiedAt: new Date().toISOString()
+            startedAt: new Date().toISOString()
         }).then(() => {
             toast({ title: "Verified", description: "Trip started!" });
             setOtpInput('');
@@ -151,9 +149,12 @@ export default function DriverDashboardPage() {
 
   const handleCompleteRide = () => {
     if (!activeRide || !user) return;
-    updateDoc(doc(db, 'rides', activeRide.id), { status: 'completed' }).then(() => {
+    updateDoc(doc(db, 'rides', activeRide.rideId), { 
+        status: 'completed',
+        completedAt: new Date().toISOString(),
+        paymentStatus: 'paid'
+    }).then(() => {
         setActiveRide(null);
-        setIsAvailable(true);
         updateDoc(doc(db, 'drivers', user.uid), { isAvailable: true });
         toast({ title: "Ride Completed!" });
     });
@@ -171,7 +172,7 @@ export default function DriverDashboardPage() {
              <div className="flex items-center space-x-2 bg-muted px-4 py-1.5 rounded-full text-xs">
                 <span className={cn("h-2 w-2 rounded-full", isOnline ? "bg-green-500 animate-pulse" : "bg-red-500")} />
                 <span className="font-black uppercase tracking-widest">{isOnline ? 'Online' : 'Offline'}</span>
-                <Switch checked={isOnline} onCheckedChange={handleOnlineToggle} size="sm" />
+                <Switch checked={isOnline} onCheckedChange={handleOnlineToggle} />
             </div>
             <Button variant="ghost" size="sm" asChild><Link href="/"><Home className="h-4 w-4" /></Link></Button>
           </div>
@@ -190,13 +191,13 @@ export default function DriverDashboardPage() {
               <div className="space-y-6">
                 {incomingRequest && (
                   <Card className="border-4 border-primary shadow-2xl animate-in zoom-in-95 duration-500">
-                      <CardHeader className="bg-primary/5 pb-4">
+                      <div className="bg-primary/5 p-6 border-b border-primary/10">
                           <div className="flex items-center justify-between">
-                              <Badge className="bg-primary text-black font-black text-[10px] uppercase tracking-widest">Incoming {incomingRequest.type}</Badge>
+                              <Badge className="bg-primary text-black font-black text-[10px] uppercase tracking-widest">Incoming {incomingRequest.vehicleType}</Badge>
                               <div className="flex items-center gap-1 text-[10px] font-bold text-muted-foreground"><Clock className="h-3 w-3" /> 45s left</div>
                           </div>
-                          <CardTitle className="text-3xl font-black mt-2">New Trip Request</CardTitle>
-                      </CardHeader>
+                          <h2 className="text-3xl font-black mt-2">New Trip Request</h2>
+                      </div>
                       <CardContent className="pt-6">
                           <div className="grid gap-6 md:grid-cols-2">
                               <div className="space-y-6">
@@ -205,14 +206,14 @@ export default function DriverDashboardPage() {
                                           <div className="h-2 w-2 rounded-full bg-primary mt-1.5" />
                                           <div>
                                               <p className="text-[10px] uppercase font-bold text-muted-foreground">Pickup</p>
-                                              <p className="font-bold text-sm">{incomingRequest.pickup}</p>
+                                              <p className="font-bold text-sm">{incomingRequest.pickup.address}</p>
                                           </div>
                                       </div>
                                       <div className="flex items-start gap-3">
                                           <div className="h-2 w-2 rounded-full bg-destructive mt-1.5" />
                                           <div>
                                               <p className="text-[10px] uppercase font-bold text-muted-foreground">Destination</p>
-                                              <p className="font-bold text-sm">{incomingRequest.destination}</p>
+                                              <p className="font-bold text-sm">{incomingRequest.dropoff.address}</p>
                                           </div>
                                       </div>
                                   </div>
@@ -233,8 +234,8 @@ export default function DriverDashboardPage() {
                 {activeRide && (
                   <Card className="border-2 border-primary shadow-xl overflow-hidden animate-in slide-in-from-top-4">
                       <div className="bg-primary text-black px-6 py-2.5 flex items-center justify-between font-black text-[10px] uppercase tracking-[0.2em]">
-                          <span>Active Mission: {activeRide.id}</span>
-                          <span className="bg-black text-white px-2 py-0.5 rounded-sm">{activeRide.status}</span>
+                          <span>Active Mission: {activeRide.rideId}</span>
+                          <span className="bg-black text-white px-2 py-0.5 rounded-sm">{activeRide.status.toUpperCase()}</span>
                       </div>
                       <CardContent className="p-8">
                           <div className="grid gap-8 md:grid-cols-2">
@@ -244,30 +245,30 @@ export default function DriverDashboardPage() {
                                       <h3 className="font-black text-2xl">{activeRide.customerName}</h3>
                                   </div>
                                   <div className="space-y-4 pl-4 border-l-4 border-primary/20 py-2">
-                                      <p className="text-sm font-bold">{activeRide.pickup}</p>
-                                      <p className="text-sm font-bold">{activeRide.destination}</p>
+                                      <p className="text-sm font-bold">{activeRide.pickup.address}</p>
+                                      <p className="text-sm font-bold">{activeRide.dropoff.address}</p>
                                   </div>
                               </div>
                               <div className="space-y-6 flex flex-col justify-center">
                                   {activeRide.status === 'accepted' && (
-                                      <Button size="lg" className="h-20 text-xl font-black w-full shadow-lg" onClick={handleArrived}>
-                                          ARRIVED AT PICKUP
-                                      </Button>
-                                  )}
-                                  {activeRide.status === 'arrived' && (
                                       <div className="space-y-4">
-                                          <p className="text-[10px] text-center uppercase font-bold text-muted-foreground">Enter Handshake Code</p>
-                                          <div className="flex gap-2">
-                                              <Input 
-                                                  placeholder="0000" 
-                                                  className="h-20 text-center text-5xl font-black tracking-[0.5em] border-primary" 
-                                                  maxLength={4}
-                                                  value={otpInput}
-                                                  onChange={(e) => setOtpInput(e.target.value)}
-                                              />
-                                              <Button className="h-20 px-8 font-black" onClick={handleVerifyOtp} disabled={isVerifying}>
-                                                  {isVerifying ? <Clock className="animate-spin" /> : 'START'}
-                                              </Button>
+                                          <Button size="lg" className="h-20 text-xl font-black w-full shadow-lg" onClick={handleArrived}>
+                                              ARRIVED AT PICKUP
+                                          </Button>
+                                          <div className="space-y-2">
+                                              <p className="text-[10px] text-center uppercase font-bold text-muted-foreground">Enter Handshake Code</p>
+                                              <div className="flex gap-2">
+                                                  <Input 
+                                                      placeholder="0000" 
+                                                      className="h-20 text-center text-5xl font-black tracking-[0.5em] border-primary" 
+                                                      maxLength={4}
+                                                      value={otpInput}
+                                                      onChange={(e) => setOtpInput(e.target.value)}
+                                                  />
+                                                  <Button className="h-20 px-8 font-black" onClick={handleVerifyOtp} disabled={isVerifying}>
+                                                      {isVerifying ? <Clock className="animate-spin" /> : 'START'}
+                                                  </Button>
+                                              </div>
                                           </div>
                                       </div>
                                   )}
@@ -286,7 +287,7 @@ export default function DriverDashboardPage() {
                   <div className="grid gap-6 md:grid-cols-3">
                     <Card className="border-none shadow-sm">
                         <CardHeader className="pb-2">
-                            <CardTitle className="text-xs font-bold text-muted-foreground uppercase tracking-[0.2em]">Daily Volume</CardTitle>
+                            <span className="text-xs font-bold text-muted-foreground uppercase tracking-[0.2em]">Daily Volume</span>
                         </CardHeader>
                         <CardContent>
                             <div className="text-4xl font-black">{stats.count}</div>
@@ -295,7 +296,7 @@ export default function DriverDashboardPage() {
                     </Card>
                     <Card className="border-none shadow-sm bg-primary/5">
                         <CardHeader className="pb-2">
-                            <CardTitle className="text-xs font-bold text-primary uppercase tracking-[0.2em]">Net Wallet</CardTitle>
+                            <span className="text-xs font-bold text-primary uppercase tracking-[0.2em]">Net Wallet</span>
                         </CardHeader>
                         <CardContent>
                             <div className="text-4xl font-black text-primary">₹{stats.net.toLocaleString()}</div>
@@ -304,7 +305,7 @@ export default function DriverDashboardPage() {
                     </Card>
                     <Card className="border-none shadow-sm">
                         <CardHeader className="pb-2">
-                            <CardTitle className="text-xs font-bold text-muted-foreground uppercase tracking-[0.2em]">Trust Factor</CardTitle>
+                            <span className="text-xs font-bold text-muted-foreground uppercase tracking-[0.2em]">Trust Factor</span>
                         </CardHeader>
                         <CardContent>
                             <div className="text-4xl font-black flex items-center gap-2">4.8 <Star className="h-6 w-6 text-yellow-500 fill-yellow-500" /></div>
@@ -334,9 +335,9 @@ export default function DriverDashboardPage() {
                 </div>
 
                 <Card className="border-none shadow-sm overflow-hidden">
-                  <CardHeader className="border-b bg-muted/20">
-                    <CardTitle className="text-sm font-black uppercase tracking-widest">Transaction History</CardTitle>
-                  </CardHeader>
+                  <div className="p-4 border-b bg-muted/20">
+                    <h3 className="text-sm font-black uppercase tracking-widest">Transaction History</h3>
+                  </div>
                   <CardContent className="p-0">
                     <Table>
                       <TableHeader className="bg-muted/10">
@@ -348,7 +349,7 @@ export default function DriverDashboardPage() {
                       </TableHeader>
                       <TableBody>
                         {rideHistory?.map((ride: any) => (
-                          <TableRow key={ride.id} className="hover:bg-muted/5 transition-colors">
+                          <TableRow key={ride.rideId} className="hover:bg-muted/5 transition-colors">
                             <TableCell className="font-bold text-xs">{ride.customerName}</TableCell>
                             <TableCell className="text-xs font-medium">₹{ride.fare}</TableCell>
                             <TableCell className="text-right font-black text-green-600 text-sm">₹{(ride.fare * 0.8).toFixed(0)}</TableCell>

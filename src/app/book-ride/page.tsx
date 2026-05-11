@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useMemo, useEffect } from 'react';
@@ -6,20 +7,20 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Icons } from '@/components/icons';
 import { 
-    ArrowLeft, MapPin, Car, Zap, Globe, Plus, Minus, Navigation, Search, 
-    Info, Loader2, CheckCircle2, CreditCard, Copy, X, Clock, ShieldCheck,
-    Smartphone, Truck, ChevronRight
+    ArrowLeft, Car, Zap, Navigation, Search, 
+    Loader2, CheckCircle2, Copy, Clock, ShieldCheck,
+    Truck
 } from 'lucide-react';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { useToast } from '@/hooks/use-toast';
-import { BOOK_RIDE_SERVICE_AREAS, DEFAULT_RATES } from '@/lib/mock-data';
+import { BOOK_RIDE_SERVICE_AREAS } from '@/lib/mock-data';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { useFirestore, useUser } from '@/firebase';
-import { collection, doc, setDoc, onSnapshot, updateDoc, serverTimestamp, deleteDoc } from 'firebase/firestore';
+import { doc, setDoc, onSnapshot, deleteDoc, serverTimestamp } from 'firebase/firestore';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
@@ -103,24 +104,36 @@ export default function BookRidePage() {
   };
 
   const handleConfirmBooking = () => {
-    if (!selectedOption || !user) return;
+    if (!selectedOption || !user || !distance) return;
 
     const rideId = `RIDE_${Date.now()}`;
     const otp = Math.floor(1000 + Math.random() * 9000).toString();
+    
+    // Aligns with the new schema requirements
     const rideData = {
-        id: rideId,
+        rideId: rideId,
         customerId: user.uid,
         customerName: user.displayName || 'Customer',
-        pickup,
-        destination,
+        status: 'requested',
+        pickup: {
+            address: pickup,
+            lat: 25.5941, // Sample lat
+            lng: 85.1376  // Sample lng
+        },
+        dropoff: {
+            address: destination,
+            lat: 25.6000, // Sample lat
+            lng: 85.1500  // Sample lng
+        },
         fare: selectedOption.fare,
-        status: 'pending',
+        distance: distance,
+        duration: Math.round(distance * 3), // Sample duration in minutes
+        paymentMethod: 'cash', // Default for now
         paymentStatus: 'pending',
-        otp,
+        otp: otp,
         otpUsed: false,
-        createdAt: serverTimestamp(),
-        distance,
-        type: selectedOption.type,
+        createdAt: new Date().toISOString(),
+        vehicleType: selectedOption.type, // UI helper
     };
 
     setDoc(doc(db, 'rides', rideId), rideData)
@@ -133,6 +146,7 @@ export default function BookRidePage() {
             errorEmitter.emit('permission-error', permissionError);
         });
 
+    // Update Local History
     const storedCustomerRaw = localStorage.getItem('toto-customer');
     if (storedCustomerRaw) {
         try {
@@ -328,12 +342,12 @@ export default function BookRidePage() {
                                         {currentRideData.driverName?.[0] || 'D'}
                                     </div>
                                     <div>
-                                        <p className="font-black text-sm">{currentRideData.driverName || 'Ramesh'}</p>
+                                        <p className="font-black text-sm">{currentRideData.driverName || 'Searching...'}</p>
                                         <p className="text-[10px] text-muted-foreground">★ 4.9 • 2.5k Trips</p>
                                     </div>
                                 </div>
                                 <div className="text-right">
-                                    <p className="text-xs font-bold">{currentRideData.type}</p>
+                                    <p className="text-xs font-bold">{currentRideData.vehicleType}</p>
                                     <p className="text-[10px] font-mono text-muted-foreground">{currentRideData.vehicleDetails || 'KA-01-AB-1234'}</p>
                                 </div>
                             </div>

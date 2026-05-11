@@ -1,3 +1,4 @@
+
 {
   "entities": {
     "user": {
@@ -50,19 +51,41 @@
     },
     "ride": {
       "title": "Ride",
-      "description": "A ride booking record.",
+      "description": "A ride booking record with geolocation and payment tracking.",
       "type": "object",
       "properties": {
+        "rideId": { "type": "string" },
         "customerId": { "type": "string" },
-        "customerName": { "type": "string" },
-        "driverId": { "type": "string" },
-        "driverName": { "type": "string" },
-        "pickup": { "type": "string" },
-        "destination": { "type": "string" },
-        "status": { "type": "string" },
+        "driverId": { "type": "string", "nullable": true },
+        "status": { "type": "string", "enum": ["requested", "accepted", "started", "completed", "cancelled"] },
+        "pickup": {
+          "type": "object",
+          "properties": {
+            "address": { "type": "string" },
+            "lat": { "type": "number" },
+            "lng": { "type": "number" }
+          }
+        },
+        "dropoff": {
+          "type": "object",
+          "properties": {
+            "address": { "type": "string" },
+            "lat": { "type": "number" },
+            "lng": { "type": "number" }
+          }
+        },
         "fare": { "type": "number" },
+        "distance": { "type": "number" },
+        "duration": { "type": "number" },
+        "paymentMethod": { "type": "string", "enum": ["wallet", "upi", "cash"] },
+        "paymentStatus": { "type": "string" },
+        "razorpayOrderId": { "type": "string" },
+        "razorpayPaymentId": { "type": "string" },
         "otp": { "type": "string" },
-        "createdAt": { "type": "string", "format": "date-time" }
+        "otpUsed": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "startedAt": { "type": "string", "format": "date-time" },
+        "completedAt": { "type": "string", "format": "date-time" }
       }
     },
     "wallet": {
