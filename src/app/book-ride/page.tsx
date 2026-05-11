@@ -16,11 +16,10 @@ import {
 } from 'lucide-react';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { useToast } from '@/hooks/use-toast';
-import { BOOK_RIDE_SERVICE_AREAS } from '@/lib/mock-data';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
-import { useFirestore, useUser } from '@/firebase';
-import { doc, setDoc, onSnapshot, deleteDoc, serverTimestamp } from 'firebase/firestore';
+import { useFirestore, useUser, useCollectionData, useMemoFirebase } from '@/firebase';
+import { doc, setDoc, onSnapshot, deleteDoc, collection, query, where } from 'firebase/firestore';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
@@ -51,7 +50,13 @@ export default function BookRidePage() {
   const [currentRideData, setCurrentRideData] = useState<any>(null);
 
   const mapImage = useMemo(() => PlaceHolderImages.find((img) => img.id === 'book-ride-map'), []);
-  const availableCities = BOOK_RIDE_SERVICE_AREAS.filter(area => area.active);
+
+  // Live Service Areas from Firestore
+  const hubsQuery = useMemoFirebase(() => {
+    if (!db) return null;
+    return query(collection(db, 'service_areas'), where('active', '==', true));
+  }, [db]);
+  const { data: availableCities, loading: hubsLoading } = useCollectionData(hubsQuery);
 
   const rideOptions: RideOption[] = useMemo(() => {
     if (!distance) return [];
@@ -109,7 +114,6 @@ export default function BookRidePage() {
     const rideId = `RIDE_${Date.now()}`;
     const otp = Math.floor(1000 + Math.random() * 9000).toString();
     
-    // Aligns with the new schema requirements
     const rideData = {
         rideId: rideId,
         customerId: user.uid,
@@ -117,23 +121,23 @@ export default function BookRidePage() {
         status: 'requested',
         pickup: {
             address: pickup,
-            lat: 25.5941, // Sample lat
-            lng: 85.1376  // Sample lng
+            lat: 25.5941,
+            lng: 85.1376
         },
         dropoff: {
             address: destination,
-            lat: 25.6000, // Sample lat
-            lng: 85.1500  // Sample lng
+            lat: 25.6000,
+            lng: 85.1500
         },
         fare: selectedOption.fare,
         distance: distance,
-        duration: Math.round(distance * 3), // Sample duration in minutes
-        paymentMethod: 'cash', // Default for now
+        duration: Math.round(distance * 3),
+        paymentMethod: 'cash',
         paymentStatus: 'pending',
         otp: otp,
         otpUsed: false,
         createdAt: new Date().toISOString(),
-        vehicleType: selectedOption.type, // UI helper
+        vehicleType: selectedOption.type,
     };
 
     setDoc(doc(db, 'rides', rideId), rideData)
@@ -145,26 +149,6 @@ export default function BookRidePage() {
             });
             errorEmitter.emit('permission-error', permissionError);
         });
-
-    // Update Local History
-    const storedCustomerRaw = localStorage.getItem('toto-customer');
-    if (storedCustomerRaw) {
-        try {
-            const storedCustomer = JSON.parse(storedCustomerRaw);
-            const newRideForHistory = {
-                rideId: rideId,
-                from: pickup,
-                to: destination,
-                date: new Date().toLocaleDateString(),
-                fare: `₹${selectedOption.fare}`,
-                status: 'Booked'
-            };
-            storedCustomer.rides = [newRideForHistory, ...(storedCustomer.rides || [])];
-            localStorage.setItem('toto-customer', JSON.stringify(storedCustomer));
-        } catch (e) {
-            console.error("Failed to update history", e);
-        }
-    }
 
     setIsConfirmModalOpen(false);
     setCurrentRideId(rideId);
@@ -298,7 +282,7 @@ export default function BookRidePage() {
                     </div>
                 )}
 
-                {step === 'confirmed' && currentRideData && (
+                {step === 'confirmed' && currentRideId && (
                     <div className="space-y-8 animate-in slide-in-from-bottom-8 duration-500">
                         <div className="text-center space-y-2">
                             <div className="mx-auto h-12 w-12 rounded-full bg-green-100 flex items-center justify-center mb-4">
@@ -306,7 +290,7 @@ export default function BookRidePage() {
                             </div>
                             <h2 className="text-2xl font-black">Ride Booked Successfully</h2>
                             <p className="text-sm text-muted-foreground">
-                                {currentRideData.status === 'started' ? 'Trip in progress' : 'Driver is arriving shortly'}
+                                {currentRideData?.status === 'started' ? 'Trip in progress' : 'Driver is arriving shortly'}
                             </p>
                         </div>
 
@@ -317,48 +301,30 @@ export default function BookRidePage() {
                             <CardContent className="pt-8 pb-10 text-center space-y-4">
                                 <p className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground">Start Trip Code</p>
                                 <div className="flex items-center justify-center gap-4">
-                                    <div className={cn("text-6xl font-black tracking-[0.2em]", currentRideData.status === 'started' ? "text-muted-foreground line-through opacity-50" : "text-primary")}>
-                                        {currentRideData.otp}
+                                    <div className={cn("text-6xl font-black tracking-[0.2em]", currentRideData?.status === 'started' ? "text-muted-foreground line-through opacity-50" : "text-primary")}>
+                                        {currentRideData?.otp}
                                     </div>
-                                    {currentRideData.status !== 'started' && (
-                                        <Button size="icon" variant="secondary" className="rounded-full h-10 w-10" onClick={() => copyToClipboard(currentRideData.otp)}>
+                                    {currentRideData?.status !== 'started' && (
+                                        <Button size="icon" variant="secondary" className="rounded-full h-10 w-10" onClick={() => copyToClipboard(currentRideData?.otp)}>
                                             <Copy className="h-4 w-4" />
                                         </Button>
                                     )}
                                 </div>
                                 <div className="space-y-1">
                                     <p className="text-xs font-bold text-foreground">
-                                        {currentRideData.status === 'started' ? 'Code Verified' : 'Share this code with your driver'}
+                                        {currentRideData?.status === 'started' ? 'Code Verified' : 'Share this code with your driver'}
                                     </p>
                                     <p className="text-[10px] text-muted-foreground italic">Valid until trip starts • Code expires in 10 mins</p>
                                 </div>
                             </CardContent>
                         </Card>
 
-                        <div className="rounded-2xl border bg-secondary/10 p-5 space-y-4 shadow-sm">
-                            <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-3">
-                                    <div className="h-10 w-10 rounded-full bg-background border-2 border-primary flex items-center justify-center font-black">
-                                        {currentRideData.driverName?.[0] || 'D'}
-                                    </div>
-                                    <div>
-                                        <p className="font-black text-sm">{currentRideData.driverName || 'Searching...'}</p>
-                                        <p className="text-[10px] text-muted-foreground">★ 4.9 • 2.5k Trips</p>
-                                    </div>
-                                </div>
-                                <div className="text-right">
-                                    <p className="text-xs font-bold">{currentRideData.vehicleType}</p>
-                                    <p className="text-[10px] font-mono text-muted-foreground">{currentRideData.vehicleDetails || 'KA-01-AB-1234'}</p>
-                                </div>
-                            </div>
-                        </div>
-
                         <div className="flex flex-col gap-3">
                             <div className="flex items-center gap-2">
                                 <Button variant="outline" className="flex-1 font-bold h-12">Message</Button>
                                 <Button variant="outline" className="flex-1 font-bold h-12">Call</Button>
                             </div>
-                            {currentRideData.status !== 'started' && (
+                            {currentRideData?.status !== 'started' && (
                                 <Button variant="ghost" className="text-destructive font-black text-xs h-10" onClick={handleCancelRide}>
                                     Cancel My Ride
                                 </Button>
@@ -374,9 +340,12 @@ export default function BookRidePage() {
                     <span className="flex items-center gap-1"><span className="h-1.5 w-1.5 rounded-full bg-green-500 animate-pulse" /> Operational</span>
                 </div>
                 <div className="flex flex-wrap gap-2">
-                    {availableCities.map((city, idx) => (
-                        <Badge key={idx} variant="secondary" className="text-[9px] bg-background border-none h-6 px-2">{city.city}</Badge>
+                    {availableCities?.map((area: any) => (
+                        <Badge key={area.id} variant="secondary" className="text-[9px] bg-background border-none h-6 px-2">{area.city}</Badge>
                     ))}
+                    {(!availableCities || availableCities.length === 0) && !hubsLoading && (
+                        <p className="text-[10px] italic text-muted-foreground">Checking local coverage...</p>
+                    )}
                 </div>
             </div>
           </div>

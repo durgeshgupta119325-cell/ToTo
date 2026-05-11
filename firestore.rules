@@ -71,5 +71,11 @@ service cloud.firestore {
       allow create: if request.auth != null;
       allow update, delete: if (resource != null && request.auth.uid == resource.data.customerId) || isAdmin();
     }
+
+    // ========== SERVICE AREAS COLLECTION ==========
+    match /service_areas/{areaId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
   }
 }

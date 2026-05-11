@@ -157,6 +157,19 @@
         "createdAt": { "type": "string", "format": "date-time" }
       },
       "required": ["rideId", "driverId", "customerId", "rating"]
+    },
+    "service_area": {
+      "title": "Service Area",
+      "description": "A geographical area where the service is operational.",
+      "type": "object",
+      "properties": {
+        "city": { "type": "string" },
+        "state": { "type": "string" },
+        "range": { "type": "number" },
+        "active": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["city", "state", "range", "active"]
     }
   },
   "auth": {
@@ -194,6 +207,10 @@
     "/reviews/{reviewId}": {
       "schema": { "$ref": "#/backend/entities/review" },
       "description": "User reviews and ratings for rides."
+    },
+    "/service_areas/{areaId}": {
+      "schema": { "$ref": "#/backend/entities/service_area" },
+      "description": "Operational service hubs."
     }
   }
 }

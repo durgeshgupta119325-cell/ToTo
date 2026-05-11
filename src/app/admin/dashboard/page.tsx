@@ -1,3 +1,4 @@
+
 "use client";
 
 import Link from 'next/link';
@@ -28,9 +29,11 @@ import {
   Loader2,
   MessageSquare,
   TrendingUp,
-  MapPin
+  MapPin,
+  Plus,
+  Trash2
 } from 'lucide-react';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/tabs';
 import {
   Table,
   TableBody,
@@ -46,9 +49,10 @@ import { cn } from '@/lib/utils';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 import { useState, useMemo, useEffect } from 'react';
-import { useFirestore, useCollectionData, useUser, useAuth, useDocData } from '@/firebase';
-import { collection, query, orderBy, limit, doc } from 'firebase/firestore';
-import { BOOK_RIDE_SERVICE_AREAS, DUMMY_DRIVERS, DUMMY_CUSTOMERS } from '@/lib/mock-data';
+import { useFirestore, useCollectionData, useUser, useAuth, useDocData, useMemoFirebase } from '@/firebase';
+import { collection, query, orderBy, limit, doc, setDoc, addDoc, updateDoc, deleteDoc } from 'firebase/firestore';
+import { DUMMY_DRIVERS, DUMMY_CUSTOMERS } from '@/lib/mock-data';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogTrigger } from '@/components/ui/dialog';
 
 export default function AdminDashboardPage() {
   const router = useRouter();
@@ -58,13 +62,17 @@ export default function AdminDashboardPage() {
   const { toast } = useToast();
 
   // Memoize the doc reference to prevent infinite render loops
-  const userDocRef = useMemo(() => {
+  const userDocRef = useMemoFirebase(() => {
     if (!db || !user?.uid) return null;
     return doc(db, 'users', user.uid);
   }, [db, user?.uid]);
 
   // Fetch user data to verify admin role
   const { data: userData, loading: userLoading } = useDocData(userDocRef);
+
+  // Form State for Hubs
+  const [isAddHubOpen, setIsAddHubOpen] = useState(false);
+  const [newHub, setNewHub] = useState({ city: '', state: '', range: 10 });
 
   useEffect(() => {
     if (!authLoading && !userLoading) {
@@ -88,23 +96,29 @@ export default function AdminDashboardPage() {
   }, [authLoading, userLoading, user, userData]);
 
   // Live Subscriptions - strictly guarded by isAuthorized and memoized
-  const liveRidesQuery = useMemo(() => {
+  const liveRidesQuery = useMemoFirebase(() => {
     if (!isAuthorized || !db) return null;
     return query(collection(db, 'rides'), orderBy('createdAt', 'desc'), limit(50));
   }, [db, isAuthorized]);
   const { data: liveRides, loading: ridesLoading } = useCollectionData(liveRidesQuery);
 
-  const txQuery = useMemo(() => {
+  const txQuery = useMemoFirebase(() => {
     if (!isAuthorized || !db) return null;
     return query(collection(db, 'transactions'), orderBy('createdAt', 'desc'), limit(50));
   }, [db, isAuthorized]);
   const { data: transactions, loading: txLoading } = useCollectionData(txQuery);
 
-  const reviewsQuery = useMemo(() => {
+  const reviewsQuery = useMemoFirebase(() => {
     if (!isAuthorized || !db) return null;
     return query(collection(db, 'reviews'), orderBy('createdAt', 'desc'), limit(50));
   }, [db, isAuthorized]);
   const { data: reviews, loading: reviewsLoading } = useCollectionData(reviewsQuery);
+
+  const hubsQuery = useMemoFirebase(() => {
+    if (!isAuthorized || !db) return null;
+    return query(collection(db, 'service_areas'), orderBy('city', 'asc'));
+  }, [db, isAuthorized]);
+  const { data: serviceAreas, loading: hubsLoading } = useCollectionData(hubsQuery);
 
   const stats = useMemo(() => {
     if (!liveRides || !transactions) return { totalRides: 0, grossVolume: 0, activeCount: 0, netRevenue: 0 };
@@ -125,6 +139,38 @@ export default function AdminDashboardPage() {
     await auth.signOut();
     toast({ title: 'Logged Out' });
     router.push('/admin/login');
+  };
+
+  const handleAddHub = () => {
+    if (!newHub.city || !newHub.state) {
+        toast({ variant: 'destructive', title: 'Missing Info', description: 'City and State are required.' });
+        return;
+    }
+
+    const hubData = {
+        ...newHub,
+        active: true,
+        createdAt: new Date().toISOString()
+    };
+
+    addDoc(collection(db, 'service_areas'), hubData)
+        .then(() => {
+            toast({ title: 'Hub Created', description: `${newHub.city} is now on the map.` });
+            setIsAddHubOpen(false);
+            setNewHub({ city: '', state: '', range: 10 });
+        })
+        .catch(async (err) => {
+            console.error(err);
+        });
+  };
+
+  const toggleHubStatus = (id: string, currentStatus: boolean) => {
+    updateDoc(doc(db, 'service_areas', id), { active: !currentStatus });
+  };
+
+  const deleteHub = (id: string) => {
+    deleteDoc(doc(db, 'service_areas', id));
+    toast({ title: 'Hub Removed' });
   };
 
   if (authLoading || userLoading) {
@@ -166,7 +212,7 @@ export default function AdminDashboardPage() {
         <div className="mx-auto max-w-7xl space-y-8">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
-              <h1 className="text-4xl font-black tracking-tighter uppercase italic">System Intelligence</h1>
+              <h1 className="text-4xl font-black tracking-tighter uppercase italic text-foreground">System Intelligence</h1>
               <p className="text-sm text-muted-foreground font-medium">Monitoring urban mobility and platform performance in real-time.</p>
             </div>
             <div className="flex items-center gap-2 bg-background p-2 rounded-xl border shadow-sm">
@@ -366,11 +412,56 @@ export default function AdminDashboardPage() {
             </TabsContent>
 
             <TabsContent value="hubs" className="space-y-6 animate-in fade-in duration-500">
+                <div className="flex items-center justify-between">
+                    <div>
+                        <h2 className="text-2xl font-black italic uppercase">Operational Sectors</h2>
+                        <p className="text-sm text-muted-foreground">Manage city-wide hubs and designated operational ranges.</p>
+                    </div>
+                    <Dialog open={isAddHubOpen} onOpenChange={setIsAddHubOpen}>
+                        <DialogTrigger asChild>
+                            <Button className="font-black shadow-lg"><Plus className="mr-2 h-4 w-4" /> Add New Hub</Button>
+                        </DialogTrigger>
+                        <DialogContent>
+                            <DialogHeader>
+                                <DialogTitle className="font-black">Expand Network</DialogTitle>
+                                <DialogDescription>Define a new operational sector to scale your business.</DialogDescription>
+                            </DialogHeader>
+                            <div className="space-y-4 py-4">
+                                <div className="space-y-2">
+                                    <Label className="text-[10px] font-black uppercase">City Name</Label>
+                                    <Input 
+                                        placeholder="E.g. Patna" 
+                                        value={newHub.city}
+                                        onChange={(e) => setNewHub({...newHub, city: e.target.value})}
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label className="text-[10px] font-black uppercase">State</Label>
+                                    <Input 
+                                        placeholder="E.g. Bihar" 
+                                        value={newHub.state}
+                                        onChange={(e) => setNewHub({...newHub, state: e.target.value})}
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label className="text-[10px] font-black uppercase">Operational Range (KM)</Label>
+                                    <Input 
+                                        type="number" 
+                                        placeholder="20" 
+                                        value={newHub.range}
+                                        onChange={(e) => setNewHub({...newHub, range: parseInt(e.target.value)})}
+                                    />
+                                </div>
+                            </div>
+                            <DialogFooter>
+                                <Button variant="outline" onClick={() => setIsAddHubOpen(false)}>Cancel</Button>
+                                <Button onClick={handleAddHub} className="font-black">Deploy Hub</Button>
+                            </DialogFooter>
+                        </DialogContent>
+                    </Dialog>
+                </div>
+
                 <Card className="border-none shadow-sm overflow-hidden">
-                    <CardHeader className="bg-background border-b px-6 py-4">
-                        <CardTitle className="text-lg">Operational Sectors</CardTitle>
-                        <CardDescription className="text-xs">City-wide hubs and designated operational ranges.</CardDescription>
-                    </CardHeader>
                     <CardContent className="p-0">
                         <Table>
                             <TableHeader className="bg-muted/30">
@@ -378,22 +469,37 @@ export default function AdminDashboardPage() {
                                     <TableHead className="text-[10px] font-black uppercase">Urban Center</TableHead>
                                     <TableHead className="text-[10px] font-black uppercase">Territory</TableHead>
                                     <TableHead className="text-[10px] font-black uppercase">Operational Range</TableHead>
-                                    <TableHead className="text-right text-[10px] font-black uppercase">Protocol Status</TableHead>
+                                    <TableHead className="text-[10px] font-black uppercase">Status</TableHead>
+                                    <TableHead className="text-right text-[10px] font-black uppercase">Actions</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {BOOK_RIDE_SERVICE_AREAS.map((area, idx) => (
-                                    <TableRow key={idx} className="hover:bg-muted/10 transition-colors">
+                                {serviceAreas?.map((area: any) => (
+                                    <TableRow key={area.id} className="hover:bg-muted/10 transition-colors">
                                         <TableCell className="font-black italic">{area.city}</TableCell>
                                         <TableCell className="text-sm font-medium">{area.state}</TableCell>
                                         <TableCell className="text-sm font-black">{area.range} KM</TableCell>
-                                        <TableCell className="text-right">
-                                            <Badge variant={area.active ? 'default' : 'secondary'} className={cn("font-black text-[9px] uppercase", area.active && "bg-green-500")}>
+                                        <TableCell>
+                                            <Badge 
+                                                variant={area.active ? 'default' : 'secondary'} 
+                                                className={cn("font-black text-[9px] uppercase cursor-pointer", area.active && "bg-green-500")}
+                                                onClick={() => toggleHubStatus(area.id, area.active)}
+                                            >
                                                 {area.active ? 'Active' : 'Offline'}
                                             </Badge>
                                         </TableCell>
+                                        <TableCell className="text-right">
+                                            <Button variant="ghost" size="icon" className="text-destructive h-8 w-8" onClick={() => deleteHub(area.id)}>
+                                                <Trash2 className="h-4 w-4" />
+                                            </Button>
+                                        </TableCell>
                                     </TableRow>
                                 ))}
+                                {(!serviceAreas || serviceAreas.length === 0) && !hubsLoading && (
+                                    <TableRow>
+                                        <TableCell colSpan={5} className="text-center py-16 text-muted-foreground italic text-sm">No operational sectors deployed yet. Use the "Add New Hub" button to expand.</TableCell>
+                                    </TableRow>
+                                )}
                             </TableBody>
                         </Table>
                     </CardContent>
