@@ -1,4 +1,3 @@
-
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -6,7 +5,7 @@ import { useForm } from "react-hook-form";
 import * as z from "zod";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Eye, EyeOff, Loader2, AlertTriangle, ExternalLink } from "lucide-react";
+import { Eye, EyeOff, Loader2, AlertTriangle, ExternalLink, ShieldCheck } from "lucide-react";
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from "firebase/auth";
 import { doc, setDoc } from "firebase/firestore";
 import { useAuth, useFirestore } from "@/firebase";
@@ -59,9 +58,8 @@ export function AdminLoginForm() {
   });
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
-    setIsLoading(false);
-    setConfigError(false);
     setIsLoading(true);
+    setConfigError(false);
     
     try {
       if (isSignUp) {
@@ -88,7 +86,7 @@ export function AdminLoginForm() {
         await signInWithEmailAndPassword(auth, values.email, values.password);
         toast({
           title: "Admin Login Successful",
-          description: "Welcome to the Command Console.",
+          description: "Welcome back to the Command Console.",
         });
       }
       router.push('/admin/dashboard');
@@ -96,11 +94,11 @@ export function AdminLoginForm() {
       console.error("Auth Error:", error);
       let message = error.message;
       
-      if (error.code === 'auth/configuration-not-found') {
+      if (error.code === 'auth/configuration-not-found' || error.message?.includes('configuration-not-found')) {
         setConfigError(true);
         message = "Email/Password sign-in is not enabled in your Firebase Console.";
       } else if (error.code === 'auth/user-not-found' || error.code === 'auth/invalid-credential') {
-        message = "Invalid email or password. If you haven't created an account yet, use the 'Sign Up' link below.";
+        message = "Invalid email or password. Use 'Sign Up' if you haven't created an account.";
       } else if (error.code === 'auth/email-already-in-use') {
         message = "This email is already registered. Please login instead.";
       }
@@ -109,7 +107,7 @@ export function AdminLoginForm() {
         variant: "destructive",
         title: isSignUp ? "Registration Failed" : "Login Failed",
         description: message,
-        duration: 8000,
+        duration: 10000,
       });
     } finally {
       setIsLoading(false);
@@ -117,34 +115,40 @@ export function AdminLoginForm() {
   }
 
   return (
-    <Card className="shadow-lg border-none">
-      <CardHeader className="space-y-1">
-        <CardTitle className="text-2xl font-black">{isSignUp ? "Register Admin" : "Admin Login"}</CardTitle>
-        <CardDescription>
+    <Card className="shadow-2xl border-none">
+      <CardHeader className="space-y-1 pb-4">
+        <div className="flex items-center gap-2 mb-2">
+           <div className="h-10 w-10 bg-primary/10 rounded-xl flex items-center justify-center">
+              <ShieldCheck className="h-6 w-6 text-primary" />
+           </div>
+           <CardTitle className="text-2xl font-black">Admin Access</CardTitle>
+        </div>
+        <CardDescription className="font-medium">
           {isSignUp 
-            ? "Create a new administrator account for the system." 
-            : "Access the secure system command console."}
+            ? "Establish a new system administrator identity." 
+            : "Authenticate to access the Command Console."}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         {configError && (
-          <Alert variant="destructive" className="bg-destructive/10 text-destructive border-destructive/20">
+          <Alert variant="destructive" className="bg-destructive/10 text-destructive border-destructive/20 animate-in fade-in slide-in-from-top-2">
             <AlertTriangle className="h-4 w-4" />
-            <AlertTitle className="font-bold">Configuration Required</AlertTitle>
-            <AlertDescription className="text-xs mt-1">
-              Email/Password authentication is disabled. To fix this:
-              <ol className="list-decimal list-inside mt-2 space-y-1">
-                <li>Go to <span className="font-bold">Firebase Console</span></li>
-                <li>Navigate to <span className="font-bold">Authentication &gt; Sign-in method</span></li>
-                <li>Enable <span className="font-bold">Email/Password</span></li>
+            <AlertTitle className="font-bold">Firebase Configuration Required</AlertTitle>
+            <AlertDescription className="text-xs mt-2 leading-relaxed">
+              The <span className="font-bold">Email/Password</span> provider is currently disabled. 
+              To fix this and enable login:
+              <ol className="list-decimal list-inside mt-2 space-y-1 font-medium">
+                <li>Open the <span className="font-bold">Firebase Console</span></li>
+                <li>Go to <span className="font-bold">Authentication &gt; Sign-in method</span></li>
+                <li>Enable <span className="font-bold">Email/Password</span> and click Save</li>
               </ol>
               <Button 
                 variant="link" 
-                className="p-0 h-auto text-xs text-destructive font-bold mt-2"
+                className="p-0 h-auto text-xs text-destructive font-bold mt-3"
                 asChild
               >
                 <a href="https://console.firebase.google.com/" target="_blank" rel="noreferrer">
-                  Open Firebase Console <ExternalLink className="ml-1 h-3 w-3" />
+                  Go to Firebase Console <ExternalLink className="ml-1 h-3 w-3" />
                 </a>
               </Button>
             </AlertDescription>
@@ -158,9 +162,9 @@ export function AdminLoginForm() {
               name="email"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Email</FormLabel>
+                  <FormLabel className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Admin Email</FormLabel>
                   <FormControl>
-                    <Input {...field} placeholder="admin@toto.com" className="h-11 bg-secondary/30 border-none" />
+                    <Input {...field} placeholder="admin@toto.com" className="h-12 bg-secondary/30 border-none focus-visible:ring-1 focus-visible:ring-primary" />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -171,22 +175,21 @@ export function AdminLoginForm() {
               name="password"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Password</FormLabel>
+                  <FormLabel className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Security Phrase</FormLabel>
                   <FormControl>
                     <div className="relative">
                       <Input
                         type={showPassword ? "text" : "password"}
-                        placeholder="********"
+                        placeholder="••••••••"
                         {...field}
-                        className="h-11 bg-secondary/30 border-none"
+                        className="h-12 bg-secondary/30 border-none focus-visible:ring-1 focus-visible:ring-primary"
                       />
                       <Button
                         type="button"
                         variant="ghost"
                         size="icon"
-                        className="absolute right-1 top-1/2 h-8 w-8 -translate-y-1/2 hover:bg-transparent"
+                        className="absolute right-1 top-1/2 h-9 w-9 -translate-y-1/2 hover:bg-transparent"
                         onClick={() => setShowPassword(!showPassword)}
-                        aria-label={showPassword ? "Hide password" : "Show password"}
                       >
                         {showPassword ? (
                           <EyeOff className="h-4 w-4 text-muted-foreground" />
@@ -200,19 +203,19 @@ export function AdminLoginForm() {
                 </FormItem>
               )}
             />
-            <div className="space-y-4 pt-2">
+            <div className="space-y-4 pt-4">
               <Button
                 type="submit"
-                className="w-full h-12 font-black text-lg shadow-lg shadow-primary/20"
+                className="w-full h-14 font-black text-lg shadow-xl shadow-primary/20 transition-all hover:scale-[1.01] active:scale-[0.98]"
                 disabled={isLoading}
               >
                 {isLoading ? (
                   <>
                     <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                    {isSignUp ? "CREATING..." : "AUTHENTICATING..."}
+                    {isSignUp ? "CREATING ADMIN..." : "VERIFYING..."}
                   </>
                 ) : (
-                  isSignUp ? "CREATE ADMIN" : "LOG IN"
+                  isSignUp ? "CREATE ACCOUNT" : "AUTHENTICATE"
                 )}
               </Button>
               <Button
@@ -224,7 +227,7 @@ export function AdminLoginForm() {
                   setConfigError(false);
                 }}
               >
-                {isSignUp ? "ALREADY HAVE AN ACCOUNT? LOGIN" : "NEED TO REGISTER? SIGN UP"}
+                {isSignUp ? "ALREADY HAVE AN ADMIN ACCOUNT? LOGIN" : "FIRST TIME? REGISTER AS ADMIN"}
               </Button>
             </div>
           </form>
