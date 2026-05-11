@@ -2,6 +2,7 @@
 import { initializeApp, getApp, getApps, FirebaseApp } from 'firebase/app';
 import { getAuth, Auth } from 'firebase/auth';
 import { getFirestore, Firestore } from 'firebase/firestore';
+import { getStorage, FirebaseStorage } from 'firebase/storage';
 import { firebaseConfig } from '@/firebase/config';
 import {
   useCollection,
@@ -16,6 +17,7 @@ import {
   useFirebaseApp,
   useAuth,
   useFirestore,
+  useStorage,
 } from './provider';
 import { FirebaseClientProvider } from './client-provider';
 import { useMemo } from 'react';
@@ -24,6 +26,7 @@ export interface FirebaseServices {
   app: FirebaseApp;
   auth: Auth;
   firestore: Firestore;
+  storage: FirebaseStorage;
 }
 
 let firebaseInstance: FirebaseServices | null = null;
@@ -37,8 +40,9 @@ export function initializeFirebase(): FirebaseServices {
     getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
   const auth = getAuth(app);
   const firestore = getFirestore(app);
+  const storage = getStorage(app);
 
-  firebaseInstance = { app, auth, firestore };
+  firebaseInstance = { app, auth, firestore, storage };
   return firebaseInstance;
 }
 
@@ -60,6 +64,7 @@ export {
   useFirebaseApp,
   useAuth,
   useFirestore,
+  useStorage,
   useUser,
   useCollection,
   useCollectionData,
