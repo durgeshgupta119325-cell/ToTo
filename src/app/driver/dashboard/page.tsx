@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useToast } from '@/hooks/use-toast';
 import { Icons } from '@/components/icons';
-import { Star, Home, CheckCircle2, Wallet, LayoutDashboard, Clock } from 'lucide-react';
+import { Star, Home, CheckCircle2, Wallet, LayoutDashboard, Clock, ArrowUpRight, ArrowDownLeft } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { Input } from '@/components/ui/input';
 import { useFirestore, useUser, useCollectionData } from '@/firebase';
@@ -47,9 +47,7 @@ export default function DriverDashboardPage() {
   useEffect(() => {
     if (!isOnline || !user || !db) return;
 
-    // Simulate location updates every 10 seconds
     const interval = setInterval(() => {
-      // Simulate slight movement around a central point
       const baseLat = 25.5941;
       const baseLng = 85.1376;
       const lat = baseLat + (Math.random() - 0.5) * 0.01;
@@ -61,7 +59,7 @@ export default function DriverDashboardPage() {
         lat,
         lng,
         heading: Math.floor(Math.random() * 360),
-        speed: Math.random() * 40, // 0 to 40 km/h
+        speed: Math.random() * 40,
         lastUpdated: new Date().toISOString(),
         isOnline: true
       }, { merge: true });
@@ -70,25 +68,25 @@ export default function DriverDashboardPage() {
     return () => clearInterval(interval);
   }, [isOnline, user, db]);
 
-  const completedRidesQuery = useMemo(() => {
+  // Real-time Transactions (Earnings)
+  const transactionsQuery = useMemo(() => {
     if (!user) return null;
     return query(
-      collection(db, 'rides'),
-      where('driverId', '==', user.uid),
-      where('status', '==', 'completed'),
-      orderBy('createdAt', 'desc')
+      collection(db, 'transactions'),
+      where('userId', '==', user.uid),
+      orderBy('createdAt', 'desc'),
+      limit(20)
     );
   }, [user, db]);
 
-  const { data: rideHistory } = useCollectionData(completedRidesQuery);
+  const { data: transactions, loading: txLoading } = useCollectionData(transactionsQuery);
 
   const stats = useMemo(() => {
-    if (!rideHistory) return { gross: 0, net: 0, commission: 0, count: 0 };
-    const gross = rideHistory.reduce((acc, r: any) => acc + (r.fare || 0), 0);
-    const commission = gross * 0.20;
-    const net = gross - commission;
-    return { gross, net, commission, count: rideHistory.length };
-  }, [rideHistory]);
+    if (!transactions) return { balance: 0, totalTrips: 0, rating: 4.8 };
+    const balance = transactions.reduce((acc, tx: any) => acc + (tx.type === 'credit' ? tx.amount : -tx.amount), 0);
+    const trips = transactions.filter((tx: any) => tx.description.includes('Ride earnings')).length;
+    return { balance, totalTrips: trips, rating: 4.8 };
+  }, [transactions]);
 
   useEffect(() => {
     if (!isOnline || !user || activeRide) return;
@@ -129,10 +127,8 @@ export default function DriverDashboardPage() {
     setIsOnline(online);
     if (user) {
         updateDoc(doc(db, 'drivers', user.uid), { isOnline: online, isAvailable: online });
-        // Update location status
         const locRef = doc(db, 'driver_locations', user.uid);
         updateDoc(locRef, { isOnline: online, lastUpdated: new Date().toISOString() }).catch(() => {
-            // Document might not exist if first time
             setDoc(locRef, { driverId: user.uid, isOnline: online, lat: 0, lng: 0, lastUpdated: new Date().toISOString() });
         });
     }
@@ -153,11 +149,6 @@ export default function DriverDashboardPage() {
         setIncomingRequest(null);
         updateDoc(doc(db, 'drivers', user.uid), { isAvailable: false });
     });
-  };
-
-  const handleArrived = () => {
-    if (!activeRide) return;
-    toast({ title: "Arrived", description: "Request OTP from customer." });
   };
 
   const handleVerifyOtp = () => {
@@ -181,10 +172,10 @@ export default function DriverDashboardPage() {
 
   const handleCompleteRide = () => {
     if (!activeRide || !user) return;
+    // Complete ride logic (payment handled by customer, but driver completes mission)
     updateDoc(doc(db, 'rides', activeRide.rideId), { 
         status: 'completed',
-        completedAt: new Date().toISOString(),
-        paymentStatus: 'paid'
+        completedAt: new Date().toISOString()
     }).then(() => {
         setActiveRide(null);
         updateDoc(doc(db, 'drivers', user.uid), { isAvailable: true });
@@ -284,7 +275,7 @@ export default function DriverDashboardPage() {
                               <div className="space-y-6 flex flex-col justify-center">
                                   {activeRide.status === 'accepted' && (
                                       <div className="space-y-4">
-                                          <Button size="lg" className="h-20 text-xl font-black w-full shadow-lg" onClick={handleArrived}>
+                                          <Button size="lg" className="h-20 text-xl font-black w-full shadow-lg" onClick={() => toast({ title: "Arrived!" })}>
                                               ARRIVED AT PICKUP
                                           </Button>
                                           <div className="space-y-2">
@@ -322,8 +313,8 @@ export default function DriverDashboardPage() {
                             <span className="text-xs font-bold text-muted-foreground uppercase tracking-[0.2em]">Daily Volume</span>
                         </CardHeader>
                         <CardContent>
-                            <div className="text-4xl font-black">{stats.count}</div>
-                            <p className="text-[10px] text-muted-foreground mt-2 font-medium">Completed Triangulations</p>
+                            <div className="text-4xl font-black">{stats.totalTrips}</div>
+                            <p className="text-[10px] text-muted-foreground mt-2 font-medium">Completed Missions</p>
                         </CardContent>
                     </Card>
                     <Card className="border-none shadow-sm bg-primary/5">
@@ -331,8 +322,8 @@ export default function DriverDashboardPage() {
                             <span className="text-xs font-bold text-primary uppercase tracking-[0.2em]">Net Wallet</span>
                         </CardHeader>
                         <CardContent>
-                            <div className="text-4xl font-black text-primary">₹{stats.net.toLocaleString()}</div>
-                            <p className="text-[10px] text-muted-foreground mt-2 font-medium">Settlement Pending</p>
+                            <div className="text-4xl font-black text-primary">₹{stats.balance.toLocaleString()}</div>
+                            <p className="text-[10px] text-muted-foreground mt-2 font-medium">Liquid Assets</p>
                         </CardContent>
                     </Card>
                     <Card className="border-none shadow-sm">
@@ -340,7 +331,7 @@ export default function DriverDashboardPage() {
                             <span className="text-xs font-bold text-muted-foreground uppercase tracking-[0.2em]">Trust Factor</span>
                         </CardHeader>
                         <CardContent>
-                            <div className="text-4xl font-black flex items-center gap-2">4.8 <Star className="h-6 w-6 text-yellow-500 fill-yellow-500" /></div>
+                            <div className="text-4xl font-black flex items-center gap-2">{stats.rating} <Star className="h-6 w-6 text-yellow-500 fill-yellow-500" /></div>
                             <p className="text-[10px] text-muted-foreground mt-2 font-medium">Elite Partner Tier</p>
                         </CardContent>
                     </Card>
@@ -353,16 +344,16 @@ export default function DriverDashboardPage() {
               <div className="space-y-6">
                 <div className="grid gap-4 md:grid-cols-3">
                   <div className="p-8 bg-background border-2 rounded-2xl shadow-sm text-center">
-                    <p className="text-[10px] font-black uppercase text-muted-foreground mb-1 tracking-widest">Gross Yield</p>
-                    <p className="text-3xl font-black">₹{stats.gross.toLocaleString()}</p>
+                    <p className="text-[10px] font-black uppercase text-muted-foreground mb-1 tracking-widest">Available Balance</p>
+                    <p className="text-3xl font-black">₹{stats.balance.toLocaleString()}</p>
                   </div>
-                  <div className="p-8 bg-background border-2 rounded-2xl shadow-sm text-center">
-                    <p className="text-[10px] font-black uppercase text-destructive mb-1 tracking-widest">Protocol Fee (20%)</p>
-                    <p className="text-3xl font-black text-destructive">-₹{stats.commission.toLocaleString()}</p>
-                  </div>
+                  <Button variant="outline" className="h-full rounded-2xl border-dashed border-2 flex flex-col items-center justify-center gap-2 p-8 hover:bg-primary/5 transition-colors">
+                    <ArrowUpRight className="h-6 w-6 text-primary" />
+                    <span className="font-black text-xs uppercase tracking-widest">Withdraw Funds</span>
+                  </Button>
                   <div className="p-8 bg-primary text-primary-foreground rounded-2xl shadow-xl text-center">
-                    <p className="text-[10px] font-black uppercase opacity-80 mb-1 tracking-widest">Liquid Assets</p>
-                    <p className="text-3xl font-black">₹{stats.net.toLocaleString()}</p>
+                    <p className="text-[10px] font-black uppercase opacity-80 mb-1 tracking-widest">Total Earned</p>
+                    <p className="text-3xl font-black">₹{(stats.balance * 1.25).toLocaleString()}</p>
                   </div>
                 </div>
 
@@ -374,19 +365,40 @@ export default function DriverDashboardPage() {
                     <Table>
                       <TableHeader className="bg-muted/10">
                         <TableRow>
-                          <TableHead className="font-black text-[10px] uppercase">Rider</TableHead>
-                          <TableHead className="font-black text-[10px] uppercase">Gross</TableHead>
-                          <TableHead className="text-right font-black text-[10px] uppercase">Net Credit</TableHead>
+                          <TableHead className="font-black text-[10px] uppercase">Details</TableHead>
+                          <TableHead className="font-black text-[10px] uppercase">Type</TableHead>
+                          <TableHead className="font-black text-[10px] uppercase">Date</TableHead>
+                          <TableHead className="text-right font-black text-[10px] uppercase">Amount</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {rideHistory?.map((ride: any) => (
-                          <TableRow key={ride.rideId} className="hover:bg-muted/5 transition-colors">
-                            <TableCell className="font-bold text-xs">{ride.customerName}</TableCell>
-                            <TableCell className="text-xs font-medium">₹{ride.fare}</TableCell>
-                            <TableCell className="text-right font-black text-green-600 text-sm">₹{(ride.fare * 0.8).toFixed(0)}</TableCell>
+                        {transactions?.map((tx: any) => (
+                          <TableRow key={tx.transactionId} className="hover:bg-muted/5 transition-colors">
+                            <TableCell>
+                              <div className="space-y-0.5">
+                                <p className="font-bold text-xs">{tx.description}</p>
+                                <p className="text-[10px] text-muted-foreground font-mono">{tx.transactionId}</p>
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant={tx.type === 'credit' ? 'default' : 'secondary'} className={cn("text-[10px] uppercase font-bold", tx.type === 'credit' ? "bg-green-100 text-green-700 hover:bg-green-200" : "bg-red-100 text-red-700 hover:bg-red-200")}>
+                                {tx.type === 'credit' ? <ArrowDownLeft className="h-3 w-3 mr-1" /> : <ArrowUpRight className="h-3 w-3 mr-1" />}
+                                {tx.type}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="text-[10px] text-muted-foreground">
+                              {new Date(tx.createdAt).toLocaleString()}
+                            </TableCell>
+                            <TableCell className={cn("text-right font-black text-sm", tx.type === 'credit' ? "text-green-600" : "text-red-600")}>
+                              {tx.type === 'credit' ? '+' : '-'}₹{tx.amount}
+                            </TableCell>
                           </TableRow>
                         ))}
+                        {transactions?.length === 0 && !txLoading && (
+                          <TableRow>
+                            <TableCell colSpan={4} className="h-32 text-center italic text-muted-foreground">No transactions recorded yet.</TableCell>
+                          </TableRow>
+                        )}
                       </TableBody>
                     </Table>
                   </CardContent>

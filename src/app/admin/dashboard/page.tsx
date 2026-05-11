@@ -26,7 +26,8 @@ import {
   ShieldAlert,
   Clock,
   Star,
-  BadgeCheck
+  BadgeCheck,
+  ReceiptIndianRupee
 } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
@@ -70,20 +71,27 @@ export default function AdminDashboardPage() {
 
   const [newHub, setNewHub] = useState({ state: '', city: '', range: '10' });
 
-  const liveRidesQuery = useMemo(() => query(collection(db, 'rides'), orderBy('createdAt', 'desc'), limit(20)), [db]);
+  // Live Subscriptions
+  const liveRidesQuery = useMemo(() => query(collection(db, 'rides'), orderBy('createdAt', 'desc'), limit(50)), [db]);
   const { data: liveRides } = useCollectionData(liveRidesQuery);
 
+  const txQuery = useMemo(() => query(collection(db, 'transactions'), orderBy('createdAt', 'desc'), limit(50)), [db]);
+  const { data: transactions } = useCollectionData(txQuery);
+
   const stats = useMemo(() => {
-    if (!liveRides) return { totalRides: 0, grossVolume: 0, activeCount: 0 };
+    if (!liveRides || !transactions) return { totalRides: 0, grossVolume: 0, activeCount: 0, netRevenue: 0 };
     const completed = liveRides.filter((r: any) => r.status === 'completed');
     const active = liveRides.filter((r: any) => r.status !== 'completed' && r.status !== 'cancelled');
     const gross = completed.reduce((acc: number, r: any) => acc + (r.fare || 0), 0);
+    const revenue = transactions.filter((tx: any) => tx.type === 'debit').reduce((acc: number, tx: any) => acc + (tx.amount * 0.2), 0); // 20% platform fee simulation
+    
     return { 
       totalRides: completed.length, 
       grossVolume: gross,
-      activeCount: active.length
+      activeCount: active.length,
+      netRevenue: revenue
     };
-  }, [liveRides]);
+  }, [liveRides, transactions]);
 
   const handleLogout = () => {
     toast({ title: 'Logged Out' });
@@ -125,7 +133,8 @@ export default function AdminDashboardPage() {
 
           <Tabs defaultValue="overview" className="space-y-6">
             <TabsList className="bg-background border h-11 w-full justify-start overflow-x-auto p-1 shadow-inner">
-              <TabsTrigger value="overview" className="gap-2"><LayoutDashboard className="h-4 w-4" /> Operations</TabsTrigger>
+              <TabsTrigger value="overview" className="gap-2"><LayoutDashboard className="h-4 w-4" /> Monitor</TabsTrigger>
+              <TabsTrigger value="ledger" className="gap-2"><ReceiptIndianRupee className="h-4 w-4" /> Ledger</TabsTrigger>
               <TabsTrigger value="hubs" className="gap-2"><Globe className="h-4 w-4" /> Geography</TabsTrigger>
               <TabsTrigger value="drivers" className="gap-2"><Car className="h-4 w-4" /> Partners</TabsTrigger>
               <TabsTrigger value="customers" className="gap-2"><Users className="h-4 w-4" /> Riders</TabsTrigger>
@@ -133,7 +142,7 @@ export default function AdminDashboardPage() {
             </TabsList>
 
             <TabsContent value="overview" className="space-y-6">
-                <div className="grid gap-6 md:grid-cols-3">
+                <div className="grid gap-6 md:grid-cols-4">
                     <Card className="border-none shadow-sm">
                         <CardHeader className="pb-2">
                             <CardTitle className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Active Nodes</CardTitle>
@@ -150,6 +159,14 @@ export default function AdminDashboardPage() {
                             <div className="text-3xl font-black text-primary">₹{stats.grossVolume.toLocaleString()}</div>
                         </CardContent>
                     </Card>
+                    <Card className="border-none shadow-sm bg-primary/5">
+                        <CardHeader className="pb-2">
+                            <CardTitle className="text-xs font-bold text-primary uppercase tracking-widest">Net Revenue</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="text-3xl font-black">₹{stats.netRevenue.toLocaleString()}</div>
+                        </CardContent>
+                    </Card>
                     <Card className="border-none shadow-sm">
                         <CardHeader className="pb-2">
                             <CardTitle className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Total Fleet</CardTitle>
@@ -162,7 +179,7 @@ export default function AdminDashboardPage() {
 
                 <Card className="border-none shadow-sm">
                     <CardHeader>
-                        <CardTitle className="flex items-center gap-2"><Activity className="h-5 w-5 text-primary" /> Live Handshake Stream</CardTitle>
+                        <CardTitle className="flex items-center gap-2"><Activity className="h-5 w-5 text-primary" /> Live Activity Monitor</CardTitle>
                         <CardDescription>Real-time verification of trip handshake codes across the city.</CardDescription>
                     </CardHeader>
                     <CardContent>
@@ -170,20 +187,20 @@ export default function AdminDashboardPage() {
                             <TableHeader>
                                 <TableRow>
                                     <TableHead>Ride ID</TableHead>
-                                    <TableHead>Rider</TableHead>
-                                    <TableHead>Partner</TableHead>
-                                    <TableHead>OTP</TableHead>
+                                    <TableHead>Pickup</TableHead>
+                                    <TableHead>Fare</TableHead>
+                                    <TableHead>Handshake OTP</TableHead>
                                     <TableHead>Status</TableHead>
-                                    <TableHead className="text-right">Audit</TableHead>
+                                    <TableHead className="text-right">Code Used</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
                                 {liveRides?.map((ride: any) => (
                                     <TableRow key={ride.rideId} className="group transition-colors">
                                         <TableCell className="font-bold text-xs font-mono">{ride.rideId}</TableCell>
-                                        <TableCell className="text-xs">{ride.customerName}</TableCell>
-                                        <TableCell className="text-xs">{ride.driverName || <span className="text-muted-foreground italic">Searching...</span>}</TableCell>
-                                        <TableCell className="font-black text-primary tracking-widest">{ride.otp}</TableCell>
+                                        <TableCell className="text-xs max-w-[200px] truncate">{ride.pickup?.address}</TableCell>
+                                        <TableCell className="text-xs font-bold">₹{ride.fare}</TableCell>
+                                        <TableCell className="font-black text-primary tracking-widest text-lg">{ride.otp}</TableCell>
                                         <TableCell>
                                             <Badge 
                                                 variant="secondary"
@@ -191,6 +208,7 @@ export default function AdminDashboardPage() {
                                                     "text-[10px] uppercase font-bold",
                                                     ride.status === 'completed' && 'bg-green-100 text-green-700',
                                                     ride.status === 'started' && 'bg-blue-100 text-blue-700',
+                                                    ride.status === 'accepted' && 'bg-purple-100 text-purple-700',
                                                     ride.status === 'requested' && 'bg-orange-100 text-orange-700'
                                                 )}
                                             >
@@ -199,13 +217,57 @@ export default function AdminDashboardPage() {
                                         </TableCell>
                                         <TableCell className="text-right">
                                             {ride.otpUsed ? (
-                                                <BadgeCheck className="h-4 w-4 text-green-500 inline-block" />
+                                                <BadgeCheck className="h-5 w-5 text-green-500 inline-block" />
                                             ) : (
-                                                <Clock className="h-4 w-4 text-muted-foreground inline-block" />
+                                                <Clock className="h-5 w-5 text-muted-foreground inline-block" />
                                             )}
                                         </TableCell>
                                     </TableRow>
                                 ))}
+                            </TableBody>
+                        </Table>
+                    </CardContent>
+                </Card>
+            </TabsContent>
+
+            <TabsContent value="ledger" className="space-y-6">
+                <Card className="border-none shadow-sm">
+                    <CardHeader>
+                        <CardTitle>Global Ledger</CardTitle>
+                        <CardDescription>Comprehensive audit trail of all financial movements.</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>TXN ID</TableHead>
+                                    <TableHead>Entity</TableHead>
+                                    <TableHead>Type</TableHead>
+                                    <TableHead>Amount</TableHead>
+                                    <TableHead>Description</TableHead>
+                                    <TableHead className="text-right">Timestamp</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {transactions?.map((tx: any) => (
+                                    <TableRow key={tx.transactionId}>
+                                        <TableCell className="font-mono text-[10px]">{tx.transactionId}</TableCell>
+                                        <TableCell className="text-xs font-mono">{tx.userId}</TableCell>
+                                        <TableCell>
+                                            <Badge variant={tx.type === 'credit' ? 'default' : 'secondary'} className={cn("text-[9px] uppercase", tx.type === 'credit' ? "bg-green-500" : "bg-red-500")}>
+                                                {tx.type}
+                                            </Badge>
+                                        </TableCell>
+                                        <TableCell className="font-bold">₹{tx.amount}</TableCell>
+                                        <TableCell className="text-xs text-muted-foreground">{tx.description}</TableCell>
+                                        <TableCell className="text-right text-[10px] font-mono">{new Date(tx.createdAt).toLocaleString()}</TableCell>
+                                    </TableRow>
+                                ))}
+                                {transactions?.length === 0 && (
+                                    <TableRow>
+                                        <TableCell colSpan={6} className="h-32 text-center text-muted-foreground italic">No transaction logs available.</TableCell>
+                                    </TableRow>
+                                )}
                             </TableBody>
                         </Table>
                     </CardContent>
@@ -220,7 +282,7 @@ export default function AdminDashboardPage() {
                     </div>
                     <Dialog>
                         <DialogTrigger asChild>
-                            <Button size="sm" className="font-bold"><Plus className="mr-2 h-4 w-4" /> Add Node</Button>
+                            <Button size="sm" className="font-bold"><Plus className="mr-2 h-4 w-4" /> Add Hub</Button>
                         </DialogTrigger>
                         <DialogContent>
                             <DialogHeader>
@@ -246,7 +308,7 @@ export default function AdminDashboardPage() {
                                     <Input type="number" value={newHub.range} onChange={e => setNewHub({...newHub, range: e.target.value})} />
                                 </div>
                                 <Button className="w-full h-12 font-bold" onClick={() => {
-                                    toast({ title: "Node Online", description: `${newHub.city} sector activated.` });
+                                    toast({ title: "Hub Registered", description: `${newHub.city} activated with ${newHub.range}KM range.` });
                                     setNewHub({ state: '', city: '', range: '10' });
                                 }}>Activate Node</Button>
                             </form>
@@ -259,7 +321,7 @@ export default function AdminDashboardPage() {
                             <TableRow>
                                 <TableHead>Urban Sector</TableHead>
                                 <TableHead>Territory</TableHead>
-                                <TableHead>Radius</TableHead>
+                                <TableHead>Range</TableHead>
                                 <TableHead className="text-right">Status</TableHead>
                             </TableRow>
                         </TableHeader>

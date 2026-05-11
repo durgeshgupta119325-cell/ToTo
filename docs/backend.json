@@ -117,11 +117,16 @@
       "description": "Financial transaction record.",
       "type": "object",
       "properties": {
+        "transactionId": { "type": "string" },
         "userId": { "type": "string" },
+        "type": { "type": "string", "enum": ["credit", "debit"] },
         "amount": { "type": "number" },
-        "type": { "type": "string" },
+        "description": { "type": "string" },
+        "status": { "type": "string" },
+        "razorpayPaymentId": { "type": "string" },
         "createdAt": { "type": "string", "format": "date-time" }
-      }
+      },
+      "required": ["transactionId", "userId", "type", "amount", "status"]
     }
   },
   "auth": {

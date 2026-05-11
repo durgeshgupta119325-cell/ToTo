@@ -9,11 +9,12 @@ import { Icons } from '@/components/icons';
 import { CheckCircle2, IndianRupee, CreditCard, Wallet, Banknote, Download, ArrowLeft, ArrowRight, Ticket, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useFirestore, useDocData } from '@/firebase';
-import { doc, updateDoc } from 'firebase/firestore';
+import { doc, updateDoc, setDoc } from 'firebase/firestore';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
+import Link from 'next/link';
 
 export default function CustomerPaymentPage() {
   const params = useParams();
@@ -29,6 +30,7 @@ export default function CustomerPaymentPage() {
   const [coupon, setCoupon] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
+  const [txnId, setTxnId] = useState<string | null>(null);
 
   // Derived fare breakdown
   const breakdown = useMemo(() => {
@@ -41,7 +43,7 @@ export default function CustomerPaymentPage() {
   }, [ride]);
 
   const handlePay = async () => {
-    if (!paymentMode) {
+    if (!paymentMode || !ride) {
       toast({ variant: 'destructive', title: 'Payment Method Required', description: 'Please select a payment method.' });
       return;
     }
@@ -50,15 +52,48 @@ export default function CustomerPaymentPage() {
     // Simulate payment delay
     await new Promise(r => setTimeout(r, 2000));
 
-    const txnId = `TXN_${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
+    const generatedTxnId = `TXN_${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
+    setTxnId(generatedTxnId);
     
     if (rideRef) {
-      await updateDoc(rideRef, {
-        paymentStatus: 'success',
-        paymentMode: paymentMode,
-        transactionId: txnId,
-        status: 'completed'
+      // Update Ride Status
+      updateDoc(rideRef, {
+        paymentStatus: 'paid',
+        paymentMethod: paymentMode.toLowerCase(),
+        razorpayPaymentId: generatedTxnId,
+        status: 'completed',
+        completedAt: new Date().toISOString()
       });
+
+      // Create Transaction Record
+      const transactionData = {
+        transactionId: generatedTxnId,
+        userId: ride.customerId,
+        type: 'debit',
+        amount: ride.fare,
+        description: `Ride payment - ${ride.rideId}`,
+        status: 'success',
+        razorpayPaymentId: generatedTxnId,
+        createdAt: new Date().toISOString()
+      };
+      setDoc(doc(db, 'transactions', generatedTxnId), transactionData);
+
+      // Create Driver Transaction Record (if driver exists)
+      if (ride.driverId) {
+        const driverTxnId = `TXN_DRV_${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
+        const driverAmount = Math.round(ride.fare * 0.8); // 80% to driver
+        const driverTransactionData = {
+          transactionId: driverTxnId,
+          userId: ride.driverId,
+          type: 'credit',
+          amount: driverAmount,
+          description: `Ride earnings - ${ride.rideId}`,
+          status: 'success',
+          razorpayPaymentId: generatedTxnId,
+          createdAt: new Date().toISOString()
+        };
+        setDoc(doc(db, 'transactions', driverTxnId), driverTransactionData);
+      }
     }
 
     setIsProcessing(false);
@@ -82,11 +117,10 @@ export default function CustomerPaymentPage() {
         {!isSuccess ? (
           <>
             <div className="grid gap-6 md:grid-cols-1">
-              {/* Trip Details */}
               <Card className="border-none shadow-sm overflow-hidden">
                 <div className="bg-primary/10 px-6 py-3 flex justify-between items-center border-b border-primary/20">
-                    <span className="text-xs font-bold uppercase tracking-widest text-primary-foreground/70">Trip Summary</span>
-                    <Badge variant="outline" className="bg-background border-primary/20">{ride.id}</Badge>
+                    <span className="text-xs font-bold uppercase tracking-widest text-primary">Trip Summary</span>
+                    <Badge variant="outline" className="bg-background border-primary/20">{ride.rideId}</Badge>
                 </div>
                 <CardContent className="p-6 space-y-4">
                   <div className="grid grid-cols-2 gap-4 text-sm">
@@ -103,17 +137,16 @@ export default function CustomerPaymentPage() {
                   <div className="space-y-2">
                     <div className="flex items-start gap-2 text-sm">
                       <div className="h-2 w-2 rounded-full bg-primary mt-1.5" />
-                      <p className="truncate"><span className="text-muted-foreground mr-1">From:</span> {ride.pickup}</p>
+                      <p className="truncate"><span className="text-muted-foreground mr-1">From:</span> {ride.pickup.address}</p>
                     </div>
                     <div className="flex items-start gap-2 text-sm">
                       <div className="h-2 w-2 rounded-full bg-destructive mt-1.5" />
-                      <p className="truncate"><span className="text-muted-foreground mr-1">To:</span> {ride.destination}</p>
+                      <p className="truncate"><span className="text-muted-foreground mr-1">To:</span> {ride.dropoff.address}</p>
                     </div>
                   </div>
                 </CardContent>
               </Card>
 
-              {/* Fare Breakdown */}
               <Card className="border-none shadow-sm">
                 <CardHeader>
                   <CardTitle className="text-lg">Fare Breakdown</CardTitle>
@@ -143,7 +176,6 @@ export default function CustomerPaymentPage() {
                 </CardContent>
               </Card>
 
-              {/* Payment Methods */}
               <Card className="border-none shadow-sm">
                 <CardHeader>
                   <CardTitle className="text-lg">Select Payment Method</CardTitle>
@@ -209,7 +241,7 @@ export default function CustomerPaymentPage() {
                 <div className="bg-muted/30 p-6 rounded-2xl border border-dashed border-muted-foreground/30 space-y-4">
                   <div className="flex justify-between items-center text-sm">
                     <span className="text-muted-foreground">Transaction ID</span>
-                    <span className="font-mono font-bold">{ride.transactionId}</span>
+                    <span className="font-mono font-bold">{txnId}</span>
                   </div>
                   <div className="flex justify-between items-center text-sm">
                     <span className="text-muted-foreground">Amount Paid</span>
@@ -217,7 +249,7 @@ export default function CustomerPaymentPage() {
                   </div>
                   <div className="flex justify-between items-center text-sm">
                     <span className="text-muted-foreground">Payment Mode</span>
-                    <Badge variant="secondary">{ride.paymentMode}</Badge>
+                    <Badge variant="secondary">{paymentMode}</Badge>
                   </div>
                 </div>
 
@@ -237,5 +269,3 @@ export default function CustomerPaymentPage() {
     </div>
   );
 }
-
-import Link from 'next/link';
