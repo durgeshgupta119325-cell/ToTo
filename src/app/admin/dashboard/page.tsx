@@ -1,4 +1,3 @@
-
 "use client";
 
 import Link from 'next/link';
@@ -422,7 +421,7 @@ export default function AdminDashboardPage() {
             <TabsContent value="customers" className="space-y-6 animate-in fade-in duration-500">
                 <Card className="border-none shadow-sm overflow-hidden">
                     <CardHeader className="bg-background border-b px-6 py-4">
-                        <CardTitle className="text-lg">Rider Intel</TableHead>
+                        <CardTitle className="text-lg">Rider Intel</CardTitle>
                         <CardDescription className="text-xs">Active riders within the city hubs.</CardDescription>
                     </CardHeader>
                     <CardContent className="p-0">
