@@ -1,21 +1,80 @@
-
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-
-    // Allow access to users collection for profile management
+    
+    // ========== USERS COLLECTION ==========
     match /users/{userId} {
-      allow read, write: if true;
+      allow read: if request.auth != null && 
+        (request.auth.uid == userId || 
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin');
+      allow create: if request.auth != null;
+      allow update: if request.auth != null && 
+        (request.auth.uid == userId || 
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin');
+      allow delete: if get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
     }
-
-    // Allow access to rides collection for the booking workflow
+    
+    // ========== DRIVERS COLLECTION ==========
+    match /drivers/{driverId} {
+      allow read: if request.auth != null;
+      allow create, update: if request.auth != null && 
+        (request.auth.uid == driverId || 
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin');
+      allow delete: if get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+    
+    // ========== RIDES COLLECTION ==========
     match /rides/{rideId} {
-      allow read, write: if true;
+      allow read: if request.auth != null && (
+        request.auth.uid == resource.data.customerId ||
+        request.auth.uid == resource.data.driverId ||
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin'
+      );
+      allow create: if request.auth != null;
+      allow update: if request.auth != null && (
+        request.auth.uid == (resource.data.customerId ?? request.resource.data.customerId) ||
+        request.auth.uid == (resource.data.driverId ?? request.resource.data.driverId) ||
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin'
+      );
     }
-
-    // Default deny for all other collections
-    match /{document=**} {
-      allow read, write: if false;
+    
+    // ========== DRIVER_LOCATIONS COLLECTION (Real-time) ==========
+    match /driver_locations/{driverId} {
+      allow read: if request.auth != null;
+      allow create, update: if request.auth != null && request.auth.uid == driverId;
+      allow delete: if request.auth != null && request.auth.uid == driverId;
+    }
+    
+    // ========== WALLETS COLLECTION ==========
+    match /wallets/{userId} {
+      allow read: if request.auth != null && 
+        (request.auth.uid == userId || 
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin');
+      allow update: if request.auth != null && 
+        (request.auth.uid == userId ||
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin');
+    }
+    
+    // ========== TRANSACTIONS COLLECTION ==========
+    match /transactions/{transactionId} {
+      allow read: if request.auth != null && 
+        (request.auth.uid == resource.data.userId ||
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin');
+      allow create: if request.auth != null;
+    }
+    
+    // ========== FLEETS COLLECTION (Business Owner) ==========
+    match /fleets/{fleetId} {
+      allow read, create, update: if request.auth != null;
+      allow delete: if get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+    
+    // ========== REVIEWS COLLECTION ==========
+    match /reviews/{reviewId} {
+      allow read: if true;
+      allow create: if request.auth != null;
+      allow update, delete: if request.auth.uid == resource.data.userId ||
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
     }
   }
 }

@@ -1,29 +1,20 @@
-
 {
   "entities": {
     "user": {
       "title": "User",
-      "description": "A user of the application.",
+      "description": "A user of the application with role-based access.",
       "type": "object",
       "properties": {
-        "name": {
-          "type": "string",
-          "description": "The user's name."
-        },
-        "email": {
-          "type": "string",
-          "format": "email",
-          "description": "The user's email address."
-        }
+        "name": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "role": { "type": "string", "enum": ["admin", "customer", "driver"] },
+        "mobile": { "type": "string" }
       },
-      "required": [
-        "name",
-        "email"
-      ]
+      "required": ["name", "email"]
     },
     "ride": {
       "title": "Ride",
-      "description": "A ride booking record including detailed payment data.",
+      "description": "A ride booking record.",
       "type": "object",
       "properties": {
         "customerId": { "type": "string" },
@@ -32,43 +23,52 @@
         "driverName": { "type": "string" },
         "pickup": { "type": "string" },
         "destination": { "type": "string" },
-        "status": { 
-          "type": "string",
-          "enum": ["pending", "searching_all", "accepted", "arrived", "started", "completed", "cancelled"]
-        },
+        "status": { "type": "string" },
         "fare": { "type": "number" },
-        "baseFare": { "type": "number" },
-        "distanceCharge": { "type": "number" },
-        "platformFee": { "type": "number" },
-        "gst": { "type": "number" },
-        "paymentStatus": { "type": "string", "enum": ["pending", "success", "failed"] },
-        "paymentMode": { "type": "string", "enum": ["UPI", "Card", "Cash", "Wallet"] },
-        "transactionId": { "type": "string" },
         "otp": { "type": "string" },
-        "timestamp": { "type": "string", "format": "date-time" },
-        "distance": { "type": "number" },
-        "commissionAmount": { "type": "number" },
-        "netDriverEarnings": { "type": "number" }
+        "timestamp": { "type": "string", "format": "date-time" }
+      }
+    },
+    "wallet": {
+      "title": "Wallet",
+      "description": "User financial balance.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "balance": { "type": "number" }
+      }
+    },
+    "transaction": {
+      "title": "Transaction",
+      "description": "Financial transaction record.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "amount": { "type": "number" },
+        "type": { "type": "string" },
+        "timestamp": { "type": "string", "format": "date-time" }
       }
     }
   },
   "auth": {
-    "providers": [
-      "google.com"
-    ]
+    "providers": ["google.com", "password"]
   },
   "firestore": {
     "/users/{userId}": {
-      "schema": {
-        "$ref": "#/backend/entities/user"
-      },
-      "description": "Stores user profile information."
+      "schema": { "$ref": "#/backend/entities/user" },
+      "description": "User profile data."
     },
     "/rides/{rideId}": {
-      "schema": {
-        "$ref": "#/backend/entities/ride"
-      },
-      "description": "Stores ride booking and status information."
+      "schema": { "$ref": "#/backend/entities/ride" },
+      "description": "Ride booking records."
+    },
+    "/wallets/{userId}": {
+      "schema": { "$ref": "#/backend/entities/wallet" },
+      "description": "User wallet balances."
+    },
+    "/transactions/{transactionId}": {
+      "schema": { "$ref": "#/backend/entities/transaction" },
+      "description": "Financial logs."
     }
   }
 }
