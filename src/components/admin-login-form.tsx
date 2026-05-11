@@ -6,7 +6,7 @@ import { useForm } from "react-hook-form";
 import * as z from "zod";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Eye, EyeOff, Loader2 } from "lucide-react";
+import { Eye, EyeOff, Loader2, AlertTriangle, ExternalLink } from "lucide-react";
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from "firebase/auth";
 import { doc, setDoc } from "firebase/firestore";
 import { useAuth, useFirestore } from "@/firebase";
@@ -29,6 +29,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 const formSchema = z.object({
   email: z.string().email({
@@ -43,6 +44,7 @@ export function AdminLoginForm() {
   const [isSignUp, setIsSignUp] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [configError, setConfigError] = useState(false);
   const { toast } = useToast();
   const router = useRouter();
   const auth = useAuth();
@@ -57,7 +59,10 @@ export function AdminLoginForm() {
   });
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
+    setIsLoading(false);
+    setConfigError(false);
     setIsLoading(true);
+    
     try {
       if (isSignUp) {
         // Register Admin
@@ -92,11 +97,12 @@ export function AdminLoginForm() {
       let message = error.message;
       
       if (error.code === 'auth/configuration-not-found') {
-        message = "Email/Password sign-in is not enabled in Firebase Console. Please go to Authentication -> Sign-in method and enable it.";
-      } else if (error.code === 'auth/user-not-found') {
-        message = "No account found with this email. Try switching to Sign Up mode.";
-      } else if (error.code === 'auth/wrong-password') {
-        message = "Incorrect password. Please try again.";
+        setConfigError(true);
+        message = "Email/Password sign-in is not enabled in your Firebase Console.";
+      } else if (error.code === 'auth/user-not-found' || error.code === 'auth/invalid-credential') {
+        message = "Invalid email or password. If you haven't created an account yet, use the 'Sign Up' link below.";
+      } else if (error.code === 'auth/email-already-in-use') {
+        message = "This email is already registered. Please login instead.";
       }
 
       toast({
@@ -111,26 +117,50 @@ export function AdminLoginForm() {
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-2xl">{isSignUp ? "Register Admin" : "Admin Login"}</CardTitle>
+    <Card className="shadow-lg border-none">
+      <CardHeader className="space-y-1">
+        <CardTitle className="text-2xl font-black">{isSignUp ? "Register Admin" : "Admin Login"}</CardTitle>
         <CardDescription>
           {isSignUp 
             ? "Create a new administrator account for the system." 
             : "Access the secure system command console."}
         </CardDescription>
       </CardHeader>
-      <CardContent>
+      <CardContent className="space-y-4">
+        {configError && (
+          <Alert variant="destructive" className="bg-destructive/10 text-destructive border-destructive/20">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertTitle className="font-bold">Configuration Required</AlertTitle>
+            <AlertDescription className="text-xs mt-1">
+              Email/Password authentication is disabled. To fix this:
+              <ol className="list-decimal list-inside mt-2 space-y-1">
+                <li>Go to <span className="font-bold">Firebase Console</span></li>
+                <li>Navigate to <span className="font-bold">Authentication &gt; Sign-in method</span></li>
+                <li>Enable <span className="font-bold">Email/Password</span></li>
+              </ol>
+              <Button 
+                variant="link" 
+                className="p-0 h-auto text-xs text-destructive font-bold mt-2"
+                asChild
+              >
+                <a href="https://console.firebase.google.com/" target="_blank" rel="noreferrer">
+                  Open Firebase Console <ExternalLink className="ml-1 h-3 w-3" />
+                </a>
+              </Button>
+            </AlertDescription>
+          </Alert>
+        )}
+
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             <FormField
               control={form.control}
               name="email"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Email</FormLabel>
+                  <FormLabel className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Email</FormLabel>
                   <FormControl>
-                    <Input {...field} placeholder="admin@toto.com" />
+                    <Input {...field} placeholder="admin@toto.com" className="h-11 bg-secondary/30 border-none" />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -141,26 +171,27 @@ export function AdminLoginForm() {
               name="password"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Password</FormLabel>
+                  <FormLabel className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Password</FormLabel>
                   <FormControl>
                     <div className="relative">
                       <Input
                         type={showPassword ? "text" : "password"}
                         placeholder="********"
                         {...field}
+                        className="h-11 bg-secondary/30 border-none"
                       />
                       <Button
                         type="button"
                         variant="ghost"
                         size="icon"
-                        className="absolute right-1 top-1/2 h-7 w-7 -translate-y-1/2"
+                        className="absolute right-1 top-1/2 h-8 w-8 -translate-y-1/2 hover:bg-transparent"
                         onClick={() => setShowPassword(!showPassword)}
                         aria-label={showPassword ? "Hide password" : "Show password"}
                       >
                         {showPassword ? (
-                          <EyeOff className="h-4 w-4" />
+                          <EyeOff className="h-4 w-4 text-muted-foreground" />
                         ) : (
-                          <Eye className="h-4 w-4" />
+                          <Eye className="h-4 w-4 text-muted-foreground" />
                         )}
                       </Button>
                     </div>
@@ -169,28 +200,31 @@ export function AdminLoginForm() {
                 </FormItem>
               )}
             />
-            <div className="space-y-4">
+            <div className="space-y-4 pt-2">
               <Button
                 type="submit"
-                className="w-full h-11 font-bold"
+                className="w-full h-12 font-black text-lg shadow-lg shadow-primary/20"
                 disabled={isLoading}
               >
                 {isLoading ? (
                   <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    {isSignUp ? "Creating Account..." : "Authenticating..."}
+                    <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                    {isSignUp ? "CREATING..." : "AUTHENTICATING..."}
                   </>
                 ) : (
-                  isSignUp ? "Create Admin Account" : "Log In to Console"
+                  isSignUp ? "CREATE ADMIN" : "LOG IN"
                 )}
               </Button>
               <Button
                 type="button"
                 variant="ghost"
-                className="w-full text-xs"
-                onClick={() => setIsSignUp(!isSignUp)}
+                className="w-full text-xs font-bold text-muted-foreground hover:text-primary transition-colors"
+                onClick={() => {
+                  setIsSignUp(!isSignUp);
+                  setConfigError(false);
+                }}
               >
-                {isSignUp ? "Already have an account? Login" : "Need to register? Switch to Sign Up"}
+                {isSignUp ? "ALREADY HAVE AN ACCOUNT? LOGIN" : "NEED TO REGISTER? SIGN UP"}
               </Button>
             </div>
           </form>
