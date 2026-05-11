@@ -31,7 +31,13 @@ import {
   TrendingUp,
   MapPin,
   Plus,
-  Trash2
+  Trash2,
+  Eye,
+  FileText,
+  Mail,
+  Smartphone,
+  CheckCircle2,
+  XCircle
 } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
@@ -47,6 +53,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Separator } from '@/components/ui/separator';
 
 import { useState, useMemo, useEffect } from 'react';
 import { useFirestore, useCollectionData, useUser, useAuth, useDocData, useMemoFirebase } from '@/firebase';
@@ -72,9 +79,11 @@ export default function AdminDashboardPage() {
   // Fetch user data to verify admin role
   const { data: userData, loading: userLoading } = useDocData(userDocRef);
 
-  // Form State for Hubs
+  // Modal States
   const [isAddHubOpen, setIsAddHubOpen] = useState(false);
   const [newHub, setNewHub] = useState({ city: '', state: '', range: 10 });
+  const [selectedDriver, setSelectedDriver] = useState<any>(null);
+  const [isViewDriverOpen, setIsViewDriverOpen] = useState(false);
 
   useEffect(() => {
     if (!authLoading && !userLoading) {
@@ -121,6 +130,19 @@ export default function AdminDashboardPage() {
     return query(collection(db, 'service_areas'), orderBy('city', 'asc'));
   }, [db, isAuthorized]);
   const { data: serviceAreas, loading: hubsLoading } = useCollectionData(hubsQuery);
+
+  const driversQuery = useMemoFirebase(() => {
+    if (!isAuthorized || !db) return null;
+    return query(collection(db, 'drivers'), orderBy('createdAt', 'desc'));
+  }, [db, isAuthorized]);
+  const { data: realDrivers, loading: driversLoading } = useCollectionData(driversQuery);
+
+  // Merge real and dummy data for display
+  const displayDrivers = useMemo(() => {
+    if (!realDrivers) return DUMMY_DRIVERS;
+    const existingIds = new Set(realDrivers.map(d => d.id));
+    return [...realDrivers, ...DUMMY_DRIVERS.filter(d => !existingIds.has(d.driverId))];
+  }, [realDrivers]);
 
   const stats = useMemo(() => {
     if (!liveRides || !transactions) return { totalRides: 0, grossVolume: 0, activeCount: 0, netRevenue: 0 };
@@ -195,6 +217,11 @@ export default function AdminDashboardPage() {
             });
             errorEmitter.emit('permission-error', permissionError);
         });
+  };
+
+  const viewDriverDetails = (driver: any) => {
+    setSelectedDriver(driver);
+    setIsViewDriverOpen(true);
   };
 
   if (authLoading || userLoading) {
@@ -293,7 +320,7 @@ export default function AdminDashboardPage() {
                             <CardTitle className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Fleet Size</CardTitle>
                         </CardHeader>
                         <CardContent>
-                            <div className="text-3xl font-black">{DUMMY_DRIVERS.length}</div>
+                            <div className="text-3xl font-black">{displayDrivers.length}</div>
                         </CardContent>
                     </Card>
                 </div>
@@ -543,17 +570,23 @@ export default function AdminDashboardPage() {
                                     <TableHead className="text-[10px] font-black uppercase">Partner Name</TableHead>
                                     <TableHead className="text-[10px] font-black uppercase">Vehicle Intel</TableHead>
                                     <TableHead className="text-[10px] font-black uppercase">Rating</TableHead>
-                                    <TableHead className="text-right text-[10px] font-black uppercase">Protocol Verification</TableHead>
+                                    <TableHead className="text-[10px] font-black uppercase text-center">Protocol Verification</TableHead>
+                                    <TableHead className="text-right text-[10px] font-black uppercase">Actions</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {DUMMY_DRIVERS.map(d => (
-                                    <TableRow key={d.driverId} className="hover:bg-muted/10 transition-colors">
+                                {displayDrivers.map(d => (
+                                    <TableRow key={d.driverId || d.id} className="hover:bg-muted/10 transition-colors">
                                         <TableCell className="text-sm font-black">{d.name}</TableCell>
                                         <TableCell className="text-xs uppercase font-mono">{d.vehicleNumber} <span className="text-muted-foreground italic">({d.vehicleType})</span></TableCell>
                                         <TableCell className="text-xs flex items-center gap-1 font-black"><Star className="h-3 w-3 text-primary fill-primary" /> {d.rating}</TableCell>
-                                        <TableCell className="text-right">
+                                        <TableCell className="text-center">
                                             <Badge variant="outline" className="text-[9px] font-black uppercase tracking-tighter">{d.kycVerified ? 'Verified' : 'Pending Review'}</Badge>
+                                        </TableCell>
+                                        <TableCell className="text-right">
+                                            <Button variant="ghost" size="sm" className="font-black text-xs gap-1.5" onClick={() => viewDriverDetails(d)}>
+                                                <Eye className="h-3.5 w-3.5" /> View Profile
+                                            </Button>
                                         </TableCell>
                                     </TableRow>
                                 ))}
@@ -633,6 +666,106 @@ export default function AdminDashboardPage() {
           </Tabs>
         </div>
       </main>
+
+      <Dialog open={isViewDriverOpen} onOpenChange={setIsViewDriverOpen}>
+        <DialogContent className="sm:max-w-[500px] p-0 overflow-hidden border-none shadow-2xl">
+            {selectedDriver && (
+                <div className="flex flex-col">
+                    <div className="bg-primary p-8 text-black">
+                        <div className="flex items-center gap-6">
+                            <Avatar className="h-24 w-24 border-4 border-black/10 shadow-lg">
+                                <AvatarImage src={`https://picsum.photos/seed/${selectedDriver.driverId || selectedDriver.id}/200/200`} />
+                                <AvatarFallback className="bg-black/5 font-black text-2xl">{selectedDriver.name[0]}</AvatarFallback>
+                            </Avatar>
+                            <div className="space-y-1">
+                                <div className="flex items-center gap-2">
+                                    <h2 className="text-3xl font-black italic uppercase">{selectedDriver.name}</h2>
+                                    {selectedDriver.kycVerified && <BadgeCheck className="h-6 w-6 text-black" />}
+                                </div>
+                                <p className="text-[10px] font-black uppercase tracking-widest opacity-70">Integrated Partner Node</p>
+                                <div className="flex gap-1.5 mt-2">
+                                    <Badge variant="secondary" className="bg-black text-white border-none font-black text-[9px] uppercase">{selectedDriver.vehicleType}</Badge>
+                                    <Badge variant="secondary" className="bg-black/10 text-black border-none font-black text-[9px] uppercase flex items-center gap-1"><Star className="h-2.5 w-2.5 fill-black" /> {selectedDriver.rating}</Badge>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div className="p-8 space-y-8 bg-background">
+                        <div className="grid grid-cols-2 gap-8">
+                            <div className="space-y-1">
+                                <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest flex items-center gap-1.5"><Smartphone className="h-3 w-3" /> Mobile Number</Label>
+                                <p className="font-bold text-base">{selectedDriver.phone}</p>
+                            </div>
+                            <div className="space-y-1">
+                                <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest flex items-center gap-1.5"><Mail className="h-3 w-3" /> Email Address</Label>
+                                <p className="font-bold text-base truncate">{selectedDriver.email || 'N/A'}</p>
+                            </div>
+                            <div className="space-y-1">
+                                <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest flex items-center gap-1.5"><Car className="h-3 w-3" /> Plate Number</Label>
+                                <p className="font-black text-base uppercase tracking-tighter">{selectedDriver.vehicleNumber}</p>
+                            </div>
+                            <div className="space-y-1">
+                                <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest flex items-center gap-1.5"><MapPin className="h-3 w-3" /> Operational Hub</Label>
+                                <p className="font-bold text-base">{selectedDriver.city}</p>
+                            </div>
+                        </div>
+
+                        <Separator />
+
+                        <div className="space-y-4">
+                            <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest flex items-center gap-1.5"><FileText className="h-3 w-3" /> Verification Identity</Label>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="p-4 bg-secondary/20 rounded-xl border border-dashed flex flex-col items-center gap-2 group hover:bg-primary/5 transition-colors cursor-pointer">
+                                    <div className="h-8 w-8 rounded-lg bg-background shadow-sm flex items-center justify-center">
+                                        <FileText className="h-4 w-4 text-primary" />
+                                    </div>
+                                    <span className="text-[10px] font-black uppercase">Driving License</span>
+                                    {selectedDriver.documents?.dl ? (
+                                        <a href={selectedDriver.documents.dl} target="_blank" className="text-[9px] font-bold text-primary hover:underline">View Document</a>
+                                    ) : (
+                                        <span className="text-[9px] font-bold text-muted-foreground italic">No File Found</span>
+                                    )}
+                                </div>
+                                <div className="p-4 bg-secondary/20 rounded-xl border border-dashed flex flex-col items-center gap-2 group hover:bg-primary/5 transition-colors cursor-pointer">
+                                    <div className="h-8 w-8 rounded-lg bg-background shadow-sm flex items-center justify-center">
+                                        <FileText className="h-4 w-4 text-primary" />
+                                    </div>
+                                    <span className="text-[10px] font-black uppercase">Vehicle RC</span>
+                                    {selectedDriver.documents?.rc ? (
+                                        <a href={selectedDriver.documents.rc} target="_blank" className="text-[9px] font-bold text-primary hover:underline">View Document</a>
+                                    ) : (
+                                        <span className="text-[9px] font-bold text-muted-foreground italic">No File Found</span>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+
+                        <Separator />
+
+                        <div className="flex gap-3">
+                            {!selectedDriver.kycVerified ? (
+                                <Button className="flex-1 font-black shadow-lg shadow-primary/20 h-12 uppercase text-xs" onClick={() => {
+                                    updateDoc(doc(db, 'drivers', selectedDriver.driverId || selectedDriver.id), { kycVerified: true });
+                                    setIsViewDriverOpen(false);
+                                    toast({ title: 'KYC Verified', description: `${selectedDriver.name} is now an active partner.` });
+                                }}>
+                                    <CheckCircle2 className="h-4 w-4 mr-2" /> Approve Partner
+                                </Button>
+                            ) : (
+                                <Button variant="outline" className="flex-1 font-black h-12 uppercase text-xs border-destructive text-destructive hover:bg-destructive/10" onClick={() => {
+                                    updateDoc(doc(db, 'drivers', selectedDriver.driverId || selectedDriver.id), { kycVerified: false });
+                                    setIsViewDriverOpen(false);
+                                    toast({ title: 'Status Revoked', description: 'Partner KYC status set to pending.' });
+                                }}>
+                                    <XCircle className="h-4 w-4 mr-2" /> Revoke Access
+                                </Button>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
