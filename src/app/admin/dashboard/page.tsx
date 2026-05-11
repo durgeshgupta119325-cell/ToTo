@@ -1,4 +1,3 @@
-
 "use client";
 
 import Link from 'next/link';
@@ -27,7 +26,8 @@ import {
   Clock,
   Star,
   BadgeCheck,
-  ReceiptIndianRupee
+  ReceiptIndianRupee,
+  Loader2
 } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
@@ -59,24 +59,32 @@ import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
-import { useState, useMemo } from 'react';
-import { useFirestore, useCollectionData } from '@/firebase';
+import { useState, useMemo, useEffect } from 'react';
+import { useFirestore, useCollectionData, useUser, useAuth } from '@/firebase';
 import { collection, query, orderBy, limit } from 'firebase/firestore';
 import { BOOK_RIDE_SERVICE_AREAS, DUMMY_DRIVERS, DUMMY_CUSTOMERS, DUMMY_LOCATIONS_DATA } from '@/lib/mock-data';
 
 export default function AdminDashboardPage() {
   const router = useRouter();
   const db = useFirestore();
+  const auth = useAuth();
+  const { user, loading: authLoading } = useUser();
   const { toast } = useToast();
 
   const [newHub, setNewHub] = useState({ state: '', city: '', range: '10' });
 
+  useEffect(() => {
+    if (!authLoading && !user) {
+      router.push('/admin/login');
+    }
+  }, [user, authLoading, router]);
+
   // Live Subscriptions
   const liveRidesQuery = useMemo(() => query(collection(db, 'rides'), orderBy('createdAt', 'desc'), limit(50)), [db]);
-  const { data: liveRides } = useCollectionData(liveRidesQuery);
+  const { data: liveRides, loading: ridesLoading } = useCollectionData(liveRidesQuery);
 
   const txQuery = useMemo(() => query(collection(db, 'transactions'), orderBy('createdAt', 'desc'), limit(50)), [db]);
-  const { data: transactions } = useCollectionData(txQuery);
+  const { data: transactions, loading: txLoading } = useCollectionData(txQuery);
 
   const stats = useMemo(() => {
     if (!liveRides || !transactions) return { totalRides: 0, grossVolume: 0, activeCount: 0, netRevenue: 0 };
@@ -93,12 +101,21 @@ export default function AdminDashboardPage() {
     };
   }, [liveRides, transactions]);
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    await auth.signOut();
     toast({ title: 'Logged Out' });
     router.push('/admin/login');
   };
 
   const allStates = useMemo(() => Array.from(new Set(DUMMY_LOCATIONS_DATA.map(l => l.state))).sort(), []);
+
+  if (authLoading) {
+    return (
+      <div className="flex h-screen items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-h-dvh flex-col bg-secondary/20">
@@ -109,6 +126,10 @@ export default function AdminDashboardPage() {
             <span className="font-bold hidden md:inline">Command Console</span>
           </Link>
           <div className="flex items-center gap-4">
+            <div className="hidden sm:block text-right mr-2">
+              <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Administrator</p>
+              <p className="text-xs font-bold truncate max-w-[150px]">{user?.email}</p>
+            </div>
             <Button variant="outline" size="sm" onClick={handleLogout}>
               <LogOut className="mr-2 h-4 w-4" /> Log Out
             </Button>
@@ -148,7 +169,7 @@ export default function AdminDashboardPage() {
                             <CardTitle className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Active Nodes</CardTitle>
                         </CardHeader>
                         <CardContent>
-                            <div className="text-3xl font-black">{stats.activeCount}</div>
+                            {ridesLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <div className="text-3xl font-black">{stats.activeCount}</div>}
                         </CardContent>
                     </Card>
                     <Card className="border-none shadow-sm">
@@ -156,7 +177,7 @@ export default function AdminDashboardPage() {
                             <CardTitle className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Gross Volume</CardTitle>
                         </CardHeader>
                         <CardContent>
-                            <div className="text-3xl font-black text-primary">₹{stats.grossVolume.toLocaleString()}</div>
+                            {txLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <div className="text-3xl font-black text-primary">₹{stats.grossVolume.toLocaleString()}</div>}
                         </CardContent>
                     </Card>
                     <Card className="border-none shadow-sm bg-primary/5">
@@ -164,7 +185,7 @@ export default function AdminDashboardPage() {
                             <CardTitle className="text-xs font-bold text-primary uppercase tracking-widest">Net Revenue</CardTitle>
                         </CardHeader>
                         <CardContent>
-                            <div className="text-3xl font-black">₹{stats.netRevenue.toLocaleString()}</div>
+                            {txLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <div className="text-3xl font-black">₹{stats.netRevenue.toLocaleString()}</div>}
                         </CardContent>
                     </Card>
                     <Card className="border-none shadow-sm">
@@ -183,49 +204,58 @@ export default function AdminDashboardPage() {
                         <CardDescription>Real-time verification of trip handshake codes across the city.</CardDescription>
                     </CardHeader>
                     <CardContent>
-                        <Table>
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead>Ride ID</TableHead>
-                                    <TableHead>Pickup</TableHead>
-                                    <TableHead>Fare</TableHead>
-                                    <TableHead>Handshake OTP</TableHead>
-                                    <TableHead>Status</TableHead>
-                                    <TableHead className="text-right">Code Used</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {liveRides?.map((ride: any) => (
-                                    <TableRow key={ride.rideId} className="group transition-colors">
-                                        <TableCell className="font-bold text-xs font-mono">{ride.rideId}</TableCell>
-                                        <TableCell className="text-xs max-w-[200px] truncate">{ride.pickup?.address}</TableCell>
-                                        <TableCell className="text-xs font-bold">₹{ride.fare}</TableCell>
-                                        <TableCell className="font-black text-primary tracking-widest text-lg">{ride.otp}</TableCell>
-                                        <TableCell>
-                                            <Badge 
-                                                variant="secondary"
-                                                className={cn(
-                                                    "text-[10px] uppercase font-bold",
-                                                    ride.status === 'completed' && 'bg-green-100 text-green-700',
-                                                    ride.status === 'started' && 'bg-blue-100 text-blue-700',
-                                                    ride.status === 'accepted' && 'bg-purple-100 text-purple-700',
-                                                    ride.status === 'requested' && 'bg-orange-100 text-orange-700'
-                                                )}
-                                            >
-                                                {ride.status}
-                                            </Badge>
-                                        </TableCell>
-                                        <TableCell className="text-right">
-                                            {ride.otpUsed ? (
-                                                <BadgeCheck className="h-5 w-5 text-green-500 inline-block" />
-                                            ) : (
-                                                <Clock className="h-5 w-5 text-muted-foreground inline-block" />
-                                            )}
-                                        </TableCell>
+                        {ridesLoading ? (
+                          <div className="h-32 flex items-center justify-center"><Loader2 className="animate-spin" /></div>
+                        ) : (
+                          <Table>
+                              <TableHeader>
+                                  <TableRow>
+                                      <TableHead>Ride ID</TableHead>
+                                      <TableHead>Pickup</TableHead>
+                                      <TableHead>Fare</TableHead>
+                                      <TableHead>Handshake OTP</TableHead>
+                                      <TableHead>Status</TableHead>
+                                      <TableHead className="text-right">Code Used</TableHead>
+                                  </TableRow>
+                              </TableHeader>
+                              <TableBody>
+                                  {liveRides?.map((ride: any) => (
+                                      <TableRow key={ride.id} className="group transition-colors">
+                                          <TableCell className="font-bold text-xs font-mono">{ride.rideId}</TableCell>
+                                          <TableCell className="text-xs max-w-[200px] truncate">{ride.pickup?.address}</TableCell>
+                                          <TableCell className="text-xs font-bold">₹{ride.fare}</TableCell>
+                                          <TableCell className="font-black text-primary tracking-widest text-lg">{ride.otp}</TableCell>
+                                          <TableCell>
+                                              <Badge 
+                                                  variant="secondary"
+                                                  className={cn(
+                                                      "text-[10px] uppercase font-bold",
+                                                      ride.status === 'completed' && 'bg-green-100 text-green-700',
+                                                      ride.status === 'started' && 'bg-blue-100 text-blue-700',
+                                                      ride.status === 'accepted' && 'bg-purple-100 text-purple-700',
+                                                      ride.status === 'requested' && 'bg-orange-100 text-orange-700'
+                                                  )}
+                                              >
+                                                  {ride.status}
+                                              </Badge>
+                                          </TableCell>
+                                          <TableCell className="text-right">
+                                              {ride.otpUsed ? (
+                                                  <BadgeCheck className="h-5 w-5 text-green-500 inline-block" />
+                                              ) : (
+                                                  <Clock className="h-5 w-5 text-muted-foreground inline-block" />
+                                              )}
+                                          </TableCell>
+                                      </TableRow>
+                                  ))}
+                                  {liveRides?.length === 0 && (
+                                    <TableRow>
+                                      <TableCell colSpan={6} className="h-32 text-center text-muted-foreground">No active rides found.</TableCell>
                                     </TableRow>
-                                ))}
-                            </TableBody>
-                        </Table>
+                                  )}
+                              </TableBody>
+                          </Table>
+                        )}
                     </CardContent>
                 </Card>
             </TabsContent>
@@ -250,7 +280,7 @@ export default function AdminDashboardPage() {
                             </TableHeader>
                             <TableBody>
                                 {transactions?.map((tx: any) => (
-                                    <TableRow key={tx.transactionId}>
+                                    <TableRow key={tx.id}>
                                         <TableCell className="font-mono text-[10px]">{tx.transactionId}</TableCell>
                                         <TableCell className="text-xs font-mono">{tx.userId}</TableCell>
                                         <TableCell>
@@ -263,7 +293,7 @@ export default function AdminDashboardPage() {
                                         <TableCell className="text-right text-[10px] font-mono">{new Date(tx.createdAt).toLocaleString()}</TableCell>
                                     </TableRow>
                                 ))}
-                                {transactions?.length === 0 && (
+                                {transactions?.length === 0 && !txLoading && (
                                     <TableRow>
                                         <TableCell colSpan={6} className="h-32 text-center text-muted-foreground italic">No transaction logs available.</TableCell>
                                     </TableRow>

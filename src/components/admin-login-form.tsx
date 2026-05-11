@@ -5,7 +5,9 @@ import { useForm } from "react-hook-form";
 import * as z from "zod";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff, Loader2 } from "lucide-react";
+import { signInWithEmailAndPassword } from "firebase/auth";
+import { useAuth } from "@/firebase";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -37,31 +39,36 @@ const formSchema = z.object({
 
 export function AdminLoginForm() {
   const [showPassword, setShowPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
   const router = useRouter();
+  const auth = useAuth();
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      email: "",
+      email: "totoadmin@gmail.com",
       password: "",
     },
   });
 
-  function onSubmit(values: z.infer<typeof formSchema>) {
-    // Dummy admin login with updated credentials
-    if (values.email === "totoadmin@gmail.com" && values.password === "admin") {
-        toast({
-          title: "Admin Login Successful",
-          description: "Welcome back! Redirecting to the admin dashboard...",
-        });
-        router.push('/admin/dashboard');
-    } else {
-        toast({
-            variant: "destructive",
-            title: "Login Failed",
-            description: "Invalid email or password.",
-        });
+  async function onSubmit(values: z.infer<typeof formSchema>) {
+    setIsLoading(true);
+    try {
+      await signInWithEmailAndPassword(auth, values.email, values.password);
+      toast({
+        title: "Admin Login Successful",
+        description: "Welcome to the Command Console.",
+      });
+      router.push('/admin/dashboard');
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Login Failed",
+        description: error.message || "Invalid credentials.",
+      });
+    } finally {
+      setIsLoading(false);
     }
   }
 
@@ -70,7 +77,7 @@ export function AdminLoginForm() {
       <CardHeader>
         <CardTitle className="text-2xl">Admin Login</CardTitle>
         <CardDescription>
-          Enter your credentials to access the admin dashboard.
+          Access the secure system command console.
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -83,7 +90,7 @@ export function AdminLoginForm() {
                 <FormItem>
                   <FormLabel>Email</FormLabel>
                   <FormControl>
-                    <Input {...field} placeholder="totoadmin@gmail.com" />
+                    <Input {...field} placeholder="admin@toto.com" />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -124,10 +131,17 @@ export function AdminLoginForm() {
             />
             <Button
               type="submit"
-              className="w-full"
-              disabled={form.formState.isSubmitting}
+              className="w-full h-11"
+              disabled={isLoading}
             >
-              {form.formState.isSubmitting ? "Logging in..." : "Log In"}
+              {isLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Authenticating...
+                </>
+              ) : (
+                "Log In to Console"
+              )}
             </Button>
           </form>
         </Form>
