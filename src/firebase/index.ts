@@ -18,6 +18,7 @@ import {
   useFirestore,
 } from './provider';
 import { FirebaseClientProvider } from './client-provider';
+import { useMemo } from 'react';
 
 export interface FirebaseServices {
   app: FirebaseApp;
@@ -39,6 +40,17 @@ export function initializeFirebase(): FirebaseServices {
 
   firebaseInstance = { app, auth, firestore };
   return firebaseInstance;
+}
+
+/**
+ * A specialized hook to stabilize Firebase references or queries.
+ * Use this to wrap document references or collection queries that depend on other state.
+ * @param factory A function that returns a Firebase reference or query.
+ * @param deps The dependencies of the reference/query.
+ * @returns A stable reference or query.
+ */
+export function useMemoFirebase<T>(factory: () => T, deps: React.DependencyList): T {
+  return useMemo(factory, deps);
 }
 
 export {

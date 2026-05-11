@@ -57,8 +57,14 @@ export default function AdminDashboardPage() {
   const { user, loading: authLoading } = useUser();
   const { toast } = useToast();
 
+  // Memoize the doc reference to prevent infinite render loops
+  const userDocRef = useMemo(() => {
+    if (!db || !user?.uid) return null;
+    return doc(db, 'users', user.uid);
+  }, [db, user?.uid]);
+
   // Fetch user data to verify admin role
-  const { data: userData, loading: userLoading } = useDocData(user ? doc(db, 'users', user.uid) : null);
+  const { data: userData, loading: userLoading } = useDocData(userDocRef);
 
   useEffect(() => {
     if (!authLoading && !userLoading) {
@@ -81,14 +87,23 @@ export default function AdminDashboardPage() {
     return !authLoading && !userLoading && !!user && !!userData && userData.role === 'admin';
   }, [authLoading, userLoading, user, userData]);
 
-  // Live Subscriptions - strictly guarded by isAuthorized
-  const liveRidesQuery = useMemo(() => isAuthorized ? query(collection(db, 'rides'), orderBy('createdAt', 'desc'), limit(50)) : null, [db, isAuthorized]);
+  // Live Subscriptions - strictly guarded by isAuthorized and memoized
+  const liveRidesQuery = useMemo(() => {
+    if (!isAuthorized || !db) return null;
+    return query(collection(db, 'rides'), orderBy('createdAt', 'desc'), limit(50));
+  }, [db, isAuthorized]);
   const { data: liveRides, loading: ridesLoading } = useCollectionData(liveRidesQuery);
 
-  const txQuery = useMemo(() => isAuthorized ? query(collection(db, 'transactions'), orderBy('createdAt', 'desc'), limit(50)) : null, [db, isAuthorized]);
+  const txQuery = useMemo(() => {
+    if (!isAuthorized || !db) return null;
+    return query(collection(db, 'transactions'), orderBy('createdAt', 'desc'), limit(50));
+  }, [db, isAuthorized]);
   const { data: transactions, loading: txLoading } = useCollectionData(txQuery);
 
-  const reviewsQuery = useMemo(() => isAuthorized ? query(collection(db, 'reviews'), orderBy('createdAt', 'desc'), limit(50)) : null, [db, isAuthorized]);
+  const reviewsQuery = useMemo(() => {
+    if (!isAuthorized || !db) return null;
+    return query(collection(db, 'reviews'), orderBy('createdAt', 'desc'), limit(50));
+  }, [db, isAuthorized]);
   const { data: reviews, loading: reviewsLoading } = useCollectionData(reviewsQuery);
 
   const stats = useMemo(() => {
