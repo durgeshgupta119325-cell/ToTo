@@ -30,7 +30,7 @@ import { DUMMY_CUSTOMERS } from "@/lib/mock-data";
 const detailsSchema = z.object({
   name: z.string().min(2, { message: "Name must be at least 2 characters." }),
   email: z.string().email({ message: "Please enter a valid email address." }),
-  mobile: z.string().regex(/^\d{10}$/, { message: "Please enter a valid 10-digit mobile number." }),
+  phone: z.string().min(10, { message: "Please enter a valid phone number." }),
   address: z.string().min(5, { message: "Address is required." }),
   city: z.string().min(2, { message: "City is required." }),
   state: z.string().min(2, { message: "State is required." }),
@@ -40,7 +40,6 @@ const detailsSchema = z.object({
 const otpSchema = z.object({
   otp: z.string().length(4, { message: "OTP must be 4 digits." }),
 });
-
 
 export function CustomerLoginForm() {
   const [step, setStep] = useState<'details' | 'otp'>('details');
@@ -54,7 +53,7 @@ export function CustomerLoginForm() {
     defaultValues: {
       name: "",
       email: "",
-      mobile: "",
+      phone: "",
       address: "",
       city: "",
       state: "",
@@ -84,16 +83,14 @@ export function CustomerLoginForm() {
   }, [isEditMode, detailsForm]);
 
   function onDetailsSubmit(values: z.infer<typeof detailsSchema>) {
-    // Mock sending OTP
     toast({
       title: "OTP Sent",
-      description: `An OTP has been sent to ${values.mobile}.`,
+      description: `An OTP has been sent to ${values.phone}.`,
     });
     setStep('otp');
   }
 
   function onOtpSubmit(values: z.infer<typeof otpSchema>) {
-    // Mock OTP verification. Any 4 digit number will do for this demo.
     if (values.otp.match(/^\d{4}$/)) {
         const enteredDetails = detailsForm.getValues();
         let customerToStore;
@@ -102,30 +99,32 @@ export function CustomerLoginForm() {
             const storedCustomerRaw = localStorage.getItem('toto-customer');
             if (storedCustomerRaw) {
                 const storedCustomer = JSON.parse(storedCustomerRaw);
-                // Merge new details, but keep crucial data like ID and rides from the stored object.
                 customerToStore = { ...storedCustomer, ...enteredDetails };
             } else {
-                // Fallback for an unlikely edge case where we are in edit mode but there's no stored customer.
                 customerToStore = {
                     ...enteredDetails,
-                    id: `CUST${Date.now().toString().slice(-4)}`,
-                    gender: 'Not specified',
+                    uid: `CUST_${Date.now()}`,
+                    role: 'customer',
+                    isBlocked: false,
+                    profilePic: `https://picsum.photos/seed/${Date.now()}/200/200`,
+                    createdAt: new Date().toISOString(),
                     rides: []
                 };
             }
         } else {
-            const existingCustomer = DUMMY_CUSTOMERS.find(c => c.mobile === enteredDetails.mobile);
+            const existingCustomer = DUMMY_CUSTOMERS.find(c => c.phone === enteredDetails.phone);
 
             if (existingCustomer) {
-                // Login for existing user from mock data. Merge entered details to update their info, but keep their rides.
                 customerToStore = { ...existingCustomer, ...enteredDetails };
             } else {
-                // New user registration.
                 customerToStore = { 
                     ...enteredDetails, 
-                    id: `CUST${Date.now().toString().slice(-4)}`, // generate new ID
-                    gender: 'Not specified',
-                    rides: [] // new user has no rides
+                    uid: `CUST_${Date.now()}`,
+                    role: 'customer',
+                    isBlocked: false,
+                    profilePic: `https://picsum.photos/seed/${Date.now()}/200/200`,
+                    createdAt: new Date().toISOString(),
+                    rides: []
                 };
             }
         }
@@ -158,7 +157,7 @@ export function CustomerLoginForm() {
         <CardDescription>
           {step === 'details' 
             ? isEditMode ? "Update your personal information below." : "Enter your details to login or create an account." 
-            : `Enter the 4-digit OTP sent to ${detailsForm.getValues('mobile')}.`}
+            : `Enter the 4-digit OTP sent to ${detailsForm.getValues('phone')}.`}
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -193,12 +192,12 @@ export function CustomerLoginForm() {
                 />
                 <FormField
                 control={detailsForm.control}
-                name="mobile"
+                name="phone"
                 render={({ field }) => (
                     <FormItem>
-                    <FormLabel>Mobile Number</FormLabel>
+                    <FormLabel>Phone Number</FormLabel>
                     <FormControl>
-                        <Input placeholder="9876543210" {...field} />
+                        <Input placeholder="+919876543210" {...field} />
                     </FormControl>
                     <FormMessage />
                     </FormItem>

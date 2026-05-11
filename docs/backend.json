@@ -2,15 +2,20 @@
   "entities": {
     "user": {
       "title": "User",
-      "description": "A user of the application with role-based access.",
+      "description": "A user of the application with specific profile data and role-based access.",
       "type": "object",
       "properties": {
+        "uid": { "type": "string" },
         "name": { "type": "string" },
+        "phone": { "type": "string" },
         "email": { "type": "string", "format": "email" },
-        "role": { "type": "string", "enum": ["admin", "customer", "driver"] },
-        "mobile": { "type": "string" }
+        "role": { "type": "string", "enum": ["admin", "customer", "driver", "business"] },
+        "profilePic": { "type": "string" },
+        "city": { "type": "string" },
+        "isBlocked": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" }
       },
-      "required": ["name", "email"]
+      "required": ["uid", "name", "email", "role"]
     },
     "ride": {
       "title": "Ride",
