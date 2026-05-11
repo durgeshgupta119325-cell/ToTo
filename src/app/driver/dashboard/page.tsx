@@ -13,7 +13,7 @@ import { Star, Home, CheckCircle2, Wallet, LayoutDashboard, Clock } from 'lucide
 import { Switch } from '@/components/ui/switch';
 import { Input } from '@/components/ui/input';
 import { useFirestore, useUser, useCollectionData } from '@/firebase';
-import { collection, query, where, onSnapshot, updateDoc, doc, limit, orderBy } from 'firebase/firestore';
+import { collection, query, where, onSnapshot, updateDoc, doc, setDoc, limit, orderBy } from 'firebase/firestore';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -42,6 +42,33 @@ export default function DriverDashboardPage() {
   const [incomingRequest, setIncomingRequest] = useState<Ride | null>(null);
   const [otpInput, setOtpInput] = useState('');
   const [isVerifying, setIsVerifying] = useState(false);
+
+  // Real-time location simulation
+  useEffect(() => {
+    if (!isOnline || !user || !db) return;
+
+    // Simulate location updates every 10 seconds
+    const interval = setInterval(() => {
+      // Simulate slight movement around a central point
+      const baseLat = 25.5941;
+      const baseLng = 85.1376;
+      const lat = baseLat + (Math.random() - 0.5) * 0.01;
+      const lng = baseLng + (Math.random() - 0.5) * 0.01;
+      
+      const locRef = doc(db, 'driver_locations', user.uid);
+      setDoc(locRef, {
+        driverId: user.uid,
+        lat,
+        lng,
+        heading: Math.floor(Math.random() * 360),
+        speed: Math.random() * 40, // 0 to 40 km/h
+        lastUpdated: new Date().toISOString(),
+        isOnline: true
+      }, { merge: true });
+    }, 10000);
+
+    return () => clearInterval(interval);
+  }, [isOnline, user, db]);
 
   const completedRidesQuery = useMemo(() => {
     if (!user) return null;
@@ -102,6 +129,12 @@ export default function DriverDashboardPage() {
     setIsOnline(online);
     if (user) {
         updateDoc(doc(db, 'drivers', user.uid), { isOnline: online, isAvailable: online });
+        // Update location status
+        const locRef = doc(db, 'driver_locations', user.uid);
+        updateDoc(locRef, { isOnline: online, lastUpdated: new Date().toISOString() }).catch(() => {
+            // Document might not exist if first time
+            setDoc(locRef, { driverId: user.uid, isOnline: online, lat: 0, lng: 0, lastUpdated: new Date().toISOString() });
+        });
     }
     toast({ title: online ? 'System Online' : 'System Offline' });
   };
@@ -124,7 +157,6 @@ export default function DriverDashboardPage() {
 
   const handleArrived = () => {
     if (!activeRide) return;
-    // We map arrived to 'accepted' status update in standard lifecycle or keep current
     toast({ title: "Arrived", description: "Request OTP from customer." });
   };
 

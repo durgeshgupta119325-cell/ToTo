@@ -88,6 +88,21 @@
         "completedAt": { "type": "string", "format": "date-time" }
       }
     },
+    "driver_location": {
+      "title": "Driver Location",
+      "description": "Real-time location data for a driver.",
+      "type": "object",
+      "properties": {
+        "driverId": { "type": "string" },
+        "lat": { "type": "number" },
+        "lng": { "type": "number" },
+        "heading": { "type": "number" },
+        "speed": { "type": "number" },
+        "lastUpdated": { "type": "string", "format": "date-time" },
+        "isOnline": { "type": "boolean" }
+      },
+      "required": ["driverId", "lat", "lng", "isOnline"]
+    },
     "wallet": {
       "title": "Wallet",
       "description": "User financial balance.",
@@ -124,6 +139,10 @@
     "/rides/{rideId}": {
       "schema": { "$ref": "#/backend/entities/ride" },
       "description": "Ride booking records."
+    },
+    "/driver_locations/{driverId}": {
+      "schema": { "$ref": "#/backend/entities/driver_location" },
+      "description": "Real-time driver GPS data."
     },
     "/wallets/{userId}": {
       "schema": { "$ref": "#/backend/entities/wallet" },
