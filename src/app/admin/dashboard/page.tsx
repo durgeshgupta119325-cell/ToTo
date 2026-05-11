@@ -62,8 +62,8 @@ import { cn } from '@/lib/utils';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 import { useState, useMemo, useEffect } from 'react';
-import { useFirestore, useCollectionData, useUser, useAuth } from '@/firebase';
-import { collection, query, orderBy, limit } from 'firebase/firestore';
+import { useFirestore, useCollectionData, useUser, useAuth, useDocData } from '@/firebase';
+import { collection, query, orderBy, limit, doc } from 'firebase/firestore';
 import { BOOK_RIDE_SERVICE_AREAS, DUMMY_DRIVERS, DUMMY_CUSTOMERS, DUMMY_LOCATIONS_DATA } from '@/lib/mock-data';
 
 export default function AdminDashboardPage() {
@@ -75,20 +75,36 @@ export default function AdminDashboardPage() {
 
   const [newHub, setNewHub] = useState({ state: '', city: '', range: '10' });
 
+  // Fetch user data to verify admin role
+  const { data: userData, loading: userLoading } = useDocData(user ? doc(db, 'users', user.uid) : null);
+
   useEffect(() => {
-    if (!authLoading && !user) {
-      router.push('/admin/login');
+    if (!authLoading && !userLoading) {
+      if (!user) {
+        router.push('/admin/login');
+      } else if (userData && userData.role !== 'admin') {
+        auth.signOut();
+        toast({
+          variant: 'destructive',
+          title: 'Unauthorized Access',
+          description: 'You do not have administrative privileges.',
+        });
+        router.push('/admin/login');
+      }
     }
-  }, [user, authLoading, router]);
+  }, [user, userData, authLoading, userLoading, router, auth, toast]);
+
+  // Only run queries if user is an admin
+  const isAuthorized = !!userData && userData.role === 'admin';
 
   // Live Subscriptions
-  const liveRidesQuery = useMemo(() => query(collection(db, 'rides'), orderBy('createdAt', 'desc'), limit(50)), [db]);
+  const liveRidesQuery = useMemo(() => isAuthorized ? query(collection(db, 'rides'), orderBy('createdAt', 'desc'), limit(50)) : null, [db, isAuthorized]);
   const { data: liveRides, loading: ridesLoading } = useCollectionData(liveRidesQuery);
 
-  const txQuery = useMemo(() => query(collection(db, 'transactions'), orderBy('createdAt', 'desc'), limit(50)), [db]);
+  const txQuery = useMemo(() => isAuthorized ? query(collection(db, 'transactions'), orderBy('createdAt', 'desc'), limit(50)) : null, [db, isAuthorized]);
   const { data: transactions, loading: txLoading } = useCollectionData(txQuery);
 
-  const reviewsQuery = useMemo(() => query(collection(db, 'reviews'), orderBy('createdAt', 'desc'), limit(50)), [db]);
+  const reviewsQuery = useMemo(() => isAuthorized ? query(collection(db, 'reviews'), orderBy('createdAt', 'desc'), limit(50)) : null, [db, isAuthorized]);
   const { data: reviews, loading: reviewsLoading } = useCollectionData(reviewsQuery);
 
   const stats = useMemo(() => {
@@ -114,12 +130,16 @@ export default function AdminDashboardPage() {
 
   const allStates = useMemo(() => Array.from(new Set(DUMMY_LOCATIONS_DATA.map(l => l.state))).sort(), []);
 
-  if (authLoading) {
+  if (authLoading || userLoading) {
     return (
       <div className="flex h-screen items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
+  }
+
+  if (!isAuthorized) {
+      return null;
   }
 
   return (
@@ -232,6 +252,11 @@ export default function AdminDashboardPage() {
                                         </TableCell>
                                     </TableRow>
                                 ))}
+                                {(!liveRides || liveRides.length === 0) && !ridesLoading && (
+                                    <TableRow>
+                                        <TableCell colSpan={6} className="text-center py-10 text-muted-foreground italic">No active nodes detected.</TableCell>
+                                    </TableRow>
+                                )}
                             </TableBody>
                         </Table>
                     </CardContent>
@@ -269,6 +294,11 @@ export default function AdminDashboardPage() {
                                         <TableCell className="text-right text-[10px] font-mono">{new Date(review.createdAt).toLocaleDateString()}</TableCell>
                                     </TableRow>
                                 ))}
+                                {(!reviews || reviews.length === 0) && !reviewsLoading && (
+                                    <TableRow>
+                                        <TableCell colSpan={4} className="text-center py-10 text-muted-foreground italic">No feedback logs found.</TableCell>
+                                    </TableRow>
+                                )}
                             </TableBody>
                         </Table>
                     </CardContent>
@@ -306,6 +336,11 @@ export default function AdminDashboardPage() {
                                         <TableCell className="text-right text-[10px] font-mono">{new Date(tx.createdAt).toLocaleString()}</TableCell>
                                     </TableRow>
                                 ))}
+                                {(!transactions || transactions.length === 0) && !txLoading && (
+                                    <TableRow>
+                                        <TableCell colSpan={5} className="text-center py-10 text-muted-foreground italic">Financial ledger is empty.</TableCell>
+                                    </TableRow>
+                                )}
                             </TableBody>
                         </Table>
                     </CardContent>
