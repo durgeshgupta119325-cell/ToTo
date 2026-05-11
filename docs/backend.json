@@ -127,6 +127,22 @@
         "createdAt": { "type": "string", "format": "date-time" }
       },
       "required": ["transactionId", "userId", "type", "amount", "status"]
+    },
+    "fleet": {
+      "title": "Fleet",
+      "description": "A collection of vehicles and drivers managed by a business owner.",
+      "type": "object",
+      "properties": {
+        "ownerId": { "type": "string" },
+        "ownerName": { "type": "string" },
+        "fleetName": { "type": "string" },
+        "vehicles": { "type": "array", "items": { "type": "string" } },
+        "drivers": { "type": "array", "items": { "type": "string" } },
+        "totalEarnings": { "type": "number" },
+        "commissionPaid": { "type": "number" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["ownerId", "ownerName", "fleetName"]
     }
   },
   "auth": {
@@ -156,6 +172,10 @@
     "/transactions/{transactionId}": {
       "schema": { "$ref": "#/backend/entities/transaction" },
       "description": "Financial logs."
+    },
+    "/fleets/{fleetId}": {
+      "schema": { "$ref": "#/backend/entities/fleet" },
+      "description": "Fleet and business management data."
     }
   }
 }
