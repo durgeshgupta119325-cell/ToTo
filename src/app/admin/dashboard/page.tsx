@@ -1,3 +1,4 @@
+
 "use client";
 
 import Link from 'next/link';
@@ -27,7 +28,8 @@ import {
   Star,
   BadgeCheck,
   ReceiptIndianRupee,
-  Loader2
+  Loader2,
+  MessageSquare
 } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
@@ -86,12 +88,15 @@ export default function AdminDashboardPage() {
   const txQuery = useMemo(() => query(collection(db, 'transactions'), orderBy('createdAt', 'desc'), limit(50)), [db]);
   const { data: transactions, loading: txLoading } = useCollectionData(txQuery);
 
+  const reviewsQuery = useMemo(() => query(collection(db, 'reviews'), orderBy('createdAt', 'desc'), limit(50)), [db]);
+  const { data: reviews, loading: reviewsLoading } = useCollectionData(reviewsQuery);
+
   const stats = useMemo(() => {
     if (!liveRides || !transactions) return { totalRides: 0, grossVolume: 0, activeCount: 0, netRevenue: 0 };
     const completed = liveRides.filter((r: any) => r.status === 'completed');
     const active = liveRides.filter((r: any) => r.status !== 'completed' && r.status !== 'cancelled');
     const gross = completed.reduce((acc: number, r: any) => acc + (r.fare || 0), 0);
-    const revenue = transactions.filter((tx: any) => tx.type === 'debit').reduce((acc: number, tx: any) => acc + (tx.amount * 0.2), 0); // 20% platform fee simulation
+    const revenue = transactions.filter((tx: any) => tx.type === 'debit').reduce((acc: number, tx: any) => acc + (tx.amount * 0.2), 0);
     
     return { 
       totalRides: completed.length, 
@@ -144,18 +149,13 @@ export default function AdminDashboardPage() {
               <h1 className="text-4xl font-black tracking-tighter">System Intelligence</h1>
               <p className="text-sm text-muted-foreground font-medium">Monitoring urban mobility and platform performance.</p>
             </div>
-            <div className="flex items-center gap-2">
-              <Badge variant="outline" className="bg-green-100 text-green-700 border-green-200 py-1.5 px-3">
-                <span className="h-2 w-2 rounded-full bg-green-500 mr-2 animate-pulse" />
-                NETWORK ACTIVE
-              </Badge>
-            </div>
           </div>
 
           <Tabs defaultValue="overview" className="space-y-6">
             <TabsList className="bg-background border h-11 w-full justify-start overflow-x-auto p-1 shadow-inner">
               <TabsTrigger value="overview" className="gap-2"><LayoutDashboard className="h-4 w-4" /> Monitor</TabsTrigger>
               <TabsTrigger value="ledger" className="gap-2"><ReceiptIndianRupee className="h-4 w-4" /> Ledger</TabsTrigger>
+              <TabsTrigger value="reviews" className="gap-2"><MessageSquare className="h-4 w-4" /> Reviews</TabsTrigger>
               <TabsTrigger value="hubs" className="gap-2"><Globe className="h-4 w-4" /> Geography</TabsTrigger>
               <TabsTrigger value="drivers" className="gap-2"><Car className="h-4 w-4" /> Partners</TabsTrigger>
               <TabsTrigger value="customers" className="gap-2"><Users className="h-4 w-4" /> Riders</TabsTrigger>
@@ -169,7 +169,7 @@ export default function AdminDashboardPage() {
                             <CardTitle className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Active Nodes</CardTitle>
                         </CardHeader>
                         <CardContent>
-                            {ridesLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <div className="text-3xl font-black">{stats.activeCount}</div>}
+                            <div className="text-3xl font-black">{stats.activeCount}</div>
                         </CardContent>
                     </Card>
                     <Card className="border-none shadow-sm">
@@ -177,7 +177,7 @@ export default function AdminDashboardPage() {
                             <CardTitle className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Gross Volume</CardTitle>
                         </CardHeader>
                         <CardContent>
-                            {txLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <div className="text-3xl font-black text-primary">₹{stats.grossVolume.toLocaleString()}</div>}
+                            <div className="text-3xl font-black text-primary">₹{stats.grossVolume.toLocaleString()}</div>
                         </CardContent>
                     </Card>
                     <Card className="border-none shadow-sm bg-primary/5">
@@ -185,7 +185,7 @@ export default function AdminDashboardPage() {
                             <CardTitle className="text-xs font-bold text-primary uppercase tracking-widest">Net Revenue</CardTitle>
                         </CardHeader>
                         <CardContent>
-                            {txLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <div className="text-3xl font-black">₹{stats.netRevenue.toLocaleString()}</div>}
+                            <div className="text-3xl font-black">₹{stats.netRevenue.toLocaleString()}</div>
                         </CardContent>
                     </Card>
                     <Card className="border-none shadow-sm">
@@ -204,58 +204,73 @@ export default function AdminDashboardPage() {
                         <CardDescription>Real-time verification of trip handshake codes across the city.</CardDescription>
                     </CardHeader>
                     <CardContent>
-                        {ridesLoading ? (
-                          <div className="h-32 flex items-center justify-center"><Loader2 className="animate-spin" /></div>
-                        ) : (
-                          <Table>
-                              <TableHeader>
-                                  <TableRow>
-                                      <TableHead>Ride ID</TableHead>
-                                      <TableHead>Pickup</TableHead>
-                                      <TableHead>Fare</TableHead>
-                                      <TableHead>Handshake OTP</TableHead>
-                                      <TableHead>Status</TableHead>
-                                      <TableHead className="text-right">Code Used</TableHead>
-                                  </TableRow>
-                              </TableHeader>
-                              <TableBody>
-                                  {liveRides?.map((ride: any) => (
-                                      <TableRow key={ride.id} className="group transition-colors">
-                                          <TableCell className="font-bold text-xs font-mono">{ride.rideId}</TableCell>
-                                          <TableCell className="text-xs max-w-[200px] truncate">{ride.pickup?.address}</TableCell>
-                                          <TableCell className="text-xs font-bold">₹{ride.fare}</TableCell>
-                                          <TableCell className="font-black text-primary tracking-widest text-lg">{ride.otp}</TableCell>
-                                          <TableCell>
-                                              <Badge 
-                                                  variant="secondary"
-                                                  className={cn(
-                                                      "text-[10px] uppercase font-bold",
-                                                      ride.status === 'completed' && 'bg-green-100 text-green-700',
-                                                      ride.status === 'started' && 'bg-blue-100 text-blue-700',
-                                                      ride.status === 'accepted' && 'bg-purple-100 text-purple-700',
-                                                      ride.status === 'requested' && 'bg-orange-100 text-orange-700'
-                                                  )}
-                                              >
-                                                  {ride.status}
-                                              </Badge>
-                                          </TableCell>
-                                          <TableCell className="text-right">
-                                              {ride.otpUsed ? (
-                                                  <BadgeCheck className="h-5 w-5 text-green-500 inline-block" />
-                                              ) : (
-                                                  <Clock className="h-5 w-5 text-muted-foreground inline-block" />
-                                              )}
-                                          </TableCell>
-                                      </TableRow>
-                                  ))}
-                                  {liveRides?.length === 0 && (
-                                    <TableRow>
-                                      <TableCell colSpan={6} className="h-32 text-center text-muted-foreground">No active rides found.</TableCell>
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>Ride ID</TableHead>
+                                    <TableHead>Pickup</TableHead>
+                                    <TableHead>Fare</TableHead>
+                                    <TableHead>OTP</TableHead>
+                                    <TableHead>Status</TableHead>
+                                    <TableHead className="text-right">Code Used</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {liveRides?.map((ride: any) => (
+                                    <TableRow key={ride.id}>
+                                        <TableCell className="font-bold text-xs font-mono">{ride.rideId}</TableCell>
+                                        <TableCell className="text-xs max-w-[200px] truncate">{ride.pickup?.address}</TableCell>
+                                        <TableCell className="text-xs font-bold">₹{ride.fare}</TableCell>
+                                        <TableCell className="font-black text-primary tracking-widest">{ride.otp}</TableCell>
+                                        <TableCell>
+                                            <Badge variant="secondary" className="text-[10px] uppercase font-bold">
+                                                {ride.status}
+                                            </Badge>
+                                        </TableCell>
+                                        <TableCell className="text-right">
+                                            {ride.otpUsed ? <BadgeCheck className="h-5 w-5 text-green-500 inline-block" /> : <Clock className="h-5 w-5 text-muted-foreground inline-block" />}
+                                        </TableCell>
                                     </TableRow>
-                                  )}
-                              </TableBody>
-                          </Table>
-                        )}
+                                ))}
+                            </TableBody>
+                        </Table>
+                    </CardContent>
+                </Card>
+            </TabsContent>
+
+            <TabsContent value="reviews" className="space-y-6">
+                <Card className="border-none shadow-sm">
+                    <CardHeader>
+                        <CardTitle>Customer Feedback</CardTitle>
+                        <CardDescription>Direct quality insights from recent urban movements.</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>Rating</TableHead>
+                                    <TableHead>Ride ID</TableHead>
+                                    <TableHead>Comment</TableHead>
+                                    <TableHead className="text-right">Date</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {reviews?.map((review: any) => (
+                                    <TableRow key={review.id}>
+                                        <TableCell>
+                                            <div className="flex gap-0.5">
+                                                {[...Array(5)].map((_, i) => (
+                                                    <Star key={i} className={cn("h-3 w-3", i < review.rating ? "text-yellow-500 fill-yellow-500" : "text-muted-foreground/30")} />
+                                                ))}
+                                            </div>
+                                        </TableCell>
+                                        <TableCell className="text-xs font-mono">{review.rideId}</TableCell>
+                                        <TableCell className="text-xs italic text-muted-foreground max-w-[300px] truncate">"{review.comment}"</TableCell>
+                                        <TableCell className="text-right text-[10px] font-mono">{new Date(review.createdAt).toLocaleDateString()}</TableCell>
+                                    </TableRow>
+                                ))}
+                            </TableBody>
+                        </Table>
                     </CardContent>
                 </Card>
             </TabsContent>
@@ -271,7 +286,6 @@ export default function AdminDashboardPage() {
                             <TableHeader>
                                 <TableRow>
                                     <TableHead>TXN ID</TableHead>
-                                    <TableHead>Entity</TableHead>
                                     <TableHead>Type</TableHead>
                                     <TableHead>Amount</TableHead>
                                     <TableHead>Description</TableHead>
@@ -282,7 +296,6 @@ export default function AdminDashboardPage() {
                                 {transactions?.map((tx: any) => (
                                     <TableRow key={tx.id}>
                                         <TableCell className="font-mono text-[10px]">{tx.transactionId}</TableCell>
-                                        <TableCell className="text-xs font-mono">{tx.userId}</TableCell>
                                         <TableCell>
                                             <Badge variant={tx.type === 'credit' ? 'default' : 'secondary'} className={cn("text-[9px] uppercase", tx.type === 'credit' ? "bg-green-500" : "bg-red-500")}>
                                                 {tx.type}
@@ -293,11 +306,6 @@ export default function AdminDashboardPage() {
                                         <TableCell className="text-right text-[10px] font-mono">{new Date(tx.createdAt).toLocaleString()}</TableCell>
                                     </TableRow>
                                 ))}
-                                {transactions?.length === 0 && !txLoading && (
-                                    <TableRow>
-                                        <TableCell colSpan={6} className="h-32 text-center text-muted-foreground italic">No transaction logs available.</TableCell>
-                                    </TableRow>
-                                )}
                             </TableBody>
                         </Table>
                     </CardContent>
@@ -310,40 +318,6 @@ export default function AdminDashboardPage() {
                         <h2 className="text-xl font-bold">Geographic Nodes</h2>
                         <p className="text-xs text-muted-foreground font-medium">Urban operational sectors and service ranges.</p>
                     </div>
-                    <Dialog>
-                        <DialogTrigger asChild>
-                            <Button size="sm" className="font-bold"><Plus className="mr-2 h-4 w-4" /> Add Hub</Button>
-                        </DialogTrigger>
-                        <DialogContent>
-                            <DialogHeader>
-                                <DialogTitle>Register Hub</DialogTitle>
-                                <DialogDescription>Define a new operational sector for the network.</DialogDescription>
-                            </DialogHeader>
-                            <form className="space-y-4 pt-4" onSubmit={(e) => e.preventDefault()}>
-                                <div className="space-y-2">
-                                    <Label>State</Label>
-                                    <Select onValueChange={v => setNewHub({...newHub, state: v})}>
-                                        <SelectTrigger><SelectValue placeholder="Select State" /></SelectTrigger>
-                                        <SelectContent className="max-h-[300px]">
-                                            {allStates.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-                                <div className="space-y-2">
-                                    <Label>City</Label>
-                                    <Input placeholder="E.g. Patna" value={newHub.city} onChange={e => setNewHub({...newHub, city: e.target.value})} />
-                                </div>
-                                <div className="space-y-2">
-                                    <Label>Radius (KM)</Label>
-                                    <Input type="number" value={newHub.range} onChange={e => setNewHub({...newHub, range: e.target.value})} />
-                                </div>
-                                <Button className="w-full h-12 font-bold" onClick={() => {
-                                    toast({ title: "Hub Registered", description: `${newHub.city} activated with ${newHub.range}KM range.` });
-                                    setNewHub({ state: '', city: '', range: '10' });
-                                }}>Activate Node</Button>
-                            </form>
-                        </DialogContent>
-                    </Dialog>
                 </div>
                 <Card className="border-none shadow-sm overflow-hidden">
                     <Table>
@@ -374,56 +348,24 @@ export default function AdminDashboardPage() {
             </TabsContent>
 
             <TabsContent value="drivers" className="space-y-6">
-                <div className="flex items-center justify-between">
-                    <div>
-                        <h2 className="text-xl font-bold">Partner Fleet</h2>
-                        <p className="text-xs text-muted-foreground font-medium">Audit logs for partner credentials and assets.</p>
-                    </div>
-                </div>
                 <Card className="border-none shadow-sm overflow-hidden">
                     <Table>
                         <TableHeader>
                             <TableRow>
                                 <TableHead>Partner</TableHead>
-                                <TableHead>Vehicle (ID/Type)</TableHead>
-                                <TableHead>Hub</TableHead>
+                                <TableHead>Vehicle</TableHead>
                                 <TableHead>Performance</TableHead>
-                                <TableHead className="text-right">KYC Status</TableHead>
+                                <TableHead className="text-right">Status</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
                             {DUMMY_DRIVERS.map(d => (
                                 <TableRow key={d.driverId}>
-                                    <TableCell>
-                                        <div className="flex items-center gap-3">
-                                            <Avatar className="h-8 w-8 border">
-                                                <AvatarFallback>{d.name[0]}</AvatarFallback>
-                                            </Avatar>
-                                            <div className="text-xs">
-                                                <p className="font-bold">{d.name}</p>
-                                                <p className="text-muted-foreground font-mono">{d.phone}</p>
-                                            </div>
-                                        </div>
-                                    </TableCell>
-                                    <TableCell>
-                                        <div className="text-xs">
-                                            <p className="font-bold text-primary uppercase">{d.vehicleType}</p>
-                                            <p className="text-muted-foreground font-mono uppercase">{d.vehicleNumber}</p>
-                                        </div>
-                                    </TableCell>
-                                    <TableCell className="text-xs font-medium">{d.city}</TableCell>
-                                    <TableCell>
-                                        <div className="flex items-center gap-4 text-xs">
-                                            <span className="flex items-center gap-1 font-bold"><Star className="h-3 w-3 text-yellow-500 fill-yellow-500" /> {d.rating}</span>
-                                            <span className="text-muted-foreground">{d.totalTrips} Trips</span>
-                                        </div>
-                                    </TableCell>
+                                    <TableCell className="text-sm font-bold">{d.name}</TableCell>
+                                    <TableCell className="text-xs uppercase">{d.vehicleNumber} ({d.vehicleType})</TableCell>
+                                    <TableCell className="text-xs flex items-center gap-1 font-bold"><Star className="h-3 w-3 text-yellow-500 fill-yellow-500" /> {d.rating}</TableCell>
                                     <TableCell className="text-right">
-                                        {d.kycVerified ? (
-                                            <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 text-[10px] uppercase font-bold">Verified</Badge>
-                                        ) : (
-                                            <Badge variant="outline" className="bg-orange-50 text-orange-700 border-orange-200 text-[10px] uppercase font-bold">Pending</Badge>
-                                        )}
+                                        <Badge variant="outline" className="text-[10px] font-bold uppercase">{d.kycVerified ? 'Verified' : 'Pending'}</Badge>
                                     </TableCell>
                                 </TableRow>
                             ))}
@@ -433,44 +375,24 @@ export default function AdminDashboardPage() {
             </TabsContent>
 
             <TabsContent value="customers" className="space-y-6">
-                <div className="flex items-center justify-between">
-                    <div>
-                        <h2 className="text-xl font-bold">Rider Directory</h2>
-                        <p className="text-xs text-muted-foreground font-medium">Verified customer accounts and risk status.</p>
-                    </div>
-                </div>
                 <Card className="border-none shadow-sm overflow-hidden">
                     <Table>
                         <TableHeader>
                             <TableRow>
                                 <TableHead>Rider</TableHead>
-                                <TableHead>Contact</TableHead>
-                                <TableHead>Primary Hub</TableHead>
-                                <TableHead>Joined</TableHead>
-                                <TableHead className="text-right">Risk Protocol</TableHead>
+                                <TableHead>Hub</TableHead>
+                                <TableHead>Risk Protocol</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
                             {DUMMY_CUSTOMERS.map(c => (
                                 <TableRow key={c.uid}>
+                                    <TableCell className="text-sm font-bold">{c.name}</TableCell>
+                                    <TableCell className="text-xs">{c.city}</TableCell>
                                     <TableCell>
-                                        <div className="flex items-center gap-3">
-                                            <Avatar className="h-8 w-8 border">
-                                                <AvatarImage src={c.profilePic} />
-                                                <AvatarFallback>{c.name[0]}</AvatarFallback>
-                                            </Avatar>
-                                            <span className="font-bold text-sm">{c.name}</span>
-                                        </div>
-                                    </TableCell>
-                                    <TableCell className="text-xs font-mono">{c.phone}</TableCell>
-                                    <TableCell className="text-xs font-medium">{c.city}</TableCell>
-                                    <TableCell className="text-[10px] text-muted-foreground">{new Date(c.createdAt).toLocaleDateString()}</TableCell>
-                                    <TableCell className="text-right">
-                                        {c.isBlocked ? (
-                                            <Badge variant="destructive" className="text-[9px] uppercase"><ShieldAlert className="h-3 w-3 mr-1" /> Blocked</Badge>
-                                        ) : (
-                                            <Badge variant="outline" className="text-[9px] uppercase border-green-200 text-green-700 bg-green-50"><ShieldCheck className="h-3 w-3 mr-1" /> Safe</Badge>
-                                        )}
+                                        <Badge variant={c.isBlocked ? 'destructive' : 'secondary'} className="text-[9px] uppercase">
+                                            {c.isBlocked ? 'Blocked' : 'Safe'}
+                                        </Badge>
                                     </TableCell>
                                 </TableRow>
                             ))}
@@ -484,20 +406,18 @@ export default function AdminDashboardPage() {
                     <Card className="border-none shadow-sm">
                         <CardHeader>
                             <CardTitle>Monetary Policy</CardTitle>
-                            <CardDescription>Global pricing adjustments for urban mobility nodes.</CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-4">
                             <div className="space-y-2">
                                 <Label>Standard Fare (₹/KM)</Label>
                                 <Input defaultValue="15" type="number" />
                             </div>
-                            <Button className="w-full h-11 font-bold shadow-lg shadow-primary/10">Synchronize Rates</Button>
+                            <Button className="w-full h-11 font-bold">Synchronize Rates</Button>
                         </CardContent>
                     </Card>
                     <Card className="border-none shadow-sm">
                         <CardHeader>
                             <CardTitle>Protocol Fee</CardTitle>
-                            <CardDescription>Service commission derived from partner earnings.</CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-4">
                             <div className="space-y-2">

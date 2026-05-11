@@ -143,6 +143,20 @@
         "createdAt": { "type": "string", "format": "date-time" }
       },
       "required": ["ownerId", "ownerName", "fleetName"]
+    },
+    "review": {
+      "title": "Review",
+      "description": "User feedback for a completed ride.",
+      "type": "object",
+      "properties": {
+        "rideId": { "type": "string" },
+        "driverId": { "type": "string" },
+        "customerId": { "type": "string" },
+        "rating": { "type": "number" },
+        "comment": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["rideId", "driverId", "customerId", "rating"]
     }
   },
   "auth": {
@@ -176,6 +190,10 @@
     "/fleets/{fleetId}": {
       "schema": { "$ref": "#/backend/entities/fleet" },
       "description": "Fleet and business management data."
+    },
+    "/reviews/{reviewId}": {
+      "schema": { "$ref": "#/backend/entities/review" },
+      "description": "User reviews and ratings for rides."
     }
   }
 }
