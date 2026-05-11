@@ -1,4 +1,3 @@
-
 "use client";
 
 import Link from 'next/link';
@@ -31,7 +30,7 @@ type Ride = {
   status: 'pending' | 'searching_all' | 'accepted' | 'arrived' | 'started' | 'completed';
   otp: string;
   type: string;
-  timestamp: any;
+  createdAt: any;
 };
 
 export default function DriverDashboardPage() {
@@ -52,7 +51,7 @@ export default function DriverDashboardPage() {
       collection(db, 'rides'),
       where('driverId', '==', user.uid),
       where('status', '==', 'completed'),
-      orderBy('timestamp', 'desc')
+      orderBy('createdAt', 'desc')
     );
   }, [user, db]);
 

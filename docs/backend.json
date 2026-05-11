@@ -26,7 +26,7 @@
         "status": { "type": "string" },
         "fare": { "type": "number" },
         "otp": { "type": "string" },
-        "timestamp": { "type": "string", "format": "date-time" }
+        "createdAt": { "type": "string", "format": "date-time" }
       }
     },
     "wallet": {
@@ -46,7 +46,7 @@
         "userId": { "type": "string" },
         "amount": { "type": "number" },
         "type": { "type": "string" },
-        "timestamp": { "type": "string", "format": "date-time" }
+        "createdAt": { "type": "string", "format": "date-time" }
       }
     }
   },

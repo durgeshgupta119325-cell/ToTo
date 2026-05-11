@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useMemo, useEffect } from 'react';
@@ -49,7 +48,6 @@ export default function BookRidePage() {
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
   const [currentRideId, setCurrentRideId] = useState<string | null>(null);
   const [currentRideData, setCurrentRideData] = useState<any>(null);
-  const [countdown, setCountdown] = useState(60);
 
   const mapImage = useMemo(() => PlaceHolderImages.find((img) => img.id === 'book-ride-map'), []);
   const availableCities = BOOK_RIDE_SERVICE_AREAS.filter(area => area.active);
@@ -120,12 +118,11 @@ export default function BookRidePage() {
         paymentStatus: 'pending',
         otp,
         otpUsed: false,
-        timestamp: serverTimestamp(),
+        createdAt: serverTimestamp(),
         distance,
         type: selectedOption.type,
     };
 
-    // Save to Firestore
     setDoc(doc(db, 'rides', rideId), rideData)
         .catch(async (err) => {
             const permissionError = new FirestorePermissionError({
@@ -136,7 +133,6 @@ export default function BookRidePage() {
             errorEmitter.emit('permission-error', permissionError);
         });
 
-    // Update local history for dashboard
     const storedCustomerRaw = localStorage.getItem('toto-customer');
     if (storedCustomerRaw) {
         try {
@@ -158,8 +154,8 @@ export default function BookRidePage() {
 
     setIsConfirmModalOpen(false);
     setCurrentRideId(rideId);
-    setCurrentRideData(rideData); // Immediate local state for UI
-    setStep('confirmed'); // Show code immediately as requested
+    setCurrentRideData(rideData);
+    setStep('confirmed');
     toast({ title: "Ride Confirmed!", description: "Share the code with your driver." });
   };
 
@@ -193,10 +189,8 @@ export default function BookRidePage() {
       
       <main className="flex-1 overflow-hidden">
         <div className="grid h-[calc(100dvh-3.5rem)] w-full lg:grid-cols-[450px_1fr]">
-          
           <div className="z-10 flex flex-col border-r bg-background shadow-xl overflow-y-auto">
             <div className="p-6 space-y-6">
-                
                 {step === 'search' && (
                     <div className="space-y-6 animate-in slide-in-from-left-4">
                         <div className="space-y-1">

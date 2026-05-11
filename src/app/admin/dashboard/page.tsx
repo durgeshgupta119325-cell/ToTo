@@ -1,4 +1,3 @@
-
 "use client";
 
 import Link from 'next/link';
@@ -84,8 +83,7 @@ export default function AdminDashboardPage() {
   const [activeTab, setActiveTab] = useState('overview');
   const [newHub, setNewHub] = useState({ state: '', city: '', range: '10' });
 
-  // Live monitor query for rides
-  const liveRidesQuery = useMemo(() => query(collection(db, 'rides'), orderBy('timestamp', 'desc'), limit(20)), [db]);
+  const liveRidesQuery = useMemo(() => query(collection(db, 'rides'), orderBy('createdAt', 'desc'), limit(20)), [db]);
   const { data: liveRides } = useCollectionData(liveRidesQuery);
 
   const stats = useMemo(() => {
