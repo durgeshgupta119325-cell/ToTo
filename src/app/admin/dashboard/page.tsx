@@ -37,7 +37,9 @@ import {
   Mail,
   Smartphone,
   CheckCircle2,
-  XCircle
+  XCircle,
+  Calendar,
+  History
 } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
@@ -88,11 +90,15 @@ export default function AdminDashboardPage() {
   // Modal States
   const [isAddHubOpen, setIsAddHubOpen] = useState(false);
   const [newHub, setNewHub] = useState({ city: '', state: '', range: 10 });
+  
   const [selectedDriver, setSelectedDriver] = useState<any>(null);
   const [isViewDriverOpen, setIsViewDriverOpen] = useState(false);
+  
+  const [selectedRider, setSelectedRider] = useState<any>(null);
+  const [isViewRiderOpen, setIsViewRiderOpen] = useState(false);
 
   useEffect(() => {
-    if (!authLoading && !userLoading) {
+    if (!authLoading && !userLoading && mounted) {
       if (!user) {
         router.push('/admin/login');
       } else if (userData && userData.role !== 'admin') {
@@ -105,7 +111,7 @@ export default function AdminDashboardPage() {
         router.push('/admin/login');
       }
     }
-  }, [user, userData, authLoading, userLoading, router, auth, toast]);
+  }, [user, userData, authLoading, userLoading, router, auth, toast, mounted]);
 
   // Only run queries if user is fully authenticated and confirmed as admin
   const isAuthorized = useMemo(() => {
@@ -145,8 +151,8 @@ export default function AdminDashboardPage() {
 
   // Merge real and dummy data for display
   const displayDrivers = useMemo(() => {
-    if (!realDrivers) return DUMMY_DRIVERS;
-    const existingIds = new Set(realDrivers.map(d => d.id));
+    if (!realDrivers || realDrivers.length === 0) return DUMMY_DRIVERS;
+    const existingIds = new Set(realDrivers.map((d: any) => d.driverId || d.id));
     return [...realDrivers, ...DUMMY_DRIVERS.filter(d => !existingIds.has(d.driverId))];
   }, [realDrivers]);
 
@@ -178,7 +184,9 @@ export default function AdminDashboardPage() {
     }
 
     const hubData = {
-        ...newHub,
+        city: newHub.city,
+        state: newHub.state,
+        range: newHub.range,
         active: true,
         createdAt: new Date().toISOString()
     };
@@ -230,12 +238,17 @@ export default function AdminDashboardPage() {
     setIsViewDriverOpen(true);
   };
 
+  const viewRiderDetails = (rider: any) => {
+    setSelectedRider(rider);
+    setIsViewRiderOpen(true);
+  };
+
   if (authLoading || userLoading || !mounted) {
     return (
       <div className="flex h-screen items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-4">
           <Loader2 className="h-10 w-10 animate-spin text-primary" />
-          <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground animate-pulse">Authenticating Command Console...</p>
+          <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground animate-pulse">Authenticating Command Console...</p>
         </div>
       </div>
     );
@@ -558,7 +571,7 @@ export default function AdminDashboardPage() {
                                 ))}
                                 {(!serviceAreas || serviceAreas.length === 0) && !hubsLoading && (
                                     <TableRow>
-                                        <TableCell colSpan={5} className="text-center py-16 text-muted-foreground italic text-sm">No operational sectors deployed yet. Use the "Add New Hub" button to expand.</TableCell>
+                                        <TableCell colSpan={5} className="text-center py-16 text-muted-foreground italic text-sm">No operational sectors deployed yet.</TableCell>
                                     </TableRow>
                                 )}
                             </TableBody>
@@ -585,7 +598,7 @@ export default function AdminDashboardPage() {
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {displayDrivers.map(d => (
+                                {displayDrivers.map((d: any) => (
                                     <TableRow key={d.driverId || d.id} className="hover:bg-muted/10 transition-colors">
                                         <TableCell className="text-sm font-black">{d.name}</TableCell>
                                         <TableCell className="text-xs uppercase font-mono">{d.vehicleNumber} <span className="text-muted-foreground italic">({d.vehicleType})</span></TableCell>
@@ -618,7 +631,8 @@ export default function AdminDashboardPage() {
                                 <TableRow>
                                     <TableHead className="text-[10px] font-black uppercase">Rider Identity</TableHead>
                                     <TableHead className="text-[10px] font-black uppercase">Assigned Hub</TableHead>
-                                    <TableHead className="text-right text-[10px] font-black uppercase">Risk Protocol</TableHead>
+                                    <TableHead className="text-[10px] font-black uppercase">Risk Protocol</TableHead>
+                                    <TableHead className="text-right text-[10px] font-black uppercase">Actions</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
@@ -626,10 +640,15 @@ export default function AdminDashboardPage() {
                                     <TableRow key={c.uid} className="hover:bg-muted/10 transition-colors">
                                         <TableCell className="text-sm font-black">{c.name}</TableCell>
                                         <TableCell className="text-xs font-bold flex items-center gap-1"><MapPin className="h-3 w-3" /> {c.city}</TableCell>
-                                        <TableCell className="text-right">
+                                        <TableCell>
                                             <Badge variant={c.isBlocked ? 'destructive' : 'secondary'} className="text-[9px] font-black uppercase">
                                                 {c.isBlocked ? 'Sanctioned' : 'Compliant'}
                                             </Badge>
+                                        </TableCell>
+                                        <TableCell className="text-right">
+                                            <Button variant="ghost" size="sm" className="font-black text-xs gap-1.5" onClick={() => viewRiderDetails(c)}>
+                                                <Eye className="h-3.5 w-3.5" /> View Profile
+                                            </Button>
                                         </TableCell>
                                     </TableRow>
                                 ))}
@@ -677,6 +696,7 @@ export default function AdminDashboardPage() {
         </div>
       </main>
 
+      {/* Driver Detail Modal */}
       <Dialog open={isViewDriverOpen} onOpenChange={setIsViewDriverOpen}>
         <DialogContent className="sm:max-w-[500px] p-0 overflow-hidden border-none shadow-2xl">
             {selectedDriver && (
@@ -771,6 +791,102 @@ export default function AdminDashboardPage() {
                                 </Button>
                             )}
                         </div>
+                    </div>
+                </div>
+            )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Rider Detail Modal */}
+      <Dialog open={isViewRiderOpen} onOpenChange={setIsViewRiderOpen}>
+        <DialogContent className="sm:max-w-[450px] p-0 overflow-hidden border-none shadow-2xl">
+            {selectedRider && (
+                <div className="flex flex-col">
+                    <div className="bg-secondary p-8 text-foreground">
+                        <div className="flex items-center gap-6">
+                            <Avatar className="h-20 w-20 border-4 border-background shadow-lg">
+                                <AvatarImage src={selectedRider.profilePic} />
+                                <AvatarFallback className="bg-primary/10 text-primary font-black text-xl">{selectedRider.name[0]}</AvatarFallback>
+                            </Avatar>
+                            <div className="space-y-1">
+                                <h2 className="text-2xl font-black tracking-tight">{selectedRider.name}</h2>
+                                <Badge variant={selectedRider.isBlocked ? 'destructive' : 'secondary'} className="text-[9px] font-black uppercase">
+                                    {selectedRider.isBlocked ? 'Account Sanctioned' : 'Active Compliance'}
+                                </Badge>
+                                <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mt-1">Platform Rider Identity</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div className="p-8 space-y-6 bg-background">
+                        <div className="grid grid-cols-1 gap-6">
+                             <div className="flex items-center gap-4">
+                                <div className="h-10 w-10 bg-secondary/50 rounded-lg flex items-center justify-center">
+                                    <Smartphone className="h-5 w-5 text-muted-foreground" />
+                                </div>
+                                <div>
+                                    <p className="text-[10px] font-black uppercase text-muted-foreground">Mobile Handset</p>
+                                    <p className="font-bold">{selectedRider.phone}</p>
+                                </div>
+                            </div>
+                            <div className="flex items-center gap-4">
+                                <div className="h-10 w-10 bg-secondary/50 rounded-lg flex items-center justify-center">
+                                    <Mail className="h-5 w-5 text-muted-foreground" />
+                                </div>
+                                <div>
+                                    <p className="text-[10px] font-black uppercase text-muted-foreground">Contact Email</p>
+                                    <p className="font-bold">{selectedRider.email}</p>
+                                </div>
+                            </div>
+                             <div className="flex items-center gap-4">
+                                <div className="h-10 w-10 bg-secondary/50 rounded-lg flex items-center justify-center">
+                                    <MapPin className="h-5 w-5 text-muted-foreground" />
+                                </div>
+                                <div>
+                                    <p className="text-[10px] font-black uppercase text-muted-foreground">Primary Sector</p>
+                                    <p className="font-bold">{selectedRider.city}</p>
+                                </div>
+                            </div>
+                             <div className="flex items-center gap-4">
+                                <div className="h-10 w-10 bg-secondary/50 rounded-lg flex items-center justify-center">
+                                    <Calendar className="h-5 w-5 text-muted-foreground" />
+                                </div>
+                                <div>
+                                    <p className="text-[10px] font-black uppercase text-muted-foreground">Integration Date</p>
+                                    <p className="font-bold">{new Date(selectedRider.createdAt).toLocaleDateString()}</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <Separator />
+                        
+                        <div className="space-y-3">
+                            <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest flex items-center gap-1.5"><History className="h-3 w-3" /> Recent Urban Handshakes</Label>
+                            <div className="space-y-2">
+                                {selectedRider.rides?.map((ride: any) => (
+                                    <div key={ride.rideId} className="p-3 bg-secondary/10 rounded-lg border flex items-center justify-between">
+                                        <div className="space-y-0.5">
+                                            <p className="text-[10px] font-black uppercase truncate max-w-[150px]">{ride.from} → {ride.to}</p>
+                                            <p className="text-[8px] font-bold text-muted-foreground uppercase">{ride.date}</p>
+                                        </div>
+                                        <Badge variant="outline" className="text-[9px] font-black text-primary border-primary/20">{ride.fare}</Badge>
+                                    </div>
+                                ))}
+                                {(!selectedRider.rides || selectedRider.rides.length === 0) && (
+                                    <p className="text-xs text-center italic text-muted-foreground py-2">No historical movements detected.</p>
+                                )}
+                            </div>
+                        </div>
+
+                        <Button 
+                            variant={selectedRider.isBlocked ? "outline" : "destructive"} 
+                            className="w-full font-black uppercase h-12"
+                            onClick={() => {
+                                toast({ title: selectedRider.isBlocked ? 'Access Restored' : 'Access Sanctioned' });
+                                setIsViewRiderOpen(false);
+                            }}
+                        >
+                            {selectedRider.isBlocked ? 'Restore Platform Access' : 'Sanction Rider Identity'}
+                        </Button>
                     </div>
                 </div>
             )}
