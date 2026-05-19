@@ -115,8 +115,8 @@ export default function AdminDashboardPage() {
 
   // Only run queries if user is fully authenticated and confirmed as admin
   const isAuthorized = useMemo(() => {
-    return !authLoading && !userLoading && !!user && !!userData && userData.role === 'admin';
-  }, [authLoading, userLoading, user, userData]);
+    return mounted && !authLoading && !userLoading && !!user && !!userData && userData.role === 'admin';
+  }, [authLoading, userLoading, user, userData, mounted]);
 
   // Live Subscriptions - strictly guarded by isAuthorized and memoized
   const liveRidesQuery = useMemoFirebase(() => {

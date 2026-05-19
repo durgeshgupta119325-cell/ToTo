@@ -6,6 +6,7 @@ service cloud.firestore {
     // Helper function to check if user is admin
     function isAdmin() {
       return request.auth != null && 
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
     }
 
@@ -27,13 +28,13 @@ service cloud.firestore {
     // ========== RIDES COLLECTION ==========
     match /rides/{rideId} {
       allow read: if request.auth != null && (
-        (resource != null && (request.auth.uid == resource.data.customerId || request.auth.uid == resource.data.driverId)) ||
-        isAdmin()
+        isAdmin() || 
+        (resource != null && (request.auth.uid == resource.data.customerId || request.auth.uid == resource.data.driverId))
       );
       allow create: if request.auth != null;
       allow update: if request.auth != null && (
-        (resource != null && (request.auth.uid == resource.data.customerId || request.auth.uid == resource.data.driverId)) ||
-        isAdmin()
+        isAdmin() ||
+        (resource != null && (request.auth.uid == resource.data.customerId || request.auth.uid == resource.data.driverId))
       );
     }
     
@@ -53,8 +54,8 @@ service cloud.firestore {
     // ========== TRANSACTIONS COLLECTION ==========
     match /transactions/{transactionId} {
       allow read: if request.auth != null && (
-        (resource != null && request.auth.uid == resource.data.userId) ||
-        isAdmin()
+        isAdmin() ||
+        (resource != null && request.auth.uid == resource.data.userId)
       );
       allow create: if request.auth != null;
     }
@@ -69,13 +70,12 @@ service cloud.firestore {
     match /reviews/{reviewId} {
       allow read: if true;
       allow create: if request.auth != null;
-      allow update, delete: if (resource != null && request.auth.uid == resource.data.customerId) || isAdmin();
+      allow update, delete: if isAdmin() || (resource != null && request.auth.uid == resource.data.customerId);
     }
 
     // ========== SERVICE AREAS COLLECTION ==========
     match /service_areas/{areaId} {
-      // Explicitly allow list and get for all authenticated users to prevent permission errors in UI
-      allow get, list, read: if true;
+      allow read: if true;
       allow write: if isAdmin();
     }
   }
