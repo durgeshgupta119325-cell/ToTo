@@ -69,6 +69,12 @@ export default function AdminDashboardPage() {
   const auth = useAuth();
   const { user, loading: authLoading } = useUser();
   const { toast } = useToast();
+  
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // Memoize the doc reference to prevent infinite render loops
   const userDocRef = useMemoFirebase(() => {
@@ -224,7 +230,7 @@ export default function AdminDashboardPage() {
     setIsViewDriverOpen(true);
   };
 
-  if (authLoading || userLoading) {
+  if (authLoading || userLoading || !mounted) {
     return (
       <div className="flex h-screen items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-4">
@@ -406,7 +412,9 @@ export default function AdminDashboardPage() {
                                         </TableCell>
                                         <TableCell className="text-xs font-mono font-bold">{review.rideId}</TableCell>
                                         <TableCell className="text-xs italic text-muted-foreground max-w-[300px] truncate font-medium">"{review.comment}"</TableCell>
-                                        <TableCell className="text-right text-[10px] font-mono text-muted-foreground">{new Date(review.createdAt).toLocaleString()}</TableCell>
+                                        <TableCell className="text-right text-[10px] font-mono text-muted-foreground">
+                                          {mounted ? new Date(review.createdAt).toLocaleString() : 'Loading...'}
+                                        </TableCell>
                                     </TableRow>
                                 ))}
                                 {(!reviews || reviews.length === 0) && !reviewsLoading && (
@@ -448,7 +456,9 @@ export default function AdminDashboardPage() {
                                         </TableCell>
                                         <TableCell className="font-black text-sm">₹{tx.amount}</TableCell>
                                         <TableCell className="text-[11px] text-muted-foreground font-medium">{tx.description}</TableCell>
-                                        <TableCell className="text-right text-[10px] font-mono font-bold text-muted-foreground">{new Date(tx.createdAt).toLocaleString()}</TableCell>
+                                        <TableCell className="text-right text-[10px] font-mono font-bold text-muted-foreground">
+                                          {mounted ? new Date(tx.createdAt).toLocaleString() : 'Loading...'}
+                                        </TableCell>
                                     </TableRow>
                                 ))}
                                 {(!transactions || transactions.length === 0) && !txLoading && (

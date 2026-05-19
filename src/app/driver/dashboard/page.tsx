@@ -37,11 +37,16 @@ export default function DriverDashboardPage() {
   const db = useFirestore();
   const { user } = useUser();
   
+  const [mounted, setMounted] = useState(false);
   const [isOnline, setIsOnline] = useState(true);
   const [activeRide, setActiveRide] = useState<Ride | null>(null);
   const [incomingRequest, setIncomingRequest] = useState<Ride | null>(null);
   const [otpInput, setOtpInput] = useState('');
   const [isVerifying, setIsVerifying] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // Real-time location simulation
   useEffect(() => {
@@ -182,6 +187,14 @@ export default function DriverDashboardPage() {
         toast({ title: "Ride Completed!" });
     });
   };
+
+  if (!mounted) {
+    return (
+      <div className="flex min-h-dvh items-center justify-center bg-background">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-h-dvh flex-col bg-secondary/30">
@@ -387,7 +400,7 @@ export default function DriverDashboardPage() {
                               </Badge>
                             </TableCell>
                             <TableCell className="text-[10px] text-muted-foreground">
-                              {new Date(tx.createdAt).toLocaleString()}
+                              {mounted ? new Date(tx.createdAt).toLocaleString() : 'Loading...'}
                             </TableCell>
                             <TableCell className={cn("text-right font-black text-sm", tx.type === 'credit' ? "text-green-600" : "text-red-600")}>
                               {tx.type === 'credit' ? '+' : '-'}₹{tx.amount}
