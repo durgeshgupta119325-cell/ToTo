@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useToast } from '@/hooks/use-toast';
 import { Icons } from '@/components/icons';
-import { Star, Home, CheckCircle2, Wallet, LayoutDashboard, Clock, ArrowUpRight, ArrowDownLeft } from 'lucide-react';
+import { Star, Home, CheckCircle2, Wallet, LayoutDashboard, Clock, ArrowUpRight, ArrowDownLeft, Loader2 } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { Input } from '@/components/ui/input';
 import { useFirestore, useUser, useCollectionData } from '@/firebase';
