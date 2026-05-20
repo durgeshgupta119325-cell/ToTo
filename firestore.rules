@@ -76,14 +76,13 @@ service cloud.firestore {
 
     // ========== SERVICE AREAS COLLECTION ==========
     match /service_areas/{areaId} {
-      allow read: if true;
-      allow list: if true;
+      allow read, get, list: if true;
       allow write: if isAdmin();
     }
 
     // ========== PLATFORM SETTINGS ==========
     match /platform_settings/{settingId} {
-      allow read: if true;
+      allow read, get, list: if true;
       allow write: if isAdmin();
     }
   }

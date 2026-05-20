@@ -156,7 +156,7 @@ export default function AdminDashboardPage() {
   }, [db, isAuthorized]);
   const { data: realDrivers, loading: driversLoading } = useCollectionData(driversQuery);
 
-  // Platform Settings Subscription
+  // Platform Settings Subscription - Permissive read in rules allows this doc access
   const settingsDocRef = useMemoFirebase(() => {
     if (!isAuthorized || !db) return null;
     return doc(db, 'platform_settings', 'commissions');
@@ -542,7 +542,6 @@ export default function AdminDashboardPage() {
                         <DialogContent>
                             <DialogHeader>
                                 <DialogTitle className="font-black">Expand Network</DialogTitle>
-                                <DialogTitle className="font-black">Expand Network</DialogTitle>
                                 <DialogDescription>Define a new operational sector to scale your business.</DialogDescription>
                             </DialogHeader>
                             <div className="space-y-4 py-4">
@@ -736,7 +735,7 @@ export default function AdminDashboardPage() {
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="space-y-2">
                                     <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest flex items-center gap-1">
-                                        <Sun className="h-3 w-3 text-orange-500" /> Commission (Day)
+                                        <Sun className="h-3 w-3 text-orange-500" /> Commission Payable (Day)
                                     </Label>
                                     <div className="relative">
                                         <Input 
