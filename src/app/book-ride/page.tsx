@@ -12,17 +12,18 @@ import { Icons } from '@/components/icons';
 import { 
     ArrowLeft, Car, Zap, Navigation, Search, 
     Loader2, CheckCircle2, Copy, Clock, ShieldCheck,
-    Truck
+    Truck, MapPin
 } from 'lucide-react';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { useFirestore, useUser, useCollectionData, useMemoFirebase } from '@/firebase';
-import { doc, setDoc, onSnapshot, deleteDoc, collection, query, where } from 'firebase/firestore';
+import { doc, setDoc, onSnapshot, deleteDoc, collection, query, where, getDocs, updateDoc } from 'firebase/firestore';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { getGeoCell, getNearbyCells, calculateDistance, calculateMatchingScore } from '@/lib/geo';
 
 type VehicleType = 'Mini' | 'Sedan' | 'SUV' | 'Auto';
 
@@ -48,6 +49,7 @@ export default function BookRidePage() {
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
   const [currentRideId, setCurrentRideId] = useState<string | null>(null);
   const [currentRideData, setCurrentRideData] = useState<any>(null);
+  const [isMatching, setIsMatching] = useState(false);
 
   const mapImage = useMemo(() => PlaceHolderImages.find((img) => img.id === 'book-ride-map'), []);
 
@@ -69,23 +71,21 @@ export default function BookRidePage() {
   }, [distance]);
 
   useEffect(() => {
-    if (!currentRideId) return;
+    if (!currentRideId || !db) return;
 
     const unsubscribe = onSnapshot(doc(db, 'rides', currentRideId), (snapshot) => {
       if (snapshot.exists()) {
         const data = snapshot.data();
         setCurrentRideData(data);
+        if (data.status === 'accepted') {
+            setStep('confirmed');
+            toast({ title: "Partner Found!", description: "A driver has accepted your request." });
+        }
       }
-    }, (err) => {
-        const permissionError = new FirestorePermissionError({
-          path: `rides/${currentRideId}`,
-          operation: 'get',
-        });
-        errorEmitter.emit('permission-error', permissionError);
-    });
+    }, (err) => {});
 
     return () => unsubscribe();
-  }, [currentRideId, db]);
+  }, [currentRideId, db, toast]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -108,8 +108,57 @@ export default function BookRidePage() {
     setIsConfirmModalOpen(true);
   };
 
-  const handleConfirmBooking = () => {
-    if (!selectedOption || !user || !distance) return;
+  /**
+   * HIGH-PERFORMANCE MATCHING ENGINE
+   * 1. GPS to Geo Cell Encoding
+   * 2. Spatial Grid Candidate Search (S2/H3 Style)
+   * 3. Scoring Engine (Distance, Rating)
+   */
+  const findBestPartner = async (pickupLat: number, pickupLng: number) => {
+    if (!db) return null;
+    
+    // Step 1: Encode user location to grid cells
+    const targetCells = getNearbyCells(pickupLat, pickupLng, 1);
+    
+    // Step 2: Spatial Search in Firestore (Candidate Search)
+    const q = query(
+        collection(db, 'driver_locations'),
+        where('isOnline', '==', true),
+        where('isAvailable', '==', true),
+        where('geoCell', 'in', targetCells) // Query limited to spatial neighbors
+    );
+
+    const snapshot = await getDocs(q);
+    const candidates = snapshot.docs.map(d => d.data());
+
+    if (candidates.length === 0) return null;
+
+    // Step 3: Weighted Scoring Engine
+    const scoredCandidates = candidates.map(c => {
+        const dist = calculateDistance(pickupLat, pickupLng, c.lat, c.lng);
+        const score = calculateMatchingScore({
+            distance: dist,
+            rating: c.rating || 5,
+            isAvailable: true
+        });
+        return { ...c, score, dist };
+    });
+
+    // Step 4: Dispatch to best node
+    return scoredCandidates.sort((a, b) => b.score - a.score)[0];
+  };
+
+  const handleConfirmBooking = async () => {
+    if (!selectedOption || !user || !distance || !db) return;
+
+    setIsMatching(true);
+    
+    // Simulate current user location (Patna central)
+    const userLat = 25.5941;
+    const userLng = 85.1376;
+    
+    // Run the matching engine
+    const bestPartner = await findBestPartner(userLat, userLng);
 
     const rideId = `RIDE_${Date.now()}`;
     const otp = Math.floor(1000 + Math.random() * 9000).toString();
@@ -119,10 +168,12 @@ export default function BookRidePage() {
         customerId: user.uid,
         customerName: user.displayName || 'Customer',
         status: 'requested',
+        driverId: bestPartner?.driverId || null, // Direct dispatch if partner found
         pickup: {
             address: pickup,
-            lat: 25.5941,
-            lng: 85.1376
+            lat: userLat,
+            lng: userLng,
+            geoCell: getGeoCell(userLat, userLng)
         },
         dropoff: {
             address: destination,
@@ -131,45 +182,36 @@ export default function BookRidePage() {
         },
         fare: selectedOption.fare,
         distance: distance,
-        duration: Math.round(distance * 3),
         paymentMethod: 'cash',
-        paymentStatus: 'pending',
         otp: otp,
-        otpUsed: false,
         createdAt: new Date().toISOString(),
         vehicleType: selectedOption.type,
+        matchingScore: bestPartner?.score || 0
     };
 
-    setDoc(doc(db, 'rides', rideId), rideData)
-        .catch(async (err) => {
-            const permissionError = new FirestorePermissionError({
-                path: `rides/${rideId}`,
-                operation: 'create',
-                requestResourceData: rideData
-            });
-            errorEmitter.emit('permission-error', permissionError);
-        });
+    setDoc(doc(db, 'rides', rideId), rideData).then(() => {
+        setCurrentRideId(rideId);
+        setCurrentRideData(rideData);
+        setStep('requesting');
+        setIsMatching(false);
+        setIsConfirmModalOpen(false);
 
-    setIsConfirmModalOpen(false);
-    setCurrentRideId(rideId);
-    setCurrentRideData(rideData);
-    setStep('confirmed');
-    toast({ title: "Ride Confirmed!", description: "Share the code with your driver." });
+        if (bestPartner) {
+            toast({ title: "Scanning Network", description: `Found a match! Dispatching to partner.` });
+        } else {
+            toast({ variant: "destructive", title: "Busy Network", description: "No drivers in your sector. Still searching..." });
+        }
+    });
   };
 
   const handleCancelRide = () => {
-    if (currentRideId) {
+    if (currentRideId && db) {
         deleteDoc(doc(db, 'rides', currentRideId));
         setCurrentRideId(null);
         setCurrentRideData(null);
         setStep('search');
-        toast({ title: "Ride Cancelled", description: "Your booking has been removed." });
+        toast({ title: "Ride Cancelled" });
     }
-  };
-
-  const copyToClipboard = (text: string) => {
-    navigator.clipboard.writeText(text);
-    toast({ title: "Copied!", description: "OTP copied to clipboard." });
   };
 
   return (
@@ -190,74 +232,46 @@ export default function BookRidePage() {
           <div className="z-10 flex flex-col border-r bg-background shadow-xl overflow-y-auto">
             <div className="p-6 space-y-6">
                 {step === 'search' && (
-                    <div className="space-y-6 animate-in slide-in-from-left-4">
-                        <div className="space-y-1">
-                            <h1 className="text-2xl font-black tracking-tight">Where to?</h1>
-                            <p className="text-sm text-muted-foreground">Select pickup and destination for your trip.</p>
-                        </div>
+                    <div className="space-y-6">
+                        <h1 className="text-2xl font-black tracking-tight italic uppercase">Where to?</h1>
                         <form onSubmit={handleSearch} className="space-y-4">
                             <div className="space-y-3">
-                                <div className="relative">
-                                    <div className="absolute left-4 top-1/2 -translate-y-1/2 flex flex-col items-center gap-1">
-                                        <div className="h-2 w-2 rounded-full bg-primary" />
-                                        <div className="w-[1px] h-8 bg-border" />
-                                        <div className="h-2 w-2 rounded-full bg-destructive" />
-                                    </div>
-                                    <div className="space-y-2 pl-10">
-                                        <div className="relative">
-                                            <Input
-                                                placeholder="Pickup location"
-                                                className="h-12 bg-secondary/30 border-none focus-visible:ring-1 focus-visible:ring-primary"
-                                                value={pickup}
-                                                onChange={(e) => setPickup(e.target.value)}
-                                            />
-                                            <Button 
-                                                type="button" 
-                                                variant="ghost" 
-                                                size="sm" 
-                                                className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] font-bold h-7 px-2 text-primary hover:bg-primary/10"
-                                                onClick={() => setPickup('My Current Location')}
-                                            >
-                                                <Navigation className="h-3 w-3 mr-1" /> Use Current
-                                            </Button>
-                                        </div>
-                                        <Input
-                                            placeholder="Destination location"
-                                            className="h-12 bg-secondary/30 border-none focus-visible:ring-1 focus-visible:ring-primary"
-                                            value={destination}
-                                            onChange={(e) => setDestination(e.target.value)}
-                                        />
-                                    </div>
-                                </div>
+                                <Input
+                                    placeholder="Pickup location"
+                                    className="h-12 bg-secondary/30 border-none"
+                                    value={pickup}
+                                    onChange={(e) => setPickup(e.target.value)}
+                                />
+                                <Input
+                                    placeholder="Destination location"
+                                    className="h-12 bg-secondary/30 border-none"
+                                    value={destination}
+                                    onChange={(e) => setDestination(e.target.value)}
+                                />
                             </div>
-                            <Button type="submit" size="lg" className="w-full h-14 text-lg font-bold shadow-lg">
-                                Find Rides
+                            <Button type="submit" size="lg" className="w-full h-14 text-lg font-black shadow-lg">
+                                MATCH NEARBY NODES
                             </Button>
                         </form>
                     </div>
                 )}
 
                 {step === 'options' && (
-                    <div className="space-y-6 animate-in slide-in-from-bottom-4 duration-300">
+                    <div className="space-y-6 animate-in slide-in-from-bottom-4">
                         <div className="flex items-center justify-between">
                             <Button variant="ghost" size="sm" onClick={() => setStep('search')} className="-ml-2">
                                 <ArrowLeft className="h-4 w-4 mr-1" /> Back
                             </Button>
-                            <Badge variant="secondary" className="px-3 py-1 font-bold">{distance} km trip</Badge>
+                            <Badge variant="secondary" className="px-3 py-1 font-bold">{distance} km sector</Badge>
                         </div>
                         
-                        <div className="space-y-1">
-                            <h2 className="text-xl font-bold">Recommended for you</h2>
-                            <p className="text-xs text-muted-foreground">Prices include taxes and platform fees.</p>
-                        </div>
-
                         <div className="space-y-3">
                             {rideOptions.map((option) => (
                                 <button
                                     key={option.type}
                                     onClick={() => handleOpenConfirm(option)}
                                     className={cn(
-                                        "flex w-full items-center justify-between rounded-2xl border-2 p-4 text-left transition-all hover:shadow-md",
+                                        "flex w-full items-center justify-between rounded-2xl border-2 p-4 text-left transition-all",
                                         selectedOption?.type === option.type ? "border-primary bg-primary/5" : "border-transparent bg-secondary/20"
                                     )}
                                 >
@@ -266,13 +280,8 @@ export default function BookRidePage() {
                                             <option.icon className="h-7 w-7 text-primary" />
                                         </div>
                                         <div>
-                                            <div className="flex items-center gap-2">
-                                                <p className="font-bold text-base">{option.type}</p>
-                                                <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
-                                                    <Clock className="h-3 w-3" /> {option.eta} min
-                                                </div>
-                                            </div>
-                                            <p className="text-[10px] text-muted-foreground leading-tight">{option.description}</p>
+                                            <p className="font-black text-base italic uppercase">{option.type}</p>
+                                            <p className="text-[10px] text-muted-foreground">{option.description}</p>
                                         </div>
                                     </div>
                                     <p className="font-black text-lg">₹{option.fare}</p>
@@ -282,94 +291,68 @@ export default function BookRidePage() {
                     </div>
                 )}
 
+                {step === 'requesting' && (
+                    <div className="space-y-8 animate-in fade-in duration-500 py-12 text-center">
+                        <div className="relative mx-auto w-32 h-32 flex items-center justify-center">
+                            <div className="absolute inset-0 rounded-full border-4 border-primary border-t-transparent animate-spin" />
+                            <div className="absolute inset-4 rounded-full border-4 border-secondary animate-pulse" />
+                            <Search className="h-10 w-10 text-primary" />
+                        </div>
+                        <div className="space-y-2">
+                            <h2 className="text-xl font-black uppercase italic">Scanning Operational Grid</h2>
+                            <p className="text-xs text-muted-foreground font-medium">Matching your request with the highest scored partner nodes in sector {currentRideData?.pickup?.geoCell}.</p>
+                        </div>
+                        <Button variant="ghost" className="text-destructive font-black text-xs h-10" onClick={handleCancelRide}>
+                            ABORT DISPATCH
+                        </Button>
+                    </div>
+                )}
+
                 {step === 'confirmed' && currentRideId && (
                     <div className="space-y-8 animate-in slide-in-from-bottom-8 duration-500">
                         <div className="text-center space-y-2">
-                            <div className="mx-auto h-12 w-12 rounded-full bg-green-100 flex items-center justify-center mb-4">
-                                <CheckCircle2 className="h-7 w-7 text-green-600" />
-                            </div>
-                            <h2 className="text-2xl font-black">Ride Booked Successfully</h2>
-                            <p className="text-sm text-muted-foreground">
-                                {currentRideData?.status === 'started' ? 'Trip in progress' : 'Driver is arriving shortly'}
-                            </p>
+                            <CheckCircle2 className="mx-auto h-12 w-12 text-green-600" />
+                            <h2 className="text-2xl font-black uppercase italic">Partner Assigned</h2>
+                            <p className="text-sm text-muted-foreground">Verification handshake confirmed.</p>
                         </div>
 
-                        <Card className="border-4 border-primary/30 bg-primary/5 shadow-inner overflow-hidden relative">
-                            <div className="absolute top-0 right-0 p-2">
-                                <ShieldCheck className="h-5 w-5 text-primary/40" />
+                        <Card className="border-4 border-primary/30 bg-primary/5 shadow-inner py-8 text-center space-y-4">
+                            <p className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground">Handshake Code</p>
+                            <div className="text-6xl font-black tracking-[0.2em] text-primary">
+                                {currentRideData?.otp}
                             </div>
-                            <CardContent className="pt-8 pb-10 text-center space-y-4">
-                                <p className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground">Start Trip Code</p>
-                                <div className="flex items-center justify-center gap-4">
-                                    <div className={cn("text-6xl font-black tracking-[0.2em]", currentRideData?.status === 'started' ? "text-muted-foreground line-through opacity-50" : "text-primary")}>
-                                        {currentRideData?.otp}
-                                    </div>
-                                    {currentRideData?.status !== 'started' && (
-                                        <Button size="icon" variant="secondary" className="rounded-full h-10 w-10" onClick={() => copyToClipboard(currentRideData?.otp)}>
-                                            <Copy className="h-4 w-4" />
-                                        </Button>
-                                    )}
-                                </div>
-                                <div className="space-y-1">
-                                    <p className="text-xs font-bold text-foreground">
-                                        {currentRideData?.status === 'started' ? 'Code Verified' : 'Share this code with your driver'}
-                                    </p>
-                                    <p className="text-[10px] text-muted-foreground italic">Valid until trip starts • Code expires in 10 mins</p>
-                                </div>
-                            </CardContent>
+                            <p className="text-xs font-bold text-foreground">Share this with your partner to start trip</p>
                         </Card>
 
                         <div className="flex flex-col gap-3">
-                            <div className="flex items-center gap-2">
-                                <Button variant="outline" className="flex-1 font-bold h-12">Message</Button>
-                                <Button variant="outline" className="flex-1 font-bold h-12">Call</Button>
-                            </div>
-                            {currentRideData?.status !== 'started' && (
-                                <Button variant="ghost" className="text-destructive font-black text-xs h-10" onClick={handleCancelRide}>
-                                    Cancel My Ride
-                                </Button>
-                            )}
+                             <Button variant="outline" className="h-12 font-black uppercase">Message Node</Button>
+                             <Button variant="ghost" className="text-destructive font-black text-xs" onClick={handleCancelRide}>Cancel My Ride</Button>
                         </div>
                     </div>
                 )}
             </div>
 
             <div className="mt-auto p-6 border-t bg-muted/20">
-                <div className="flex items-center justify-between text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-3">
-                    <span>TOTO Live Hubs</span>
-                    <span className="flex items-center gap-1"><span className="h-1.5 w-1.5 rounded-full bg-green-500 animate-pulse" /> Operational</span>
+                <div className="flex items-center justify-between text-[10px] font-black uppercase tracking-widest mb-3">
+                    <span>Urban Hubs</span>
+                    <span className="flex items-center gap-1"><span className="h-1.5 w-1.5 rounded-full bg-green-500 animate-pulse" /> Live</span>
                 </div>
                 <div className="flex flex-wrap gap-2">
                     {availableCities?.map((area: any) => (
-                        <Badge key={area.id} variant="secondary" className="text-[9px] bg-background border-none h-6 px-2">{area.city}</Badge>
+                        <Badge key={area.id} variant="secondary" className="text-[9px] bg-background border-none h-6 px-2 font-black uppercase">{area.city}</Badge>
                     ))}
-                    {(!availableCities || availableCities.length === 0) && !hubsLoading && (
-                        <p className="text-[10px] italic text-muted-foreground">Checking local coverage...</p>
-                    )}
                 </div>
             </div>
           </div>
 
           <div className="relative h-full w-full bg-secondary/10 overflow-hidden">
-            <div className="absolute top-6 left-6 right-6 z-20 pointer-events-none">
-                <div className="pointer-events-auto flex items-center bg-background rounded-full shadow-2xl border p-1.5 pl-5 w-full max-w-md group transition-all hover:ring-2 hover:ring-primary/20">
-                    <Search className="h-4 w-4 text-muted-foreground mr-3" />
-                    <Input placeholder="Search locations..." className="border-none focus-visible:ring-0 shadow-none h-8 text-sm px-0" readOnly />
-                    <div className="h-6 w-[1px] bg-border mx-3" />
-                    <Button variant="ghost" size="icon" className="h-9 w-9 rounded-full bg-secondary/50 group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
-                        <Icons.TotoLogo className="h-5 w-5" />
-                    </Button>
-                </div>
-            </div>
-
             {mapImage ? (
                 <Image
-                    alt="Urban Map"
+                    alt="Urban Grid"
                     src={mapImage.imageUrl}
                     fill
-                    className="object-cover transition-opacity duration-1000"
+                    className="object-cover"
                     priority
-                    data-ai-hint="urban street map"
                 />
             ) : (
                 <div className="flex h-full items-center justify-center bg-muted/30">
@@ -380,45 +363,29 @@ export default function BookRidePage() {
         </div>
 
         <Dialog open={isConfirmModalOpen} onOpenChange={setIsConfirmModalOpen}>
-            <DialogContent className="sm:max-w-[400px] p-0 overflow-hidden border-none shadow-2xl">
+            <DialogContent className="sm:max-w-[400px] p-0 overflow-hidden">
                 <div className="bg-primary/10 p-6 border-b border-primary/20">
                     <DialogHeader>
-                        <DialogTitle className="text-xl font-black">Confirm Ride</DialogTitle>
-                        <DialogDescription className="text-muted-foreground font-medium">Verify your trip details before booking.</DialogDescription>
+                        <DialogTitle className="text-xl font-black uppercase italic">Initialize Dispatch</DialogTitle>
+                        <DialogDescription className="font-medium">Triggering the matching engine for your selection.</DialogDescription>
                     </DialogHeader>
                 </div>
-                <div className="p-6 space-y-6">
-                    <div className="space-y-4">
-                        <div className="flex items-center gap-4 p-3 bg-secondary/20 rounded-xl">
-                            <div className="h-10 w-10 bg-background rounded-lg flex items-center justify-center shadow-sm">
-                                {selectedOption?.icon && <selectedOption.icon className="h-6 w-6 text-primary" />}
-                            </div>
-                            <div className="flex-1">
-                                <p className="text-sm font-black">{selectedOption?.type} Ride</p>
-                                <p className="text-[10px] text-muted-foreground">Estimated ₹{selectedOption?.fare}</p>
-                            </div>
+                <div className="p-6 space-y-4">
+                    <div className="flex items-center gap-4 p-3 bg-secondary/20 rounded-xl">
+                        <div className="h-10 w-10 bg-background rounded-lg flex items-center justify-center">
+                            {selectedOption?.icon && <selectedOption.icon className="h-6 w-6 text-primary" />}
                         </div>
-                        <div className="space-y-3 pl-2">
-                             <div className="flex items-start gap-3">
-                                <div className="h-2 w-2 rounded-full bg-primary mt-1.5" />
-                                <div>
-                                    <p className="text-[10px] text-muted-foreground font-bold uppercase">Pickup</p>
-                                    <p className="text-xs font-semibold">{pickup}</p>
-                                </div>
-                            </div>
-                            <div className="flex items-start gap-3">
-                                <div className="h-2 w-2 rounded-full bg-destructive mt-1.5" />
-                                <div>
-                                    <p className="text-[10px] text-muted-foreground font-bold uppercase">Destination</p>
-                                    <p className="text-xs font-semibold">{destination}</p>
-                                </div>
-                            </div>
+                        <div>
+                            <p className="text-sm font-black uppercase italic">{selectedOption?.type}</p>
+                            <p className="text-[10px] text-muted-foreground">Approx ₹{selectedOption?.fare}</p>
                         </div>
                     </div>
                 </div>
                 <DialogFooter className="p-6 bg-secondary/10 flex-row gap-3">
                     <Button variant="ghost" onClick={() => setIsConfirmModalOpen(false)} className="flex-1 font-bold">Cancel</Button>
-                    <Button onClick={handleConfirmBooking} className="flex-1 font-black h-12 shadow-lg">Confirm Ride</Button>
+                    <Button onClick={handleConfirmBooking} disabled={isMatching} className="flex-1 font-black h-12 shadow-lg">
+                        {isMatching ? <Loader2 className="animate-spin" /> : 'CONFIRM DISPATCH'}
+                    </Button>
                 </DialogFooter>
             </DialogContent>
         </Dialog>

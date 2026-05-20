@@ -32,6 +32,7 @@
         "isAvailable": { "type": "boolean" },
         "currentLat": { "type": "number" },
         "currentLng": { "type": "number" },
+        "geoCell": { "type": "string", "description": "H3/S2 style spatial grid ID for fast lookups." },
         "rating": { "type": "number" },
         "totalTrips": { "type": "number" },
         "city": { "type": "string" },
@@ -43,7 +44,6 @@
             "insurance": { "type": "string" }
           }
         },
-        "fleetId": { "type": "string", "nullable": true },
         "kycVerified": { "type": "boolean" },
         "createdAt": { "type": "string", "format": "date-time" }
       },
@@ -51,7 +51,7 @@
     },
     "ride": {
       "title": "Ride",
-      "description": "A ride booking record with geolocation and payment tracking.",
+      "description": "A ride booking record with geospatial tracking and matching metadata.",
       "type": "object",
       "properties": {
         "rideId": { "type": "string" },
@@ -63,7 +63,8 @@
           "properties": {
             "address": { "type": "string" },
             "lat": { "type": "number" },
-            "lng": { "type": "number" }
+            "lng": { "type": "number" },
+            "geoCell": { "type": "string" }
           }
         },
         "dropoff": {
@@ -76,111 +77,28 @@
         },
         "fare": { "type": "number" },
         "distance": { "type": "number" },
-        "duration": { "type": "number" },
-        "paymentMethod": { "type": "string", "enum": ["wallet", "upi", "cash"] },
-        "paymentStatus": { "type": "string" },
-        "razorpayOrderId": { "type": "string" },
-        "razorpayPaymentId": { "type": "string" },
+        "matchingScore": { "type": "number" },
         "otp": { "type": "string" },
-        "otpUsed": { "type": "boolean" },
-        "createdAt": { "type": "string", "format": "date-time" },
-        "startedAt": { "type": "string", "format": "date-time" },
-        "completedAt": { "type": "string", "format": "date-time" }
+        "createdAt": { "type": "string", "format": "date-time" }
       }
     },
     "driver_location": {
       "title": "Driver Location",
-      "description": "Real-time location data for a driver.",
+      "description": "Real-time geospatial telemetry for a driver.",
       "type": "object",
       "properties": {
         "driverId": { "type": "string" },
         "lat": { "type": "number" },
         "lng": { "type": "number" },
+        "geoCell": { "type": "string" },
         "heading": { "type": "number" },
         "speed": { "type": "number" },
-        "lastUpdated": { "type": "string", "format": "date-time" },
-        "isOnline": { "type": "boolean" }
-      },
-      "required": ["driverId", "lat", "lng", "isOnline"]
-    },
-    "wallet": {
-      "title": "Wallet",
-      "description": "User financial balance.",
-      "type": "object",
-      "properties": {
-        "userId": { "type": "string" },
-        "balance": { "type": "number" }
-      }
-    },
-    "transaction": {
-      "title": "Transaction",
-      "description": "Financial transaction record.",
-      "type": "object",
-      "properties": {
-        "transactionId": { "type": "string" },
-        "userId": { "type": "string" },
-        "type": { "type": "string", "enum": ["credit", "debit"] },
-        "amount": { "type": "number" },
-        "description": { "type": "string" },
-        "status": { "type": "string" },
-        "razorpayPaymentId": { "type": "string" },
-        "createdAt": { "type": "string", "format": "date-time" }
-      },
-      "required": ["transactionId", "userId", "type", "amount", "status"]
-    },
-    "fleet": {
-      "title": "Fleet",
-      "description": "A collection of vehicles and drivers managed by a business owner.",
-      "type": "object",
-      "properties": {
-        "ownerId": { "type": "string" },
-        "ownerName": { "type": "string" },
-        "fleetName": { "type": "string" },
-        "vehicles": { "type": "array", "items": { "type": "string" } },
-        "drivers": { "type": "array", "items": { "type": "string" } },
-        "totalEarnings": { "type": "number" },
-        "commissionPaid": { "type": "number" },
-        "createdAt": { "type": "string", "format": "date-time" }
-      },
-      "required": ["ownerId", "ownerName", "fleetName"]
-    },
-    "review": {
-      "title": "Review",
-      "description": "User feedback for a completed ride.",
-      "type": "object",
-      "properties": {
-        "rideId": { "type": "string" },
-        "driverId": { "type": "string" },
-        "customerId": { "type": "string" },
+        "isOnline": { "type": "boolean" },
+        "isAvailable": { "type": "boolean" },
         "rating": { "type": "number" },
-        "comment": { "type": "string" },
-        "createdAt": { "type": "string", "format": "date-time" }
+        "lastUpdated": { "type": "string", "format": "date-time" }
       },
-      "required": ["rideId", "driverId", "customerId", "rating"]
-    },
-    "service_area": {
-      "title": "Service Area",
-      "description": "A geographical area where the service is operational.",
-      "type": "object",
-      "properties": {
-        "city": { "type": "string" },
-        "state": { "type": "string" },
-        "range": { "type": "number" },
-        "active": { "type": "boolean" },
-        "createdAt": { "type": "string", "format": "date-time" }
-      },
-      "required": ["city", "state", "range", "active"]
-    },
-    "platform_setting": {
-      "title": "Platform Setting",
-      "description": "Global platform rates and configuration.",
-      "type": "object",
-      "properties": {
-        "dayCommission": { "type": "number" },
-        "nightCommission": { "type": "number" },
-        "baseRate": { "type": "number" },
-        "updatedAt": { "type": "string", "format": "date-time" }
-      }
+      "required": ["driverId", "lat", "lng", "isOnline", "geoCell"]
     }
   },
   "auth": {
@@ -202,30 +120,6 @@
     "/driver_locations/{driverId}": {
       "schema": { "$ref": "#/backend/entities/driver_location" },
       "description": "Real-time driver GPS data."
-    },
-    "/wallets/{userId}": {
-      "schema": { "$ref": "#/backend/entities/wallet" },
-      "description": "User wallet balances."
-    },
-    "/transactions/{transactionId}": {
-      "schema": { "$ref": "#/backend/entities/transaction" },
-      "description": "Financial logs."
-    },
-    "/fleets/{fleetId}": {
-      "schema": { "$ref": "#/backend/entities/fleet" },
-      "description": "Fleet and business management data."
-    },
-    "/reviews/{reviewId}": {
-      "schema": { "$ref": "#/backend/entities/review" },
-      "description": "User reviews and ratings for rides."
-    },
-    "/service_areas/{areaId}": {
-      "schema": { "$ref": "#/backend/entities/service_area" },
-      "description": "Operational service hubs."
-    },
-    "/platform_settings/{settingId}": {
-      "schema": { "$ref": "#/backend/entities/platform_setting" },
-      "description": "Global rates and settings."
     }
   }
 }

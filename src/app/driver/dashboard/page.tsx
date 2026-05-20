@@ -17,6 +17,7 @@ import { collection, query, where, onSnapshot, updateDoc, doc, setDoc, limit, or
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { getGeoCell } from '@/lib/geo';
 
 type Ride = {
   rideId: string;
@@ -48,34 +49,50 @@ export default function DriverDashboardPage() {
     setMounted(true);
   }, []);
 
-  // Real-time location simulation
+  // REAL-TIME LOCATION INGESTION SERVICE
+  // Pushes high-fidelity GPS updates every 5 seconds to the geospatial store.
   useEffect(() => {
-    if (!isOnline || !user || !db) return;
+    if (!isOnline || !user || !db || !mounted) return;
 
     const interval = setInterval(() => {
+      // Simulate real movement for the prototype
       const baseLat = 25.5941;
       const baseLng = 85.1376;
-      const lat = baseLat + (Math.random() - 0.5) * 0.01;
-      const lng = baseLng + (Math.random() - 0.5) * 0.01;
+      const lat = baseLat + (Math.random() - 0.5) * 0.05;
+      const lng = baseLng + (Math.random() - 0.5) * 0.05;
       
+      const geoCell = getGeoCell(lat, lng);
       const locRef = doc(db, 'driver_locations', user.uid);
+      
       setDoc(locRef, {
         driverId: user.uid,
         lat,
         lng,
+        geoCell,
         heading: Math.floor(Math.random() * 360),
         speed: Math.random() * 40,
         lastUpdated: new Date().toISOString(),
-        isOnline: true
+        isOnline: true,
+        isAvailable: !activeRide,
+        rating: 4.8
       }, { merge: true });
-    }, 10000);
+
+      // Update the main driver document for profile views
+      updateDoc(doc(db, 'drivers', user.uid), {
+        currentLat: lat,
+        currentLng: lng,
+        geoCell,
+        isOnline: true
+      }).catch(() => {});
+      
+    }, 5000); // 5s Ingestion Cycle
 
     return () => clearInterval(interval);
-  }, [isOnline, user, db]);
+  }, [isOnline, user, db, activeRide, mounted]);
 
   // Real-time Transactions (Earnings)
   const transactionsQuery = useMemo(() => {
-    if (!user) return null;
+    if (!user || !db) return null;
     return query(
       collection(db, 'transactions'),
       where('userId', '==', user.uid),
@@ -93,19 +110,21 @@ export default function DriverDashboardPage() {
     return { balance, totalTrips: trips, rating: 4.8 };
   }, [transactions]);
 
+  // Real-time Handshake Listener for Incoming Dispatch Requests
   useEffect(() => {
-    if (!isOnline || !user || activeRide) return;
+    if (!isOnline || !user || !db || activeRide) return;
 
     const q = query(
       collection(db, 'rides'),
       where('status', '==', 'requested'),
+      where('driverId', '==', user.uid), // Only listen for direct dispatches
       limit(1)
     );
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
       if (!snapshot.empty) {
         const rideData = snapshot.docs[0].data();
-        setIncomingRequest({ id: snapshot.docs[0].id, ...rideData } as any);
+        setIncomingRequest({ rideId: snapshot.docs[0].id, ...rideData } as any);
       } else {
         setIncomingRequest(null);
       }
@@ -115,7 +134,7 @@ export default function DriverDashboardPage() {
   }, [isOnline, user, db, activeRide]);
 
   useEffect(() => {
-    if (!activeRide || !db) return;
+    if (!activeRide?.rideId || !db) return;
 
     const unsubscribe = onSnapshot(doc(db, 'rides', activeRide.rideId), (snapshot) => {
         if (snapshot.exists()) {
@@ -130,25 +149,22 @@ export default function DriverDashboardPage() {
 
   const handleOnlineToggle = (online: boolean) => {
     setIsOnline(online);
-    if (user) {
+    if (user && db) {
         updateDoc(doc(db, 'drivers', user.uid), { isOnline: online, isAvailable: online });
         const locRef = doc(db, 'driver_locations', user.uid);
-        updateDoc(locRef, { isOnline: online, lastUpdated: new Date().toISOString() }).catch(() => {
-            setDoc(locRef, { driverId: user.uid, isOnline: online, lat: 0, lng: 0, lastUpdated: new Date().toISOString() });
-        });
+        updateDoc(locRef, { isOnline: online, lastUpdated: new Date().toISOString() }).catch(() => {});
     }
     toast({ title: online ? 'System Online' : 'System Offline' });
   };
 
   const handleAcceptRide = () => {
-    if (!incomingRequest || !user) return;
+    if (!incomingRequest || !user || !db) return;
 
     const rideRef = doc(db, 'rides', incomingRequest.rideId);
     updateDoc(rideRef, {
         status: 'accepted',
         driverId: user.uid,
         driverName: user.displayName || 'Partner',
-        vehicleDetails: "BR-01-AB-1234"
     }).then(() => {
         setActiveRide(incomingRequest);
         setIncomingRequest(null);
@@ -157,13 +173,12 @@ export default function DriverDashboardPage() {
   };
 
   const handleVerifyOtp = () => {
-    if (!activeRide || !otpInput) return;
+    if (!activeRide || !otpInput || !db) return;
     
     setIsVerifying(true);
     if (otpInput === activeRide.otp) {
         updateDoc(doc(db, 'rides', activeRide.rideId), { 
             status: 'started',
-            otpUsed: true,
             startedAt: new Date().toISOString()
         }).then(() => {
             toast({ title: "Verified", description: "Trip started!" });
@@ -176,8 +191,7 @@ export default function DriverDashboardPage() {
   };
 
   const handleCompleteRide = () => {
-    if (!activeRide || !user) return;
-    // Complete ride logic (payment handled by customer, but driver completes mission)
+    if (!activeRide || !user || !db) return;
     updateDoc(doc(db, 'rides', activeRide.rideId), { 
         status: 'completed',
         completedAt: new Date().toISOString()
@@ -228,10 +242,6 @@ export default function DriverDashboardPage() {
                 {incomingRequest && (
                   <Card className="border-4 border-primary shadow-2xl animate-in zoom-in-95 duration-500">
                       <div className="bg-primary/5 p-6 border-b border-primary/10">
-                          <div className="flex items-center justify-between">
-                              <Badge className="bg-primary text-black font-black text-[10px] uppercase tracking-widest">Incoming {incomingRequest.vehicleType}</Badge>
-                              <div className="flex items-center gap-1 text-[10px] font-bold text-muted-foreground"><Clock className="h-3 w-3" /> 45s left</div>
-                          </div>
                           <h2 className="text-3xl font-black mt-2">New Trip Request</h2>
                       </div>
                       <CardContent className="pt-6">
@@ -268,7 +278,7 @@ export default function DriverDashboardPage() {
                 )}
 
                 {activeRide && (
-                  <Card className="border-2 border-primary shadow-xl overflow-hidden animate-in slide-in-from-top-4">
+                  <Card className="border-2 border-primary shadow-xl overflow-hidden">
                       <div className="bg-primary text-black px-6 py-2.5 flex items-center justify-between font-black text-[10px] uppercase tracking-[0.2em]">
                           <span>Active Mission: {activeRide.rideId}</span>
                           <span className="bg-black text-white px-2 py-0.5 rounded-sm">{activeRide.status.toUpperCase()}</span>
@@ -302,7 +312,7 @@ export default function DriverDashboardPage() {
                                                       onChange={(e) => setOtpInput(e.target.value)}
                                                   />
                                                   <Button className="h-20 px-8 font-black" onClick={handleVerifyOtp} disabled={isVerifying}>
-                                                      {isVerifying ? <Clock className="animate-spin" /> : 'START'}
+                                                      {isVerifying ? <Loader2 className="animate-spin" /> : 'START'}
                                                   </Button>
                                               </div>
                                           </div>
@@ -327,7 +337,6 @@ export default function DriverDashboardPage() {
                         </CardHeader>
                         <CardContent>
                             <div className="text-4xl font-black">{stats.totalTrips}</div>
-                            <p className="text-[10px] text-muted-foreground mt-2 font-medium">Completed Missions</p>
                         </CardContent>
                     </Card>
                     <Card className="border-none shadow-sm bg-primary/5">
@@ -336,7 +345,6 @@ export default function DriverDashboardPage() {
                         </CardHeader>
                         <CardContent>
                             <div className="text-4xl font-black text-primary">₹{stats.balance.toLocaleString()}</div>
-                            <p className="text-[10px] text-muted-foreground mt-2 font-medium">Liquid Assets</p>
                         </CardContent>
                     </Card>
                     <Card className="border-none shadow-sm">
@@ -345,7 +353,6 @@ export default function DriverDashboardPage() {
                         </CardHeader>
                         <CardContent>
                             <div className="text-4xl font-black flex items-center gap-2">{stats.rating} <Star className="h-6 w-6 text-yellow-500 fill-yellow-500" /></div>
-                            <p className="text-[10px] text-muted-foreground mt-2 font-medium">Elite Partner Tier</p>
                         </CardContent>
                     </Card>
                   </div>
@@ -359,14 +366,6 @@ export default function DriverDashboardPage() {
                   <div className="p-8 bg-background border-2 rounded-2xl shadow-sm text-center">
                     <p className="text-[10px] font-black uppercase text-muted-foreground mb-1 tracking-widest">Available Balance</p>
                     <p className="text-3xl font-black">₹{stats.balance.toLocaleString()}</p>
-                  </div>
-                  <Button variant="outline" className="h-full rounded-2xl border-dashed border-2 flex flex-col items-center justify-center gap-2 p-8 hover:bg-primary/5 transition-colors">
-                    <ArrowUpRight className="h-6 w-6 text-primary" />
-                    <span className="font-black text-xs uppercase tracking-widest">Withdraw Funds</span>
-                  </Button>
-                  <div className="p-8 bg-primary text-primary-foreground rounded-2xl shadow-xl text-center">
-                    <p className="text-[10px] font-black uppercase opacity-80 mb-1 tracking-widest">Total Earned</p>
-                    <p className="text-3xl font-black">₹{(stats.balance * 1.25).toLocaleString()}</p>
                   </div>
                 </div>
 
@@ -386,16 +385,15 @@ export default function DriverDashboardPage() {
                       </TableHeader>
                       <TableBody>
                         {transactions?.map((tx: any) => (
-                          <TableRow key={tx.transactionId} className="hover:bg-muted/5 transition-colors">
+                          <TableRow key={tx.id}>
                             <TableCell>
                               <div className="space-y-0.5">
                                 <p className="font-bold text-xs">{tx.description}</p>
-                                <p className="text-[10px] text-muted-foreground font-mono">{tx.transactionId}</p>
+                                <p className="text-[10px] text-muted-foreground font-mono">{tx.id}</p>
                               </div>
                             </TableCell>
                             <TableCell>
-                              <Badge variant={tx.type === 'credit' ? 'default' : 'secondary'} className={cn("text-[10px] uppercase font-bold", tx.type === 'credit' ? "bg-green-100 text-green-700 hover:bg-green-200" : "bg-red-100 text-red-700 hover:bg-red-200")}>
-                                {tx.type === 'credit' ? <ArrowDownLeft className="h-3 w-3 mr-1" /> : <ArrowUpRight className="h-3 w-3 mr-1" />}
+                              <Badge variant={tx.type === 'credit' ? 'default' : 'secondary'} className={cn("text-[10px] uppercase font-bold", tx.type === 'credit' ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700")}>
                                 {tx.type}
                               </Badge>
                             </TableCell>
@@ -407,11 +405,6 @@ export default function DriverDashboardPage() {
                             </TableCell>
                           </TableRow>
                         ))}
-                        {transactions?.length === 0 && !txLoading && (
-                          <TableRow>
-                            <TableCell colSpan={4} className="h-32 text-center italic text-muted-foreground">No transactions recorded yet.</TableCell>
-                          </TableRow>
-                        )}
                       </TableBody>
                     </Table>
                   </CardContent>
