@@ -170,6 +170,17 @@
         "createdAt": { "type": "string", "format": "date-time" }
       },
       "required": ["city", "state", "range", "active"]
+    },
+    "platform_setting": {
+      "title": "Platform Setting",
+      "description": "Global platform rates and configuration.",
+      "type": "object",
+      "properties": {
+        "dayCommission": { "type": "number" },
+        "nightCommission": { "type": "number" },
+        "baseRate": { "type": "number" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      }
     }
   },
   "auth": {
@@ -211,6 +222,10 @@
     "/service_areas/{areaId}": {
       "schema": { "$ref": "#/backend/entities/service_area" },
       "description": "Operational service hubs."
+    },
+    "/platform_settings/{settingId}": {
+      "schema": { "$ref": "#/backend/entities/platform_setting" },
+      "description": "Global rates and settings."
     }
   }
 }

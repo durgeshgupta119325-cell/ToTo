@@ -39,7 +39,9 @@ import {
   CheckCircle2,
   XCircle,
   Calendar,
-  History
+  History,
+  Sun,
+  Moon
 } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
@@ -86,6 +88,11 @@ export default function AdminDashboardPage() {
 
   // Fetch user data to verify admin role
   const { data: userData, loading: userLoading } = useDocData(userDocRef);
+
+  // Settings state
+  const [baseRate, setBaseRate] = useState('15');
+  const [dayCommission, setDayCommission] = useState('20');
+  const [nightCommission, setNightCommission] = useState('30');
 
   // Modal States
   const [isAddHubOpen, setIsAddHubOpen] = useState(false);
@@ -149,6 +156,21 @@ export default function AdminDashboardPage() {
   }, [db, isAuthorized]);
   const { data: realDrivers, loading: driversLoading } = useCollectionData(driversQuery);
 
+  // Platform Settings Subscription
+  const settingsDocRef = useMemoFirebase(() => {
+    if (!isAuthorized || !db) return null;
+    return doc(db, 'platform_settings', 'commissions');
+  }, [db, isAuthorized]);
+  const { data: platformSettings } = useDocData(settingsDocRef);
+
+  useEffect(() => {
+    if (platformSettings) {
+      setBaseRate(platformSettings.baseRate?.toString() || '15');
+      setDayCommission(platformSettings.dayCommission?.toString() || '20');
+      setNightCommission(platformSettings.nightCommission?.toString() || '30');
+    }
+  }, [platformSettings]);
+
   // Merge real and dummy data for display
   const displayDrivers = useMemo(() => {
     if (!realDrivers || realDrivers.length === 0) return DUMMY_DRIVERS;
@@ -175,6 +197,28 @@ export default function AdminDashboardPage() {
     await auth.signOut();
     toast({ title: 'Logged Out' });
     router.push('/admin/login');
+  };
+
+  const handleUpdateSettings = () => {
+    const data = {
+        baseRate: parseFloat(baseRate),
+        dayCommission: parseFloat(dayCommission),
+        nightCommission: parseFloat(nightCommission),
+        updatedAt: new Date().toISOString()
+    };
+
+    setDoc(doc(db, 'platform_settings', 'commissions'), data)
+        .then(() => {
+            toast({ title: 'Logic Synchronized', description: 'Platform rates and commissions have been updated.' });
+        })
+        .catch(async (err) => {
+            const permissionError = new FirestorePermissionError({
+                path: 'platform_settings/commissions',
+                operation: 'update',
+                requestResourceData: data
+            });
+            errorEmitter.emit('permission-error', permissionError);
+        });
   };
 
   const handleAddHub = () => {
@@ -498,6 +542,7 @@ export default function AdminDashboardPage() {
                         <DialogContent>
                             <DialogHeader>
                                 <DialogTitle className="font-black">Expand Network</DialogTitle>
+                                <DialogTitle className="font-black">Expand Network</DialogTitle>
                                 <DialogDescription>Define a new operational sector to scale your business.</DialogDescription>
                             </DialogHeader>
                             <div className="space-y-4 py-4">
@@ -670,9 +715,14 @@ export default function AdminDashboardPage() {
                         <CardContent className="space-y-6">
                             <div className="space-y-2">
                                 <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Base Rate (₹/KM)</Label>
-                                <Input defaultValue="15" type="number" className="h-12 border-none bg-secondary/30 font-black text-xl" />
+                                <Input 
+                                    value={baseRate} 
+                                    onChange={(e) => setBaseRate(e.target.value)}
+                                    type="number" 
+                                    className="h-12 border-none bg-secondary/30 font-black text-xl" 
+                                />
                             </div>
-                            <Button className="w-full h-14 font-black shadow-lg shadow-primary/20">Synchronize Urban Rates</Button>
+                            <Button onClick={handleUpdateSettings} className="w-full h-14 font-black shadow-lg shadow-primary/20">Synchronize Urban Rates</Button>
                         </CardContent>
                     </Card>
                     <Card className="border-none shadow-sm relative overflow-hidden">
@@ -680,14 +730,40 @@ export default function AdminDashboardPage() {
                             <ShieldCheck className="h-24 w-24" />
                         </div>
                         <CardHeader>
-                            <CardTitle className="text-lg font-black uppercase italic">Protocol Fee</CardTitle>
+                            <CardTitle className="text-lg font-black uppercase italic">Commission Policy</CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-6">
-                            <div className="space-y-2">
-                                <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Commission Percentage (%)</Label>
-                                <Input defaultValue="20" type="number" className="h-12 border-none bg-secondary/30 font-black text-xl" />
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                    <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest flex items-center gap-1">
+                                        <Sun className="h-3 w-3 text-orange-500" /> Commission (Day)
+                                    </Label>
+                                    <div className="relative">
+                                        <Input 
+                                            value={dayCommission} 
+                                            onChange={(e) => setDayCommission(e.target.value)}
+                                            type="number" 
+                                            className="h-12 border-none bg-secondary/30 font-black text-xl pr-8" 
+                                        />
+                                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground font-bold">%</span>
+                                    </div>
+                                </div>
+                                <div className="space-y-2">
+                                    <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest flex items-center gap-1">
+                                        <Moon className="h-3 w-3 text-blue-500" /> Night Commission
+                                    </Label>
+                                    <div className="relative">
+                                        <Input 
+                                            value={nightCommission} 
+                                            onChange={(e) => setNightCommission(e.target.value)}
+                                            type="number" 
+                                            className="h-12 border-none bg-secondary/30 font-black text-xl pr-8" 
+                                        />
+                                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground font-bold">%</span>
+                                    </div>
+                                </div>
                             </div>
-                            <Button variant="secondary" className="w-full h-14 font-black">Apply Platform Logic</Button>
+                            <Button onClick={handleUpdateSettings} variant="secondary" className="w-full h-14 font-black">Apply Platform Logic</Button>
                         </CardContent>
                     </Card>
                 </div>
