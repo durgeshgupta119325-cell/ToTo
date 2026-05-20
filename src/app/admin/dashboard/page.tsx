@@ -61,7 +61,7 @@ import { Separator } from '@/components/ui/separator';
 
 import { useState, useMemo, useEffect } from 'react';
 import { useFirestore, useCollectionData, useUser, useAuth, useDocData, useMemoFirebase } from '@/firebase';
-import { collection, query, orderBy, limit, doc, setDoc, addDoc, updateDoc, deleteDoc } from 'firebase/firestore';
+import { collection, query, orderBy, limit, doc, setDoc, addDoc, updateDoc, deleteDoc, where } from 'firebase/firestore';
 import { DUMMY_DRIVERS, DUMMY_CUSTOMERS } from '@/lib/mock-data';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogTrigger } from '@/components/ui/dialog';
 import { errorEmitter } from '@/firebase/error-emitter';
