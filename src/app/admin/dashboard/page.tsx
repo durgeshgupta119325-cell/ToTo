@@ -41,7 +41,8 @@ import {
   Calendar,
   History,
   Sun,
-  Moon
+  Moon,
+  Search
 } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
@@ -94,6 +95,10 @@ export default function AdminDashboardPage() {
   const [nightRate, setNightRate] = useState('20');
   const [dayCommission, setDayCommission] = useState('20');
   const [nightCommission, setNightCommission] = useState('30');
+
+  // Search States
+  const [driverSearch, setDriverSearch] = useState('');
+  const [riderSearch, setRiderSearch] = useState('');
 
   // Modal States
   const [isAddHubOpen, setIsAddHubOpen] = useState(false);
@@ -157,6 +162,12 @@ export default function AdminDashboardPage() {
   }, [db, isAuthorized]);
   const { data: realDrivers, loading: driversLoading } = useCollectionData(driversQuery);
 
+  const ridersQuery = useMemoFirebase(() => {
+    if (!isAuthorized || !db) return null;
+    return query(collection(db, 'users'), where('role', '==', 'customer'));
+  }, [db, isAuthorized]);
+  const { data: realRiders, loading: ridersLoading } = useCollectionData(ridersQuery);
+
   // Platform Settings Subscription
   const settingsDocRef = useMemoFirebase(() => {
     if (!isAuthorized || !db) return null;
@@ -175,10 +186,36 @@ export default function AdminDashboardPage() {
 
   // Merge real and dummy data
   const displayDrivers = useMemo(() => {
-    if (!realDrivers || realDrivers.length === 0) return DUMMY_DRIVERS;
-    const existingIds = new Set(realDrivers.map((d: any) => d.driverId || d.id));
-    return [...realDrivers, ...DUMMY_DRIVERS.filter(d => !existingIds.has(d.driverId))];
-  }, [realDrivers]);
+    const drivers = realDrivers || [];
+    const existingIds = new Set(drivers.map((d: any) => d.driverId || d.id));
+    const merged = [...drivers, ...DUMMY_DRIVERS.filter(d => !existingIds.has(d.driverId))];
+    
+    if (!driverSearch) return merged;
+    
+    const search = driverSearch.toLowerCase();
+    return merged.filter(d => 
+      d.name?.toLowerCase().includes(search) ||
+      d.phone?.toLowerCase().includes(search) ||
+      d.vehicleNumber?.toLowerCase().includes(search) ||
+      d.driverId?.toLowerCase().includes(search)
+    );
+  }, [realDrivers, driverSearch]);
+
+  const displayRiders = useMemo(() => {
+    const riders = realRiders || [];
+    const existingIds = new Set(riders.map((r: any) => r.uid));
+    const merged = [...riders, ...DUMMY_CUSTOMERS.filter(c => !existingIds.has(c.uid))];
+
+    if (!riderSearch) return merged;
+
+    const search = riderSearch.toLowerCase();
+    return merged.filter(c => 
+      c.name?.toLowerCase().includes(search) ||
+      c.phone?.toLowerCase().includes(search) ||
+      c.email?.toLowerCase().includes(search) ||
+      c.city?.toLowerCase().includes(search)
+    );
+  }, [realRiders, riderSearch]);
 
   const stats = useMemo(() => {
     if (!liveRides || !transactions) return { totalRides: 0, grossVolume: 0, activeCount: 0, netRevenue: 0 };
@@ -626,11 +663,23 @@ export default function AdminDashboardPage() {
             </TabsContent>
 
             <TabsContent value="drivers" className="space-y-6 animate-in fade-in duration-500">
+                <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                    <div>
+                        <h2 className="text-2xl font-black italic uppercase">Partner Directory</h2>
+                        <p className="text-sm text-muted-foreground">Search and manage integrated professional partners.</p>
+                    </div>
+                    <div className="relative w-full md:w-80">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                        <Input 
+                            placeholder="Search by name, ID, or vehicle..." 
+                            className="pl-9 bg-background h-10 font-medium"
+                            value={driverSearch}
+                            onChange={(e) => setDriverSearch(e.target.value)}
+                        />
+                    </div>
+                </div>
+
                 <Card className="border-none shadow-sm overflow-hidden">
-                    <CardHeader className="bg-background border-b px-6 py-4">
-                        <CardTitle className="text-lg">Partner Directory</CardTitle>
-                        <CardDescription className="text-xs">List of professional partners integrated into the urban network.</CardDescription>
-                    </CardHeader>
                     <CardContent className="p-0">
                         <Table>
                             <TableHeader className="bg-muted/30">
@@ -658,6 +707,11 @@ export default function AdminDashboardPage() {
                                         </TableCell>
                                     </TableRow>
                                 ))}
+                                {displayDrivers.length === 0 && (
+                                    <TableRow>
+                                        <TableCell colSpan={5} className="text-center py-16 text-muted-foreground italic text-sm">No partners match your current search.</TableCell>
+                                    </TableRow>
+                                )}
                             </TableBody>
                         </Table>
                     </CardContent>
@@ -665,11 +719,23 @@ export default function AdminDashboardPage() {
             </TabsContent>
 
             <TabsContent value="customers" className="space-y-6 animate-in fade-in duration-500">
+                <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                    <div>
+                        <h2 className="text-2xl font-black italic uppercase">Rider Intel</h2>
+                        <p className="text-sm text-muted-foreground">Search and manage active riders across operational sectors.</p>
+                    </div>
+                    <div className="relative w-full md:w-80">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                        <Input 
+                            placeholder="Search by name, email, or city..." 
+                            className="pl-9 bg-background h-10 font-medium"
+                            value={riderSearch}
+                            onChange={(e) => setRiderSearch(e.target.value)}
+                        />
+                    </div>
+                </div>
+
                 <Card className="border-none shadow-sm overflow-hidden">
-                    <CardHeader className="bg-background border-b px-6 py-4">
-                        <CardTitle className="text-lg">Rider Intel</CardTitle>
-                        <CardDescription className="text-xs">Active riders within the city hubs.</CardDescription>
-                    </CardHeader>
                     <CardContent className="p-0">
                         <Table>
                             <TableHeader className="bg-muted/30">
@@ -681,7 +747,7 @@ export default function AdminDashboardPage() {
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {DUMMY_CUSTOMERS.map(c => (
+                                {displayRiders.map(c => (
                                     <TableRow key={c.uid} className="hover:bg-muted/10 transition-colors">
                                         <TableCell className="text-sm font-black">{c.name}</TableCell>
                                         <TableCell className="text-xs font-bold flex items-center gap-1"><MapPin className="h-3 w-3" /> {c.city}</TableCell>
@@ -697,6 +763,11 @@ export default function AdminDashboardPage() {
                                         </TableCell>
                                     </TableRow>
                                 ))}
+                                {displayRiders.length === 0 && (
+                                    <TableRow>
+                                        <TableCell colSpan={4} className="text-center py-16 text-muted-foreground italic text-sm">No riders match your current search.</TableCell>
+                                    </TableRow>
+                                )}
                             </TableBody>
                         </Table>
                     </CardContent>
@@ -945,7 +1016,7 @@ export default function AdminDashboardPage() {
                                 </div>
                                 <div>
                                     <p className="text-[10px] font-black uppercase text-muted-foreground">Integration Date</p>
-                                    <p className="font-bold">{new Date(selectedRider.createdAt).toLocaleDateString()}</p>
+                                    <p className="font-bold">{mounted && selectedRider.createdAt ? new Date(selectedRider.createdAt).toLocaleDateString() : 'N/A'}</p>
                                 </div>
                             </div>
                         </div>
@@ -974,8 +1045,12 @@ export default function AdminDashboardPage() {
                             variant={selectedRider.isBlocked ? "outline" : "destructive"} 
                             className="w-full font-black uppercase h-12"
                             onClick={() => {
-                                toast({ title: selectedRider.isBlocked ? 'Access Restored' : 'Access Sanctioned' });
-                                setIsViewRiderOpen(false);
+                                const newBlockStatus = !selectedRider.isBlocked;
+                                updateDoc(doc(db, 'users', selectedRider.uid), { isBlocked: newBlockStatus })
+                                    .then(() => {
+                                        toast({ title: newBlockStatus ? 'Access Sanctioned' : 'Access Restored' });
+                                        setIsViewRiderOpen(false);
+                                    });
                             }}
                         >
                             {selectedRider.isBlocked ? 'Restore Platform Access' : 'Sanction Rider Identity'}
