@@ -32,7 +32,7 @@
         "isAvailable": { "type": "boolean" },
         "currentLat": { "type": "number" },
         "currentLng": { "type": "number" },
-        "geoCell": { "type": "string", "description": "H3/S2 style spatial grid ID for fast lookups." },
+        "geoCell": { "type": "string" },
         "rating": { "type": "number" },
         "totalTrips": { "type": "number" },
         "city": { "type": "string" },
@@ -82,23 +82,17 @@
         "createdAt": { "type": "string", "format": "date-time" }
       }
     },
-    "driver_location": {
-      "title": "Driver Location",
-      "description": "Real-time geospatial telemetry for a driver.",
+    "platform_settings": {
+      "title": "Platform Settings",
+      "description": "Global settings for fares and commissions.",
       "type": "object",
       "properties": {
-        "driverId": { "type": "string" },
-        "lat": { "type": "number" },
-        "lng": { "type": "number" },
-        "geoCell": { "type": "string" },
-        "heading": { "type": "number" },
-        "speed": { "type": "number" },
-        "isOnline": { "type": "boolean" },
-        "isAvailable": { "type": "boolean" },
-        "rating": { "type": "number" },
-        "lastUpdated": { "type": "string", "format": "date-time" }
-      },
-      "required": ["driverId", "lat", "lng", "isOnline", "geoCell"]
+        "dayRate": { "type": "number" },
+        "nightRate": { "type": "number" },
+        "dayCommission": { "type": "number" },
+        "nightCommission": { "type": "number" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      }
     }
   },
   "auth": {
@@ -117,9 +111,9 @@
       "schema": { "$ref": "#/backend/entities/ride" },
       "description": "Ride booking records."
     },
-    "/driver_locations/{driverId}": {
-      "schema": { "$ref": "#/backend/entities/driver_location" },
-      "description": "Real-time driver GPS data."
+    "/platform_settings/{settingId}": {
+      "schema": { "$ref": "#/backend/entities/platform_settings" },
+      "description": "Global platform configurations."
     }
   }
 }

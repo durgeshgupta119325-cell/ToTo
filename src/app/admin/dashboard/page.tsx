@@ -90,7 +90,8 @@ export default function AdminDashboardPage() {
   const { data: userData, loading: userLoading } = useDocData(userDocRef);
 
   // Settings state
-  const [baseRate, setBaseRate] = useState('15');
+  const [dayRate, setDayRate] = useState('15');
+  const [nightRate, setNightRate] = useState('20');
   const [dayCommission, setDayCommission] = useState('20');
   const [nightCommission, setNightCommission] = useState('30');
 
@@ -125,7 +126,7 @@ export default function AdminDashboardPage() {
     return mounted && !authLoading && !userLoading && !!user && !!userData && userData.role === 'admin';
   }, [authLoading, userLoading, user, userData, mounted]);
 
-  // Live Subscriptions - strictly guarded by isAuthorized and memoized
+  // Live Subscriptions
   const liveRidesQuery = useMemoFirebase(() => {
     if (!isAuthorized || !db) return null;
     return query(collection(db, 'rides'), orderBy('createdAt', 'desc'), limit(50));
@@ -152,11 +153,11 @@ export default function AdminDashboardPage() {
 
   const driversQuery = useMemoFirebase(() => {
     if (!isAuthorized || !db) return null;
-    return query(collection(db, 'drivers'), orderBy('createdAt', 'desc'));
+    return collection(db, 'drivers');
   }, [db, isAuthorized]);
   const { data: realDrivers, loading: driversLoading } = useCollectionData(driversQuery);
 
-  // Platform Settings Subscription - Permissive read in rules allows this doc access
+  // Platform Settings Subscription
   const settingsDocRef = useMemoFirebase(() => {
     if (!isAuthorized || !db) return null;
     return doc(db, 'platform_settings', 'commissions');
@@ -165,13 +166,14 @@ export default function AdminDashboardPage() {
 
   useEffect(() => {
     if (platformSettings) {
-      setBaseRate(platformSettings.baseRate?.toString() || '15');
+      setDayRate(platformSettings.dayRate?.toString() || '15');
+      setNightRate(platformSettings.nightRate?.toString() || '20');
       setDayCommission(platformSettings.dayCommission?.toString() || '20');
       setNightCommission(platformSettings.nightCommission?.toString() || '30');
     }
   }, [platformSettings]);
 
-  // Merge real and dummy data for display
+  // Merge real and dummy data
   const displayDrivers = useMemo(() => {
     if (!realDrivers || realDrivers.length === 0) return DUMMY_DRIVERS;
     const existingIds = new Set(realDrivers.map((d: any) => d.driverId || d.id));
@@ -201,7 +203,8 @@ export default function AdminDashboardPage() {
 
   const handleUpdateSettings = () => {
     const data = {
-        baseRate: parseFloat(baseRate),
+        dayRate: parseFloat(dayRate),
+        nightRate: parseFloat(nightRate),
         dayCommission: parseFloat(dayCommission),
         nightCommission: parseFloat(nightCommission),
         updatedAt: new Date().toISOString()
@@ -298,9 +301,7 @@ export default function AdminDashboardPage() {
     );
   }
 
-  if (!isAuthorized) {
-      return null;
-  }
+  if (!isAuthorized) return null;
 
   return (
     <div className="flex min-h-dvh flex-col bg-secondary/10">
@@ -441,50 +442,6 @@ export default function AdminDashboardPage() {
                 </Card>
             </TabsContent>
 
-            <TabsContent value="reviews" className="space-y-6 animate-in fade-in duration-500">
-                <Card className="border-none shadow-sm overflow-hidden">
-                    <CardHeader className="bg-background border-b px-6 py-4">
-                        <CardTitle className="text-lg">Consumer Feedback Logs</CardTitle>
-                        <CardDescription className="text-xs">Direct quality insights from recently completed trips.</CardDescription>
-                    </CardHeader>
-                    <CardContent className="p-0">
-                        <Table>
-                            <TableHeader className="bg-muted/30">
-                                <TableRow>
-                                    <TableHead className="text-[10px] font-black uppercase">Rating</TableHead>
-                                    <TableHead className="text-[10px] font-black uppercase">Ride ID</TableHead>
-                                    <TableHead className="text-[10px] font-black uppercase">Commentary</TableHead>
-                                    <TableHead className="text-right text-[10px] font-black uppercase">Timestamp</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {reviews?.map((review: any) => (
-                                    <TableRow key={review.id} className="hover:bg-muted/10 transition-colors">
-                                        <TableCell>
-                                            <div className="flex gap-0.5">
-                                                {[...Array(5)].map((_, i) => (
-                                                    <Star key={i} className={cn("h-3 w-3", i < review.rating ? "text-primary fill-primary" : "text-muted-foreground/20")} />
-                                                ))}
-                                            </div>
-                                        </TableCell>
-                                        <TableCell className="text-xs font-mono font-bold">{review.rideId}</TableCell>
-                                        <TableCell className="text-xs italic text-muted-foreground max-w-[300px] truncate font-medium">"{review.comment}"</TableCell>
-                                        <TableCell className="text-right text-[10px] font-mono text-muted-foreground">
-                                          {mounted ? new Date(review.createdAt).toLocaleString() : 'Loading...'}
-                                        </TableCell>
-                                    </TableRow>
-                                ))}
-                                {(!reviews || reviews.length === 0) && !reviewsLoading && (
-                                    <TableRow>
-                                        <TableCell colSpan={4} className="text-center py-16 text-muted-foreground italic text-sm">Quality logs are currently empty.</TableCell>
-                                    </TableRow>
-                                )}
-                            </TableBody>
-                        </Table>
-                    </CardContent>
-                </Card>
-            </TabsContent>
-
             <TabsContent value="ledger" className="space-y-6 animate-in fade-in duration-500">
                 <Card className="border-none shadow-sm overflow-hidden">
                     <CardHeader className="bg-background border-b px-6 py-4">
@@ -521,6 +478,50 @@ export default function AdminDashboardPage() {
                                 {(!transactions || transactions.length === 0) && !txLoading && (
                                     <TableRow>
                                         <TableCell colSpan={5} className="text-center py-16 text-muted-foreground italic text-sm">Financial ledger currently inactive.</TableCell>
+                                    </TableRow>
+                                )}
+                            </TableBody>
+                        </Table>
+                    </CardContent>
+                </Card>
+            </TabsContent>
+
+            <TabsContent value="reviews" className="space-y-6 animate-in fade-in duration-500">
+                <Card className="border-none shadow-sm overflow-hidden">
+                    <CardHeader className="bg-background border-b px-6 py-4">
+                        <CardTitle className="text-lg">Consumer Feedback Logs</CardTitle>
+                        <CardDescription className="text-xs">Direct quality insights from recently completed trips.</CardDescription>
+                    </CardHeader>
+                    <CardContent className="p-0">
+                        <Table>
+                            <TableHeader className="bg-muted/30">
+                                <TableRow>
+                                    <TableHead className="text-[10px] font-black uppercase">Rating</TableHead>
+                                    <TableHead className="text-[10px] font-black uppercase">Ride ID</TableHead>
+                                    <TableHead className="text-[10px] font-black uppercase">Commentary</TableHead>
+                                    <TableHead className="text-right text-[10px] font-black uppercase">Timestamp</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {reviews?.map((review: any) => (
+                                    <TableRow key={review.id} className="hover:bg-muted/10 transition-colors">
+                                        <TableCell>
+                                            <div className="flex gap-0.5">
+                                                {[...Array(5)].map((_, i) => (
+                                                    <Star key={i} className={cn("h-3 w-3", i < review.rating ? "text-primary fill-primary" : "text-muted-foreground/20")} />
+                                                ))}
+                                            </div>
+                                        </TableCell>
+                                        <TableCell className="text-xs font-mono font-bold">{review.rideId}</TableCell>
+                                        <TableCell className="text-xs italic text-muted-foreground max-w-[300px] truncate font-medium">"{review.comment}"</TableCell>
+                                        <TableCell className="text-right text-[10px] font-mono text-muted-foreground">
+                                          {mounted ? new Date(review.createdAt).toLocaleString() : 'Loading...'}
+                                        </TableCell>
+                                    </TableRow>
+                                ))}
+                                {(!reviews || reviews.length === 0) && !reviewsLoading && (
+                                    <TableRow>
+                                        <TableCell colSpan={4} className="text-center py-16 text-muted-foreground italic text-sm">Quality logs are currently empty.</TableCell>
                                     </TableRow>
                                 )}
                             </TableBody>
@@ -709,17 +710,33 @@ export default function AdminDashboardPage() {
                             <ReceiptIndianRupee className="h-24 w-24" />
                         </div>
                         <CardHeader>
-                            <CardTitle className="text-lg font-black uppercase italic">Fare Policy</CardTitle>
+                            <CardTitle className="text-lg font-black uppercase italic">Urban Fare Policy</CardTitle>
+                            <CardDescription className="text-[10px] font-bold uppercase tracking-widest">Base Rate Management (₹/KM)</CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-6">
-                            <div className="space-y-2">
-                                <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Base Rate (₹/KM)</Label>
-                                <Input 
-                                    value={baseRate} 
-                                    onChange={(e) => setBaseRate(e.target.value)}
-                                    type="number" 
-                                    className="h-12 border-none bg-secondary/30 font-black text-xl" 
-                                />
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                    <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest flex items-center gap-1">
+                                        <Sun className="h-3 w-3 text-orange-500" /> Day Rate
+                                    </Label>
+                                    <Input 
+                                        value={dayRate} 
+                                        onChange={(e) => setDayRate(e.target.value)}
+                                        type="number" 
+                                        className="h-12 border-none bg-secondary/30 font-black text-xl" 
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest flex items-center gap-1">
+                                        <Moon className="h-3 w-3 text-blue-500" /> Night Rate
+                                    </Label>
+                                    <Input 
+                                        value={nightRate} 
+                                        onChange={(e) => setNightRate(e.target.value)}
+                                        type="number" 
+                                        className="h-12 border-none bg-secondary/30 font-black text-xl" 
+                                    />
+                                </div>
                             </div>
                             <Button onClick={handleUpdateSettings} className="w-full h-14 font-black shadow-lg shadow-primary/20">Synchronize Urban Rates</Button>
                         </CardContent>
@@ -730,12 +747,13 @@ export default function AdminDashboardPage() {
                         </div>
                         <CardHeader>
                             <CardTitle className="text-lg font-black uppercase italic">Commission Policy</CardTitle>
+                            <CardDescription className="text-[10px] font-bold uppercase tracking-widest">Platform Revenue Logic (%)</CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-6">
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="space-y-2">
                                     <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest flex items-center gap-1">
-                                        <Sun className="h-3 w-3 text-orange-500" /> Commission Payable (Day)
+                                        <Sun className="h-3 w-3 text-orange-500" /> Commission (Day)
                                     </Label>
                                     <div className="relative">
                                         <Input 
