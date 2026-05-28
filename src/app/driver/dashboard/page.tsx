@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect, useMemo } from 'react';
@@ -50,7 +49,6 @@ export default function DriverDashboardPage() {
   }, []);
 
   // REAL-TIME LOCATION INGESTION SERVICE
-  // Pushes high-fidelity GPS updates every 5 seconds to the geospatial store.
   useEffect(() => {
     if (!isOnline || !user || !db || !mounted) return;
 
@@ -77,7 +75,6 @@ export default function DriverDashboardPage() {
         rating: 4.8
       }, { merge: true });
 
-      // Update the main driver document for profile views
       updateDoc(doc(db, 'drivers', user.uid), {
         currentLat: lat,
         currentLng: lng,
@@ -85,12 +82,11 @@ export default function DriverDashboardPage() {
         isOnline: true
       }).catch(() => {});
       
-    }, 5000); // 5s Ingestion Cycle
+    }, 5000);
 
     return () => clearInterval(interval);
   }, [isOnline, user, db, activeRide, mounted]);
 
-  // Real-time Transactions (Earnings)
   const transactionsQuery = useMemo(() => {
     if (!user || !db) return null;
     return query(
@@ -110,14 +106,13 @@ export default function DriverDashboardPage() {
     return { balance, totalTrips: trips, rating: 4.8 };
   }, [transactions]);
 
-  // Real-time Handshake Listener for Incoming Dispatch Requests
   useEffect(() => {
     if (!isOnline || !user || !db || activeRide) return;
 
     const q = query(
       collection(db, 'rides'),
       where('status', '==', 'requested'),
-      where('driverId', '==', user.uid), // Only listen for direct dispatches
+      where('driverId', '==', user.uid),
       limit(1)
     );
 

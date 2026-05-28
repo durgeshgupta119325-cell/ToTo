@@ -1,4 +1,3 @@
-
 "use client";
 
 import Link from 'next/link';
@@ -184,7 +183,7 @@ export default function AdminDashboardPage() {
     }
   }, [platformSettings]);
 
-  // Merge real and dummy data
+  // Merge real and dummy data for Partner tab
   const displayDrivers = useMemo(() => {
     const drivers = realDrivers || [];
     const existingIds = new Set(drivers.map((d: any) => d.driverId || d.id));
@@ -201,6 +200,7 @@ export default function AdminDashboardPage() {
     );
   }, [realDrivers, driverSearch]);
 
+  // Merge real and dummy data for Rider tab
   const displayRiders = useMemo(() => {
     const riders = realRiders || [];
     const existingIds = new Set(riders.map((r: any) => r.uid));
@@ -824,7 +824,7 @@ export default function AdminDashboardPage() {
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="space-y-2">
                                     <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest flex items-center gap-1">
-                                        <Sun className="h-3 w-3 text-orange-500" /> Commission (Day)
+                                        <Sun className="h-3 w-3 text-orange-500" /> Commission Payable (Day)
                                     </Label>
                                     <div className="relative">
                                         <Input 
