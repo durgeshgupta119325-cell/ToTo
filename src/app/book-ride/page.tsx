@@ -12,7 +12,7 @@ import { Icons } from '@/components/icons';
 import { 
     ArrowLeft, Car, Zap, Navigation, Search, 
     Loader2, CheckCircle2, Copy, Clock, ShieldCheck,
-    Truck, MapPin
+    Truck, MapPin, Map as MapIcon, LocateFixed
 } from 'lucide-react';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { useToast } from '@/hooks/use-toast';
@@ -33,6 +33,16 @@ type RideOption = {
     icon: React.ElementType;
     fare: number;
     eta: number;
+};
+
+// Mock Geocoding Data for the Prototype
+const MOCK_LOCATIONS: Record<string, { lat: number, lng: number }> = {
+    'Boring Road': { lat: 25.6171, lng: 85.1165 },
+    'Patna Junction': { lat: 25.6022, lng: 85.1376 },
+    'Kankarbagh': { lat: 25.5979, lng: 85.1524 },
+    'Patliputra': { lat: 25.6322, lng: 85.1012 },
+    'Airport': { lat: 25.5912, lng: 85.0881 },
+    'Gandhi Maidan': { lat: 25.6156, lng: 85.1432 },
 };
 
 export default function BookRidePage() {
@@ -61,12 +71,13 @@ export default function BookRidePage() {
   const { data: availableCities, loading: hubsLoading } = useCollectionData(hubsQuery);
 
   const rideOptions: RideOption[] = useMemo(() => {
-    if (!distance) return [];
+    if (distance === null) return [];
+    // Dynamic Pricing Engine based on Distance
     return [
-        { type: 'Auto', description: 'Affordable, open-air rides', icon: Zap, fare: Math.round(distance * 10), eta: 3 },
-        { type: 'Mini', description: 'Comfy, compact hatchbacks', icon: Car, fare: Math.round(distance * 14), eta: 5 },
-        { type: 'Sedan', description: 'Spacious, premium sedans', icon: ShieldCheck, fare: Math.round(distance * 18), eta: 4 },
-        { type: 'SUV', description: 'Large SUVs for groups', icon: Truck, fare: Math.round(distance * 25), eta: 8 },
+        { type: 'Auto', description: 'Affordable, open-air rides', icon: Zap, fare: Math.round(distance * 12 + 20), eta: 3 },
+        { type: 'Mini', description: 'Comfy, compact hatchbacks', icon: Car, fare: Math.round(distance * 15 + 40), eta: 5 },
+        { type: 'Sedan', description: 'Spacious, premium sedans', icon: ShieldCheck, fare: Math.round(distance * 20 + 60), eta: 4 },
+        { type: 'SUV', description: 'Large SUVs for groups', icon: Truck, fare: Math.round(distance * 30 + 100), eta: 8 },
     ];
   }, [distance]);
 
@@ -82,7 +93,9 @@ export default function BookRidePage() {
             toast({ title: "Partner Found!", description: "A driver has accepted your request." });
         }
       }
-    }, (err) => {});
+    }, (err) => {
+        // Handled by FirebaseErrorListener
+    });
 
     return () => unsubscribe();
   }, [currentRideId, db, toast]);
@@ -90,9 +103,15 @@ export default function BookRidePage() {
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (pickup && destination) {
-      const randomDistance = parseFloat((Math.random() * (15 - 2) + 2).toFixed(1));
-      setDistance(randomDistance);
+      // Simulate Geocoding
+      const pCoord = MOCK_LOCATIONS[pickup] || { lat: 25.5941, lng: 85.1376 };
+      const dCoord = MOCK_LOCATIONS[destination] || { lat: 25.6100, lng: 85.1500 };
+      
+      // Calculate Real Haversine Distance
+      const realDist = calculateDistance(pCoord.lat, pCoord.lng, dCoord.lat, dCoord.lng);
+      setDistance(parseFloat(realDist.toFixed(2)));
       setStep('options');
+      toast({ title: "Map Synchronized", description: `Distance calculated: ${realDist.toFixed(2)} km` });
     } else {
       toast({ variant: 'destructive', title: 'Input Required', description: 'Enter pickup and destination.' });
     }
@@ -108,24 +127,14 @@ export default function BookRidePage() {
     setIsConfirmModalOpen(true);
   };
 
-  /**
-   * HIGH-PERFORMANCE MATCHING ENGINE
-   * 1. GPS to Geo Cell Encoding
-   * 2. Spatial Grid Candidate Search (S2/H3 Style)
-   * 3. Scoring Engine (Distance, Rating)
-   */
   const findBestPartner = async (pickupLat: number, pickupLng: number) => {
     if (!db) return null;
-    
-    // Step 1: Encode user location to grid cells
     const targetCells = getNearbyCells(pickupLat, pickupLng, 1);
-    
-    // Step 2: Spatial Search in Firestore (Candidate Search)
     const q = query(
         collection(db, 'driver_locations'),
         where('isOnline', '==', true),
         where('isAvailable', '==', true),
-        where('geoCell', 'in', targetCells) // Query limited to spatial neighbors
+        where('geoCell', 'in', targetCells)
     );
 
     const snapshot = await getDocs(q);
@@ -133,7 +142,6 @@ export default function BookRidePage() {
 
     if (candidates.length === 0) return null;
 
-    // Step 3: Weighted Scoring Engine
     const scoredCandidates = candidates.map(c => {
         const dist = calculateDistance(pickupLat, pickupLng, c.lat, c.lng);
         const score = calculateMatchingScore({
@@ -144,7 +152,6 @@ export default function BookRidePage() {
         return { ...c, score, dist };
     });
 
-    // Step 4: Dispatch to best node
     return scoredCandidates.sort((a, b) => b.score - a.score)[0];
   };
 
@@ -152,13 +159,10 @@ export default function BookRidePage() {
     if (!selectedOption || !user || !distance || !db) return;
 
     setIsMatching(true);
+    const pCoord = MOCK_LOCATIONS[pickup] || { lat: 25.5941, lng: 85.1376 };
+    const dCoord = MOCK_LOCATIONS[destination] || { lat: 25.6100, lng: 85.1500 };
     
-    // Simulate current user location (Patna central)
-    const userLat = 25.5941;
-    const userLng = 85.1376;
-    
-    // Run the matching engine
-    const bestPartner = await findBestPartner(userLat, userLng);
+    const bestPartner = await findBestPartner(pCoord.lat, pCoord.lng);
 
     const rideId = `RIDE_${Date.now()}`;
     const otp = Math.floor(1000 + Math.random() * 9000).toString();
@@ -168,17 +172,17 @@ export default function BookRidePage() {
         customerId: user.uid,
         customerName: user.displayName || 'Customer',
         status: 'requested',
-        driverId: bestPartner?.driverId || null, // Direct dispatch if partner found
+        driverId: bestPartner?.driverId || null,
         pickup: {
             address: pickup,
-            lat: userLat,
-            lng: userLng,
-            geoCell: getGeoCell(userLat, userLng)
+            lat: pCoord.lat,
+            lng: pCoord.lng,
+            geoCell: getGeoCell(pCoord.lat, pCoord.lng)
         },
         dropoff: {
             address: destination,
-            lat: 25.6000,
-            lng: 85.1500
+            lat: dCoord.lat,
+            lng: dCoord.lng
         },
         fare: selectedOption.fare,
         distance: distance,
@@ -236,21 +240,32 @@ export default function BookRidePage() {
                         <h1 className="text-2xl font-black tracking-tight italic uppercase">Where to?</h1>
                         <form onSubmit={handleSearch} className="space-y-4">
                             <div className="space-y-3">
-                                <Input
-                                    placeholder="Pickup location"
-                                    className="h-12 bg-secondary/30 border-none"
-                                    value={pickup}
-                                    onChange={(e) => setPickup(e.target.value)}
-                                />
-                                <Input
-                                    placeholder="Destination location"
-                                    className="h-12 bg-secondary/30 border-none"
-                                    value={destination}
-                                    onChange={(e) => setDestination(e.target.value)}
-                                />
+                                <div className="relative">
+                                    <LocateFixed className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-primary" />
+                                    <Input
+                                        placeholder="Pickup location"
+                                        className="h-12 bg-secondary/30 border-none pl-10"
+                                        list="locations"
+                                        value={pickup}
+                                        onChange={(e) => setPickup(e.target.value)}
+                                    />
+                                </div>
+                                <div className="relative">
+                                    <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-destructive" />
+                                    <Input
+                                        placeholder="Destination location"
+                                        className="h-12 bg-secondary/30 border-none pl-10"
+                                        list="locations"
+                                        value={destination}
+                                        onChange={(e) => setDestination(e.target.value)}
+                                    />
+                                </div>
+                                <datalist id="locations">
+                                    {Object.keys(MOCK_LOCATIONS).map(loc => <option key={loc} value={loc} />)}
+                                </datalist>
                             </div>
                             <Button type="submit" size="lg" className="w-full h-14 text-lg font-black shadow-lg">
-                                MATCH NEARBY NODES
+                                CALCULATE TRIP
                             </Button>
                         </form>
                     </div>
@@ -262,7 +277,7 @@ export default function BookRidePage() {
                             <Button variant="ghost" size="sm" onClick={() => setStep('search')} className="-ml-2">
                                 <ArrowLeft className="h-4 w-4 mr-1" /> Back
                             </Button>
-                            <Badge variant="secondary" className="px-3 py-1 font-bold">{distance} km sector</Badge>
+                            <Badge variant="secondary" className="px-3 py-1 font-bold">{distance} km route</Badge>
                         </div>
                         
                         <div className="space-y-3">
@@ -346,19 +361,45 @@ export default function BookRidePage() {
           </div>
 
           <div className="relative h-full w-full bg-secondary/10 overflow-hidden">
-            {mapImage ? (
-                <Image
-                    alt="Urban Grid"
-                    src={mapImage.imageUrl}
-                    fill
-                    className="object-cover"
-                    priority
-                />
-            ) : (
-                <div className="flex h-full items-center justify-center bg-muted/30">
-                    <Loader2 className="h-10 w-10 text-primary animate-spin" />
-                </div>
-            )}
+            {/* Simulation of a Google Map visualization with route overlays */}
+            <div className="absolute inset-0 z-0">
+                {mapImage && (
+                    <Image
+                        alt="Urban Grid"
+                        src={mapImage.imageUrl}
+                        fill
+                        className="object-cover opacity-80"
+                        priority
+                    />
+                )}
+            </div>
+            
+            {/* Real-time Overlay for Trip Data */}
+            <div className="absolute top-4 left-4 right-4 flex justify-center z-10">
+                <Card className="bg-background/90 backdrop-blur border-none shadow-2xl p-4 flex items-center gap-6 max-w-md w-full">
+                    <div className="flex items-center gap-2">
+                        <div className="h-2 w-2 rounded-full bg-primary" />
+                        <span className="text-[10px] font-black uppercase">{pickup || 'Pickup'}</span>
+                    </div>
+                    <div className="flex-1 h-px bg-muted border-t-2 border-dashed border-primary/30 relative">
+                        {distance && (
+                            <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-primary text-black px-2 rounded-full text-[8px] font-bold">
+                                {distance} KM
+                            </div>
+                        )}
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <span className="text-[10px] font-black uppercase">{destination || 'Dropoff'}</span>
+                        <div className="h-2 w-2 rounded-full bg-destructive" />
+                    </div>
+                </Card>
+            </div>
+
+            {/* Simulated UI Map Controls */}
+            <div className="absolute bottom-6 right-6 flex flex-col gap-2 z-10">
+                <Button size="icon" variant="secondary" className="rounded-full shadow-lg"><LocateFixed className="h-4 w-4" /></Button>
+                <Button size="icon" variant="secondary" className="rounded-full shadow-lg"><MapIcon className="h-4 w-4" /></Button>
+            </div>
           </div>
         </div>
 
@@ -379,6 +420,11 @@ export default function BookRidePage() {
                             <p className="text-sm font-black uppercase italic">{selectedOption?.type}</p>
                             <p className="text-[10px] text-muted-foreground">Approx ₹{selectedOption?.fare}</p>
                         </div>
+                    </div>
+                    <div className="p-4 bg-muted/30 rounded-xl border space-y-2">
+                        <p className="text-[10px] font-black uppercase text-muted-foreground">Trip Distance</p>
+                        <p className="text-lg font-black">{distance} KM</p>
+                        <p className="text-[10px] text-muted-foreground font-medium italic">Fares are calculated based on real-time grid distance.</p>
                     </div>
                 </div>
                 <DialogFooter className="p-6 bg-secondary/10 flex-row gap-3">
